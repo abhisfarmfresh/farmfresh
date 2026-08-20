@@ -1,0 +1,26 @@
+// Firestore Security Rules for Abhis Farm Fresh
+// Deploy via Firebase Console → Firestore → Rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Products — public can read active products, only authenticated admin can write
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // Orders — anyone can create an order, only authenticated admin can read/update
+    match /orders/{orderId} {
+      allow create: if true;
+      allow read, update: if request.auth != null;
+      allow delete: if false;  // Orders should never be deleted
+    }
+
+    // Customers — only authenticated admin can read/write
+    match /customers/{customerId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

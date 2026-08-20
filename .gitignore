@@ -1,10 +1,29 @@
-# Private Firebase & Cloudinary Keys & Secrets
+# ─── Abhis Farm Fresh — Git Ignore Rules ───
+
+# Firebase & Cloudinary secrets (NEVER commit real keys)
 js/firebase-config.js
 firebase-config.js
 js/cloudinary.config.js
+shared/config/*.config.js
+
+# Environment files
 .env
 .env.local
+.env.production
 
-# OS Files
+# OS files
 .DS_Store
+Thumbs.db
+
+# Logs
 *.log
+npm-debug.log*
+
+# Seed file (one-time use)
+seed.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
