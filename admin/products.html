@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product & Daily Price CRUD | Abhis Farm Fresh Admin</title>
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/admin.css">
+
+    <!-- Cloudinary & Firebase SDKs -->
+    <script src="../js/cloudinary.config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="../js/firebase-config.js"></script>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+    <!-- Mobile Top Navigation Header -->
+    <header class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-2 font-bold text-sm">
+            <div class="h-7 w-7 rounded-lg bg-emerald-800 p-1 flex items-center justify-center">
+                <img src="../images/logo.png" alt="Logo" class="h-full w-auto">
+            </div>
+            <span>Abhis Admin CRM</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="index.html" class="p-1.5 text-slate-300 hover:text-white"><span class="material-symbols-outlined text-xl">dashboard</span></a>
+            <button onclick="AdminAuth.logout()" class="text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg">Sign Out</button>
+        </div>
+    </header>
+
+    <!-- Sidebar Navigation (Desktop) -->
+    <aside class="admin-sidebar">
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-800 to-emerald-950 p-1.5 flex items-center justify-center shadow-md">
+                <img src="../images/logo.png" alt="Logo" class="h-full w-auto">
+            </div>
+            <div>
+                <h2 class="font-extrabold text-sm text-white leading-tight">Abhis Farm Fresh</h2>
+                <p class="text-[11px] text-emerald-400 font-semibold">Executive Admin CRM</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
+            <a href="index.html" class="admin-sidebar-link">
+                <span class="material-symbols-outlined text-base">dashboard</span>
+                <span>Executive Dashboard</span>
+            </a>
+            <a href="orders.html" class="admin-sidebar-link">
+                <span class="material-symbols-outlined text-base">receipt_long</span>
+                <span>Orders & Verification</span>
+            </a>
+            <a href="products.html" class="admin-sidebar-link active">
+                <span class="material-symbols-outlined text-base">inventory_2</span>
+                <span>Product & Price CRUD</span>
+            </a>
+            <a href="customers.html" class="admin-sidebar-link">
+                <span class="material-symbols-outlined text-base">group</span>
+                <span>Customer Accounts</span>
+            </a>
+
+            <div class="pt-6 border-t border-slate-800/80 mt-6">
+                <a href="../customer/index.html" target="_blank" class="admin-sidebar-link text-emerald-400 hover:bg-slate-800">
+                    <span class="material-symbols-outlined text-base">open_in_new</span>
+                    <span>View Customer Website</span>
+                </a>
+            </div>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800 bg-slate-950/60 flex justify-between items-center text-xs">
+            <div class="space-y-0.5">
+                <div id="admin-profile-name" class="font-bold text-white">Admin Officer</div>
+                <div id="admin-profile-email" class="text-[10px] text-slate-400">admin@abhisfarmfresh.com</div>
+            </div>
+            <button onclick="AdminAuth.logout()" class="text-xs text-red-400 hover:text-red-300 font-semibold hover:underline">Logout</button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main space-y-6">
+        
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Vegetables & Daily Prices</h1>
+                <p class="text-xs sm:text-sm text-slate-500 mt-1">Update daily vegetable rates, manage cold storage inventory, and add new produce.</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div id="products-count-label" class="text-xs font-bold text-slate-600 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm hidden sm:inline-block">
+                    Loading...
+                </div>
+                <button type="button" onclick="openProductModal()" 
+                        class="admin-btn admin-btn-primary text-xs py-2.5 px-4 rounded-xl shadow-md">
+                    <span class="material-symbols-outlined text-base">add</span>
+                    <span>+ Add New Vegetable</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="admin-card p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+            <!-- Category Filter Pills -->
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                <button type="button" onclick="filterAdminCategory('all')" id="admin-cat-all" 
+                        class="admin-cat-pill px-3 py-1 rounded-full text-xs font-bold transition-all bg-emerald-800 text-white shadow-sm">
+                    All Categories
+                </button>
+                <button type="button" onclick="filterAdminCategory('leafy')" id="admin-cat-leafy" 
+                        class="admin-cat-pill px-3 py-1 rounded-full text-xs font-bold transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">
+                    Leafy
+                </button>
+                <button type="button" onclick="filterAdminCategory('root')" id="admin-cat-root" 
+                        class="admin-cat-pill px-3 py-1 rounded-full text-xs font-bold transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">
+                    Root
+                </button>
+                <button type="button" onclick="filterAdminCategory('everyday')" id="admin-cat-everyday" 
+                        class="admin-cat-pill px-3 py-1 rounded-full text-xs font-bold transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">
+                    Everyday
+                </button>
+                <button type="button" onclick="filterAdminCategory('exotic')" id="admin-cat-exotic" 
+                        class="admin-cat-pill px-3 py-1 rounded-full text-xs font-bold transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">
+                    Exotic
+                </button>
+                <button type="button" onclick="filterAdminCategory('seasonal')" id="admin-cat-seasonal" 
+                        class="admin-cat-pill px-3 py-1 rounded-full text-xs font-bold transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">
+                    Seasonal
+                </button>
+            </div>
+
+            <!-- Search Input -->
+            <div class="relative sm:w-72">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base">search</span>
+                <input type="text" id="product-admin-search" placeholder="Search vegetable name..." 
+                       class="admin-input pl-9 pr-3 py-2 text-xs">
+            </div>
+        </div>
+
+        <!-- Products Table Card -->
+        <div class="admin-card p-0 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Vegetable Produce</th>
+                            <th>Daily Price (₹ / KG)</th>
+                            <th>Minimum MOQ</th>
+                            <th>Stock Count</th>
+                            <th>Availability Status</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-products-tbody">
+                        <!-- Injected via admin-products.js -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Add / Edit Product Modal -->
+    <div id="product-form-modal" class="admin-modal-overlay hidden" style="display: none;">
+        <div class="admin-modal p-6 sm:p-8 space-y-5 max-w-lg">
+            
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 id="product-modal-title" class="font-extrabold text-base text-slate-900">Add New Fresh Vegetable</h3>
+                <button type="button" onclick="closeProductModal()" class="text-slate-400 hover:text-slate-700 p-1">
+                    <span class="material-symbols-outlined text-xl">close</span>
+                </button>
+            </div>
+
+            <form id="product-upsert-form" onsubmit="handleProductFormSubmit(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="edit-product-id">
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1" for="prod-name">Vegetable Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="prod-name" required placeholder="e.g. Fresh Tomato" class="admin-input">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1" for="prod-category">Category <span class="text-red-500">*</span></label>
+                        <select id="prod-category" required class="admin-input bg-white">
+                            <option value="everyday">Everyday Vegetables</option>
+                            <option value="leafy">Leafy Vegetables</option>
+                            <option value="root">Root Vegetables</option>
+                            <option value="exotic">Exotic Vegetables</option>
+                            <option value="seasonal">Seasonal Vegetables</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1" for="prod-price">Price per KG (₹) <span class="text-red-500">*</span></label>
+                        <input type="number" id="prod-price" step="0.5" min="1" required placeholder="e.g. 35" class="admin-input">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1" for="prod-stock">Stock Quantity (KG)</label>
+                        <input type="number" id="prod-stock" min="0" value="500" class="admin-input">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1" for="prod-status">Stock Status</label>
+                        <select id="prod-status" class="admin-input bg-white">
+                            <option value="available">Available (In Stock)</option>
+                            <option value="out_of_stock">Out of Stock</option>
+                            <option value="inactive">Inactive (Hidden)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1" for="prod-description">Produce Description</label>
+                    <textarea id="prod-description" rows="2" placeholder="Grade A quality, morning harvest details..." class="admin-input"></textarea>
+                </div>
+
+                <!-- Cloudinary Image Upload / URL -->
+                <div class="space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                    <label class="block font-bold text-slate-700">Produce Image</label>
+                    <div>
+                        <input type="file" id="prod-image-file" accept="image/*" class="text-[11px] text-slate-500">
+                        <p class="text-[10px] text-slate-400 mt-1">Uploads directly to Cloudinary (folder: <code>abhis/farmfresh</code>)</p>
+                    </div>
+                    <div class="text-[10px] text-slate-400 font-bold text-center">── OR Enter Image URL ──</div>
+                    <input type="text" id="prod-image-url" placeholder="https://... or ../images/farm_fresh_media_01.jpeg" class="admin-input text-[11px]">
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeProductModal()" class="admin-btn admin-btn-secondary py-2 px-4 rounded-xl">
+                        Cancel
+                    </button>
+                    <button type="submit" class="admin-btn admin-btn-primary py-2 px-5 rounded-xl shadow-md">
+                        <span>Save Produce</span>
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../shared/js/config.js"></script>
+    <script src="../shared/js/firebase-init.js"></script>
+    <script src="../shared/js/utils.js"></script>
+    <script src="js/admin-auth.js"></script>
+    <script src="js/admin-products.js"></script>
+</body>
+</html>

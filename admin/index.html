@@ -3,65 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login | Abhis Farm Fresh B2B CRM</title>
+    <title>Executive Dashboard | Abhis Farm Fresh Admin</title>
+    <meta name="robots" content="noindex, nofollow">
     
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/admin.css">
+
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="../js/firebase-config.js"></script>
 </head>
-<body class="bg-slate-900 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-100 min-h-screen">
 
-    <div class="bg-white rounded-3xl p-8 sm:p-10 w-full max-w-md shadow-2xl border border-slate-700/50 space-y-6">
-        <div class="text-center space-y-2">
-            <div class="w-14 h-14 bg-emerald-800 rounded-2xl mx-auto p-2.5 shadow-lg flex items-center justify-center mb-3">
-                <img src="../images/logo.png" alt="Abhis Farm Fresh Logo" class="h-full w-auto object-contain">
+    <!-- Mobile Top Navigation Header -->
+    <header class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-2 font-bold text-sm">
+            <div class="h-7 w-7 rounded-lg bg-emerald-800 p-1 flex items-center justify-center">
+                <img src="../images/logo.png" alt="Logo" class="h-full w-auto">
             </div>
-            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Abhis Farm Fresh</h1>
-            <p class="text-xs text-slate-500 font-semibold">B2B Admin CRM Operations Panel</p>
+            <span>Abhis Admin CRM</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="orders.html" class="p-1.5 text-slate-300 hover:text-white"><span class="material-symbols-outlined text-xl">receipt_long</span></a>
+            <button onclick="AdminAuth.logout()" class="text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg">Sign Out</button>
+        </div>
+    </header>
+
+    <!-- Sidebar Navigation (Desktop) -->
+    <aside class="admin-sidebar">
+        <!-- Brand Header -->
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-800 to-emerald-950 p-1.5 flex items-center justify-center shadow-md">
+                <img src="../images/logo.png" alt="Logo" class="h-full w-auto">
+            </div>
+            <div>
+                <h2 class="font-extrabold text-sm text-white leading-tight">Abhis Farm Fresh</h2>
+                <p class="text-[11px] text-emerald-400 font-semibold">Executive Admin CRM</p>
+            </div>
         </div>
 
-        <form id="admin-login-form" class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Username</label>
-                <input type="text" id="login-user" value="admin" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-emerald-800">
-            </div>
+        <!-- Navigation Links -->
+        <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
+            <a href="index.html" class="admin-sidebar-link active">
+                <span class="material-symbols-outlined text-base">dashboard</span>
+                <span>Executive Dashboard</span>
+            </a>
+            <a href="orders.html" class="admin-sidebar-link">
+                <span class="material-symbols-outlined text-base">receipt_long</span>
+                <span>Orders & Verification</span>
+            </a>
+            <a href="products.html" class="admin-sidebar-link">
+                <span class="material-symbols-outlined text-base">inventory_2</span>
+                <span>Product & Price CRUD</span>
+            </a>
+            <a href="customers.html" class="admin-sidebar-link">
+                <span class="material-symbols-outlined text-base">group</span>
+                <span>Customer Accounts</span>
+            </a>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Password</label>
-                <input type="password" id="login-pass" value="admin123" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-emerald-800">
+            <div class="pt-6 border-t border-slate-800/80 mt-6">
+                <a href="../customer/index.html" target="_blank" class="admin-sidebar-link text-emerald-400 hover:bg-slate-800">
+                    <span class="material-symbols-outlined text-base">open_in_new</span>
+                    <span>View Customer Website</span>
+                </a>
             </div>
+        </nav>
 
-            <div id="login-error" class="hidden text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200">
-                Invalid Username or Password. Try admin / admin123
+        <!-- Admin Profile Footer -->
+        <div class="p-4 border-t border-slate-800 bg-slate-950/60 flex justify-between items-center text-xs">
+            <div class="space-y-0.5">
+                <div id="admin-profile-name" class="font-bold text-white">Admin Officer</div>
+                <div id="admin-profile-email" class="text-[10px] text-slate-400">admin@abhisfarmfresh.com</div>
             </div>
-
-            <button type="submit" class="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold py-3 px-4 rounded-xl text-xs shadow-md transition-colors">
-                Sign In to Admin CRM
+            <button onclick="AdminAuth.logout()" class="text-xs text-red-400 hover:text-red-300 font-semibold hover:underline">
+                Logout
             </button>
-        </form>
+        </div>
+    </aside>
 
-        <div class="pt-4 border-t border-slate-100 text-center text-[11px] text-slate-400">
-            Demo Admin Credentials: <strong class="text-slate-700">admin</strong> / <strong class="text-slate-700">admin123</strong>
-            <div class="mt-2">
-                <a href="../index.html" class="text-emerald-700 hover:underline font-semibold">&larr; Back to Public Website</a>
+    <!-- Main Workspace Content -->
+    <main class="admin-main space-y-8">
+        
+        <!-- Header Banner -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Executive Dashboard</h1>
+                <p class="text-xs sm:text-sm text-slate-500 mt-1">Real-time revenue monitoring, customer orders, and produce stock management.</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <a href="products.html" class="admin-btn admin-btn-secondary text-xs">
+                    <span class="material-symbols-outlined text-base">edit_note</span>
+                    <span>Update Daily Prices</span>
+                </a>
+                <a href="orders.html" class="admin-btn admin-btn-primary text-xs shadow-md">
+                    <span class="material-symbols-outlined text-base">add_task</span>
+                    <span>Manage Orders</span>
+                </a>
             </div>
         </div>
-    </div>
 
-    <script src="js/admin.js"></script>
-    <script>
-        document.getElementById('admin-login-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const u = document.getElementById('login-user').value;
-            const p = document.getElementById('login-pass').value;
+        <!-- 5 KPI Stat Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
+            
+            <div class="admin-stat-card border-l-4 border-l-emerald-600">
+                <div class="stat-label">Total Sales (₹)</div>
+                <div id="kpi-total-sales" class="stat-value text-emerald-950">₹0</div>
+                <div class="text-[11px] text-emerald-700 font-semibold mt-1">Active Pipeline</div>
+            </div>
 
-            if (AdminAuth.login(u, p)) {
-                window.location.href = 'dashboard.html';
-            } else {
-                document.getElementById('login-error').classList.remove('hidden');
-            }
-        });
-    </script>
+            <div class="admin-stat-card">
+                <div class="stat-label">Today's Orders</div>
+                <div id="kpi-today-orders" class="stat-value text-slate-900">0</div>
+                <div class="text-[11px] text-slate-400 mt-1">24h Activity</div>
+            </div>
+
+            <div class="admin-stat-card border-l-4 border-l-amber-500">
+                <div class="stat-label">Pending Orders</div>
+                <div id="kpi-pending-orders" class="stat-value text-amber-700">0</div>
+                <div class="text-[11px] text-amber-600 font-bold mt-1">Action Required</div>
+            </div>
+
+            <div class="admin-stat-card border-l-4 border-l-emerald-500">
+                <div class="stat-label">Confirmed Orders</div>
+                <div id="kpi-confirmed-orders" class="stat-value text-emerald-700">0</div>
+                <div class="text-[11px] text-slate-400 mt-1">Approved for Dispatch</div>
+            </div>
+
+            <div class="admin-stat-card border-l-4 border-l-red-400">
+                <div class="stat-label">Rejected Orders</div>
+                <div id="kpi-rejected-orders" class="stat-value text-red-600">0</div>
+                <div class="text-[11px] text-slate-400 mt-1">Declined</div>
+            </div>
+
+        </div>
+
+        <!-- Content Split: Recent Orders (Col 8) & Stock Overview (Col 4) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Recent Customer Orders Table (Col 8) -->
+            <div class="lg:col-span-8 admin-card space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2 font-extrabold text-base text-slate-900">
+                        <span class="material-symbols-outlined text-emerald-800">receipt_long</span>
+                        <span>Recent Customer Orders</span>
+                    </div>
+                    <a href="orders.html" class="text-xs font-bold text-emerald-800 hover:underline">View All Orders &rarr;</a>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer & Shop</th>
+                                <th>Phone</th>
+                                <th>Date</th>
+                                <th>Grand Total</th>
+                                <th>Status</th>
+                                <th class="text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-orders-tbody">
+                            <!-- Injected via admin-dashboard.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Produce Inventory & Stock Overview (Col 4) -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="admin-card space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2 font-extrabold text-sm text-slate-900">
+                            <span class="material-symbols-outlined text-emerald-800 text-base">warehouse</span>
+                            <span>Produce Stock Status</span>
+                        </div>
+                        <a href="products.html" class="text-[11px] font-bold text-emerald-800 hover:underline">Manage &rarr;</a>
+                    </div>
+
+                    <div id="dash-products-overview" class="space-y-1">
+                        <!-- Injected via admin-dashboard.js -->
+                    </div>
+                </div>
+
+                <!-- Quick Admin Notice -->
+                <div class="p-5 bg-gradient-to-br from-emerald-950 to-slate-900 rounded-2xl text-white space-y-2 text-xs">
+                    <div class="flex items-center gap-2 text-emerald-300 font-bold">
+                        <span class="material-symbols-outlined text-base">notifications_active</span>
+                        <span>Daily 5 AM Morning Dispatch</span>
+                    </div>
+                    <p class="text-slate-300 leading-relaxed text-[11px]">
+                        Verify and confirm all pending B2B hotel and kitchen orders before 10 PM each night for morning 5 AM packing.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Scripts -->
+    <script src="../shared/js/config.js"></script>
+    <script src="../shared/js/firebase-init.js"></script>
+    <script src="../shared/js/utils.js"></script>
+    <script src="js/admin-auth.js"></script>
+    <script src="js/admin-dashboard.js"></script>
 </body>
 </html>
