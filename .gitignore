@@ -1,0 +1,9 @@
+# Private Firebase Keys & Secrets
+js/firebase-config.js
+firebase-config.js
+.env
+.env.local
+
+# OS Files
+.DS_Store
+*.log

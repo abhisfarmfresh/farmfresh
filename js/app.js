@@ -371,13 +371,26 @@ function setupEventListeners() {
 
     const quoteForm = document.getElementById('quote-form');
     if (quoteForm) {
-        quoteForm.addEventListener('submit', (e) => {
+        quoteForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (cartState.length === 0) {
                 alert("Please add produce items to your quote first.");
                 return;
             }
             const rfqId = `RFQ-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+            const quoteData = {
+                id: rfqId,
+                date: new Date().toLocaleString(),
+                items: cartState,
+                totalEstimate: cartState.reduce((sum, i) => sum + (i.price * i.quantity), 0),
+                status: "Pending Review"
+            };
+
+            // Save to Firebase Firestore if configured
+            if (window.FirebaseService) {
+                await window.FirebaseService.saveQuote(quoteData);
+            }
+
             alert(`🎉 Success! Wholesale RFQ ${rfqId} submitted. Our B2B Account Manager will call you within 2 hours.`);
             cartState = [];
             updateCartUI();
