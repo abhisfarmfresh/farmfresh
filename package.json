@@ -6,7 +6,12 @@
     "build": "node build-config.js",
     "start": "python3 -m http.server 8543"
   },
-  "keywords": ["farm-fresh", "vegetables", "b2b", "e-commerce"],
+  "keywords": [
+    "farm-fresh",
+    "vegetables",
+    "b2b",
+    "e-commerce"
+  ],
   "author": "Abhis Farm Fresh",
   "license": "ISC"
 }

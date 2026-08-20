@@ -1,0 +1,11 @@
+# Ignore node_modules and build artifacts from static assets upload
+node_modules/
+.git/
+.github/
+.wrangler/
+*.log
+.env*
+build-config.js
+package.json
+package-lock.json
+bun.lock*

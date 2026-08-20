@@ -6,6 +6,12 @@ firebase-config.js
 js/cloudinary.config.js
 shared/config/*.config.js
 
+# Dependencies & Build artifacts
+node_modules/
+.wrangler/
+dist/
+.output/
+
 # Environment files
 .env
 .env.local
