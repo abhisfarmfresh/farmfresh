@@ -2,11 +2,357 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=customer/index.html">
-    <title>Abhis Farm Fresh | Premium Fresh Vegetables</title>
-    <meta name="description" content="Abhis Farm Fresh — Premium fresh vegetables delivered to your business. Order in bulk for restaurants, hotels, and catering.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abhis Farm Fresh | Premium Fresh Vegetables Delivered to Your Business</title>
+    <meta name="description" content="Fresh, quality vegetables supplied for restaurants, hotels, catering businesses, retailers and everyday kitchens. Grade A produce, daily 5 AM morning harvest delivery.">
+    <meta name="keywords" content="vegetable e-commerce, fresh vegetables, B2B vegetables, wholesale produce, farm fresh, Thanjavur, Hyderabad, Chennai, hotel vegetable supply">
+    
+    <!-- Open Graph SEO -->
+    <meta property="og:title" content="Abhis Farm Fresh | Premium Fresh Vegetables">
+    <meta property="og:description" content="Fresh, quality vegetables supplied for restaurants, hotels, catering businesses and retailers. Grade A produce, daily morning harvest delivery.">
+    <meta property="og:image" content="images/farm_fresh_media_01.jpeg">
+    <meta property="og:type" content="website">
+
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
 </head>
-<body>
-    <p>Redirecting to <a href="customer/index.html">Abhis Farm Fresh</a>...</p>
+<body class="page-body">
+
+    <!-- Desktop & Tablet Header -->
+    <header class="glass-nav sticky top-0 z-50 border-b border-slate-200/80">
+        <div class="container h-20 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <a href="index.html" class="flex items-center gap-3 group">
+                <div class="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-800 to-emerald-950 p-1.5 shadow-md flex items-center justify-center">
+                    <img src="images/logo.png" alt="Abhis Farm Fresh Logo" class="h-full w-auto object-contain">
+                </div>
+                <div>
+                    <div class="font-extrabold text-lg sm:text-xl text-emerald-950 tracking-tight leading-tight flex items-center gap-2">
+                        Abhis Farm Fresh
+                        <span class="hidden sm:inline-flex chip chip-success text-[10px]">FSSAI Registered</span>
+                    </div>
+                    <div class="text-[11px] text-emerald-800 font-semibold">Premium Fresh Vegetables. Delivered to Your Business.</div>
+                </div>
+            </a>
+
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex items-center gap-7 text-xs font-bold text-slate-700">
+                <a href="index.html" class="nav-link text-emerald-800 font-extrabold hover:text-emerald-800 transition-colors">Home</a>
+                <a href="products.html" class="nav-link hover:text-emerald-800 transition-colors">Vegetables</a>
+                <a href="cart.html" class="nav-link hover:text-emerald-800 transition-colors flex items-center gap-1.5">
+                    Cart
+                    <span id="header-cart-badge" class="bg-emerald-700 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold" style="display: none;">0</span>
+                </a>
+                <a href="about.html" class="nav-link hover:text-emerald-800 transition-colors">About Us</a>
+                <a href="contact.html" class="nav-link hover:text-emerald-800 transition-colors">Contact</a>
+            </nav>
+
+            <!-- Action CTAs -->
+            <div class="flex items-center gap-2.5">
+                <a href="https://www.instagram.com/abhisfarmfresh?igsi=MXVhOXIzY2g0cHRwYw==" target="_blank" 
+                   class="hidden lg:flex bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold items-center gap-1.5 shadow-sm transition-all">
+                    Instagram
+                </a>
+                <a href="https://wa.me/916380710362" target="_blank" 
+                   class="btn-whatsapp px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                    <span class="material-symbols-outlined text-base">chat</span>
+                    <span class="hidden sm:inline">6380710362</span>
+                    <span class="sm:hidden">WhatsApp</span>
+                </a>
+                <!-- Mobile Cart Icon -->
+                <a href="cart.html" class="md:hidden relative p-2 text-slate-800 hover:text-emerald-800">
+                    <span class="material-symbols-outlined text-2xl">shopping_cart</span>
+                    <span id="mobile-header-cart-badge" class="absolute top-1 right-1 bg-emerald-700 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center" style="display: none;">0</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="space-y-12 sm:space-y-16 py-6 sm:py-10">
+        
+        <!-- Hero Section -->
+        <section class="container">
+            <div class="relative rounded-3xl bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 text-white p-6 sm:p-12 lg:p-14 overflow-hidden shadow-2xl border border-emerald-800/40">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+                    
+                    <div class="lg:col-span-7 space-y-6">
+                        <div class="inline-flex items-center gap-2 bg-emerald-800/70 border border-emerald-500/30 text-emerald-200 text-xs font-semibold px-4 py-1.5 rounded-full backdrop-blur-md">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            Fresh Daily Harvest • Min. 1 KG MOQ
+                        </div>
+
+                        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
+                            Premium Fresh Vegetables.<br>
+                            <span class="bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 bg-clip-text text-transparent">
+                                Delivered to Your Business.
+                            </span>
+                        </h1>
+
+                        <p class="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl">
+                            Fresh, quality vegetables supplied for restaurants, hotels, catering businesses, retailers and everyday kitchens. Grade A produce with daily 5 AM morning delivery slots.
+                        </p>
+
+                        <div class="flex flex-wrap gap-3 pt-2">
+                            <a href="products.html" class="btn btn-primary btn-lg bg-white hover:bg-slate-100 text-emerald-950 font-extrabold shadow-xl flex items-center gap-2">
+                                <span class="material-symbols-outlined text-xl text-emerald-800">storefront</span>
+                                Shop Fresh Vegetables
+                            </a>
+                            <a href="contact.html" class="btn btn-secondary btn-lg bg-emerald-900/60 hover:bg-emerald-900 border-emerald-700 text-white font-bold backdrop-blur-md flex items-center gap-2">
+                                <span class="material-symbols-outlined text-xl">inventory_2</span>
+                                Order in Bulk
+                            </a>
+                        </div>
+
+                        <!-- Trust Highlights -->
+                        <div class="grid grid-cols-3 gap-3 pt-4 border-t border-emerald-800/60 text-xs text-slate-300">
+                            <div>
+                                <div class="font-extrabold text-emerald-300 text-sm sm:text-base">100%</div>
+                                <div class="text-[11px] text-slate-300">Farm Fresh Daily</div>
+                            </div>
+                            <div>
+                                <div class="font-extrabold text-emerald-300 text-sm sm:text-base">5:00 AM</div>
+                                <div class="text-[11px] text-slate-300">Morning Slots</div>
+                            </div>
+                            <div>
+                                <div class="font-extrabold text-emerald-300 text-sm sm:text-base">Pay Offline</div>
+                                <div class="text-[11px] text-slate-300">No Online Gateway</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visual Hero Card -->
+                    <div class="lg:col-span-5">
+                        <div class="bg-white/10 border border-white/20 rounded-3xl p-4 sm:p-5 shadow-2xl backdrop-blur-md relative">
+                            <div class="relative h-64 sm:h-80 rounded-2xl overflow-hidden mb-4">
+                                <img src="images/farm_fresh_media_01.jpeg" alt="Harvested Fresh Produce" class="w-full h-full object-cover">
+                                <div class="absolute bottom-3 left-3 right-3 flex justify-between items-center text-xs text-white bg-slate-900/85 p-3 rounded-xl backdrop-blur-md">
+                                    <div>
+                                        <div class="font-bold">Abhis Farm Fresh Block A</div>
+                                        <div class="text-[10px] text-emerald-300">Harvested Today at 5:00 AM</div>
+                                    </div>
+                                    <span class="chip chip-success text-[10px]">Fresh Stock Ready</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between text-xs text-slate-200 px-1">
+                                <span>Direct Farm Procurement</span>
+                                <span class="text-emerald-300 font-bold">100% Quality Checked</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Value Propositions Grid -->
+        <section class="container">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="card p-5 space-y-2 border-emerald-100 bg-gradient-to-b from-emerald-50/40 to-white">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center mb-3 shadow-sm">
+                        <span class="material-symbols-outlined text-xl">eco</span>
+                    </div>
+                    <h3 class="font-bold text-slate-900 text-sm">Farm-Fresh Daily</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">Harvested directly from our verified growers every morning with zero middlemen delays.</p>
+                </div>
+
+                <div class="card p-5 space-y-2 border-emerald-100 bg-gradient-to-b from-emerald-50/40 to-white">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center mb-3 shadow-sm">
+                        <span class="material-symbols-outlined text-xl">scale</span>
+                    </div>
+                    <h3 class="font-bold text-slate-900 text-sm">Minimum 1 KG Order</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">Strict whole-kilogram ordering standard for B2B commercial kitchens and homes.</p>
+                </div>
+
+                <div class="card p-5 space-y-2 border-emerald-100 bg-gradient-to-b from-emerald-50/40 to-white">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center mb-3 shadow-sm">
+                        <span class="material-symbols-outlined text-xl">local_shipping</span>
+                    </div>
+                    <h3 class="font-bold text-slate-900 text-sm">Doorstep Delivery</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">Scheduled morning 5 AM dispatch directly to your hotel, restaurant, or shop address.</p>
+                </div>
+
+                <div class="card p-5 space-y-2 border-emerald-100 bg-gradient-to-b from-emerald-50/40 to-white">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center mb-3 shadow-sm">
+                        <span class="material-symbols-outlined text-xl">payments</span>
+                    </div>
+                    <h3 class="font-bold text-slate-900 text-sm">No Online Payment</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">Place order instantly without entering card/UPI details. Pay comfortably upon delivery.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Category Quick Filter Section -->
+        <section class="container space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-3">
+                <div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Explore Produce Categories</h2>
+                    <p class="text-xs text-slate-500 mt-1">Browse our full selection of Grade A fresh vegetables.</p>
+                </div>
+                <a href="products.html" class="text-xs font-bold text-emerald-800 hover:underline flex items-center gap-1">
+                    <span>View All Vegetables</span>
+                    <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                </a>
+            </div>
+
+            <!-- Category Pills -->
+            <div id="category-filter-container" class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2"></div>
+        </section>
+
+        <!-- Featured Products Grid -->
+        <section class="container space-y-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900">Featured Fresh Produce</h2>
+                    <p class="text-xs text-slate-500">Harvested fresh today. Minimum quantity 1 KG.</p>
+                </div>
+                <a href="products.html" class="btn btn-secondary btn-sm">Full Catalogue &rarr;</a>
+            </div>
+
+            <!-- Dynamic Product Grid -->
+            <div id="products-grid" class="product-grid"></div>
+        </section>
+
+        <!-- Commercial B2B Callout Banner -->
+        <section class="container">
+            <div class="rounded-3xl bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 p-8 sm:p-12 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+                <div class="space-y-2 max-w-xl">
+                    <span class="chip chip-success text-xs font-bold">B2B Hotel & Catering Supply</span>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Supplying 140+ Hotels, Restaurants & Catering Kitchens</h3>
+                    <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        Need daily bulk crates or custom delivery schedules? Connect with our dedicated procurement desk on WhatsApp.
+                    </p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <a href="contact.html" class="btn btn-primary bg-white text-emerald-950 hover:bg-slate-100 font-extrabold text-xs sm:text-sm text-center">
+                        Contact Procurement
+                    </a>
+                    <a href="https://wa.me/916380710362?text=Hi%20Abhis%20Farm%20Fresh!%20I%20am%20interested%20in%20bulk%20vegetable%20supply." target="_blank" 
+                       class="btn btn-whatsapp text-xs sm:text-sm text-center flex items-center justify-center gap-1.5">
+                        <span class="material-symbols-outlined text-base">chat</span>
+                        WhatsApp 6380710362
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Floating Sticky Cart Bar (Appears when cart has items) -->
+    <div id="sticky-cart-bar" class="sticky-cart-bar hidden">
+        <div>
+            <div class="text-[11px] text-emerald-200 font-bold uppercase tracking-wider">Your Vegetable Order</div>
+            <div class="font-extrabold text-sm flex items-center gap-2">
+                <span id="sticky-cart-qty">0 Items</span>
+                <span>•</span>
+                <span id="sticky-cart-total" class="text-emerald-300">₹0</span>
+            </div>
+        </div>
+        <a href="cart.html" class="btn bg-white text-emerald-950 hover:bg-slate-100 btn-sm font-extrabold flex items-center gap-1.5 shadow-md">
+            <span>View Cart</span>
+            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+        </a>
+    </div>
+
+    <!-- Flipkart / Amazon Style Mobile Bottom Navigation Bar -->
+    <nav class="mobile-nav flex justify-around items-center md:hidden">
+        <a href="index.html" class="mobile-nav-item active">
+            <span class="material-symbols-outlined text-2xl">home</span>
+            <span>Home</span>
+        </a>
+        <a href="products.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">grid_view</span>
+            <span>Vegetables</span>
+        </a>
+        <a href="cart.html" class="mobile-nav-item relative">
+            <span class="material-symbols-outlined text-2xl">shopping_cart</span>
+            <span id="mobile-cart-badge" class="nav-badge" style="display: none;">0</span>
+            <span>Cart</span>
+        </a>
+        <a href="about.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">info</span>
+            <span>About</span>
+        </a>
+        <a href="contact.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">call</span>
+            <span>Contact</span>
+        </a>
+    </nav>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 text-slate-400 pt-12 pb-24 md:pb-12 border-t border-slate-800">
+        <div class="container grid grid-cols-1 md:grid-cols-4 gap-8 mb-10 text-xs">
+            <div class="space-y-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-8 w-8 rounded-lg bg-emerald-800 p-1 flex items-center justify-center">
+                        <img src="images/logo.png" alt="Logo" class="h-full w-auto">
+                    </div>
+                    <span class="font-extrabold text-white text-base">Abhis Farm Fresh</span>
+                </div>
+                <p class="text-slate-400 leading-relaxed">
+                    Premium fresh vegetables delivered to restaurants, hotels, catering kitchens, and homes.
+                </p>
+                <div class="text-emerald-400 font-semibold">www.abhisfarmfresh.com</div>
+            </div>
+
+            <div>
+                <h4 class="font-bold text-white mb-3 uppercase tracking-wider text-[11px]">Connect With Us</h4>
+                <p class="mb-2">Phone / WhatsApp: <a href="https://wa.me/916380710362" target="_blank" class="text-emerald-400 underline font-bold">6380710362</a></p>
+                <p class="mb-2">Email: <a href="mailto:orders@abhisfarmfresh.com" class="text-slate-300 hover:underline">orders@abhisfarmfresh.com</a></p>
+                <p>Instagram: <a href="https://www.instagram.com/abhisfarmfresh?igsi=MXVhOXIzY2g0cHRwYw==" target="_blank" class="text-pink-400 underline font-bold">@abhisfarmfresh</a></p>
+            </div>
+
+            <div>
+                <h4 class="font-bold text-white mb-3 uppercase tracking-wider text-[11px]">Quick Links</h4>
+                <ul class="space-y-2">
+                    <li><a href="products.html" class="hover:text-white transition-colors">Vegetable Catalogue</a></li>
+                    <li><a href="cart.html" class="hover:text-white transition-colors">View Cart & Place Order</a></li>
+                    <li><a href="about.html" class="hover:text-white transition-colors">About Our Farm Quality</a></li>
+                    <li><a href="contact.html" class="hover:text-white transition-colors">Contact & Bulk Inquiries</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="font-bold text-white mb-3 uppercase tracking-wider text-[11px]">Quality Standards</h4>
+                <p class="mb-3 text-slate-400 leading-relaxed">Daily 5 AM morning harvest, 100% pesticide tested, FSSAI registered produce delivered directly to your kitchen.</p>
+                <div class="inline-flex items-center gap-1.5 text-emerald-400 font-bold text-xs bg-emerald-950/80 px-3 py-1.5 rounded-lg border border-emerald-800">
+                    <span class="material-symbols-outlined text-sm">verified</span>
+                    <span>100% Quality Guaranteed</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="container border-t border-slate-800 pt-6 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500 gap-2">
+            <div>&copy; 2026 Abhis Farm Fresh (www.abhisfarmfresh.com). All rights reserved.</div>
+            <div>
+                <a href="https://www.instagram.com/abhisfarmfresh?igsi=MXVhOXIzY2g0cHRwYw==" target="_blank" class="text-pink-400 font-semibold hover:underline">
+                    Follow on Instagram @abhisfarmfresh
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="shared/js/config.js"></script>
+    <script src="shared/js/firebase-init.js"></script>
+    <script src="shared/js/utils.js"></script>
+    <script src="shared/js/whatsapp.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/products.js"></script>
 </body>
 </html>

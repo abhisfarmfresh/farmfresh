@@ -3,85 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Produce Catalogue | Abhis Farm Fresh B2B</title>
-    <meta name="description" content="Wholesale produce catalogue including fresh vegetables, organic fruits, hydroponics, and farm dairy.">
+    <title>Fresh Vegetables Catalogue | Abhis Farm Fresh</title>
+    <meta name="description" content="Browse our complete range of Grade A farm-fresh vegetables. Leafy, root, everyday, exotic and seasonal produce. Minimum order quantity 1 KG.">
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body class="bg-[#f6f9f6] text-slate-900 min-h-screen flex flex-col pb-16 md:pb-0">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+</head>
+<body class="page-body">
+
+    <!-- Desktop Header -->
     <header class="glass-nav sticky top-0 z-50 border-b border-slate-200/80">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-            <a href="index.html" class="flex items-center gap-3">
-                <img src="images/logo.png" alt="Logo" class="h-10 w-auto">
-                <div class="font-extrabold text-lg text-emerald-950">Abhis Farm Fresh</div>
+        <div class="container h-20 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-3 group">
+                <div class="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-800 to-emerald-950 p-1.5 shadow-md flex items-center justify-center">
+                    <img src="images/logo.png" alt="Abhis Farm Fresh Logo" class="h-full w-auto object-contain">
+                </div>
+                <div>
+                    <div class="font-extrabold text-lg sm:text-xl text-emerald-950 tracking-tight leading-tight">Abhis Farm Fresh</div>
+                    <div class="text-[11px] text-emerald-800 font-semibold">Fresh Vegetable Catalogue</div>
+                </div>
             </a>
+
+            <!-- Navigation Links -->
             <nav class="hidden md:flex items-center gap-7 text-xs font-bold text-slate-700">
-                <a href="index.html">Home</a>
-                <a href="products.html" class="text-emerald-800">Catalogue</a>
-                <a href="enquiry.html">Bulk Quote Builder</a>
-                <a href="orders.html">My Orders</a>
-                <a href="contact.html">Contact Us</a>
-                <a href="admin/index.html" class="bg-slate-100 px-3 py-1.5 rounded-lg border">Admin CRM</a>
+                <a href="index.html" class="nav-link hover:text-emerald-800 transition-colors">Home</a>
+                <a href="products.html" class="nav-link text-emerald-800 font-extrabold hover:text-emerald-800 transition-colors">Vegetables</a>
+                <a href="cart.html" class="nav-link hover:text-emerald-800 transition-colors flex items-center gap-1.5">
+                    Cart
+                    <span id="header-cart-badge" class="bg-emerald-700 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold" style="display: none;">0</span>
+                </a>
+                <a href="about.html" class="nav-link hover:text-emerald-800 transition-colors">About Us</a>
+                <a href="contact.html" class="nav-link hover:text-emerald-800 transition-colors">Contact</a>
             </nav>
+
+            <!-- WhatsApp CTA -->
+            <div class="flex items-center gap-3">
+                <a href="https://wa.me/916380710362" target="_blank" 
+                   class="btn-whatsapp px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                    <span class="material-symbols-outlined text-base">chat</span>
+                    <span class="hidden sm:inline">6380710362</span>
+                    <span class="sm:hidden">WhatsApp</span>
+                </a>
+            </div>
         </div>
     </header>
 
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <!-- Catalogue Main Content -->
+    <main class="container py-8 space-y-8">
+        
+        <!-- Header & Search Banner -->
+        <div class="space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-extrabold text-slate-900">Wholesale Produce Catalogue</h1>
-                    <p class="text-xs text-slate-500">Filter by category or search produce items. Tap '+' to adjust bulk quantities.</p>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Fresh Produce Catalogue</h1>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Direct from our farm network. Minimum quantity 1 KG per vegetable.</p>
                 </div>
-                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    <input type="text" id="catalog-search" class="px-4 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-emerald-800" placeholder="Search produce...">
-                    <select id="catalog-sort" class="py-2 px-3 border border-slate-200 rounded-xl text-xs font-medium">
-                        <option value="default">Sort by: Featured</option>
+
+                <!-- Search & Sort Controls -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <div class="relative flex-1 sm:w-64">
+                        <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+                        <input type="text" 
+                                id="product-search-input"
+                                placeholder="Search Tomato, Onion..." 
+                                class="form-input pl-10 pr-4 py-2.5 text-xs rounded-xl">
+                    </div>
+
+                    <select id="product-sort-select" class="form-input py-2.5 px-3 text-xs rounded-xl sm:w-44 bg-white">
+                        <option value="default">Sort by: Default</option>
                         <option value="price-low">Price: Low to High</option>
                         <option value="price-high">Price: High to Low</option>
-                        <option value="moq-low">MOQ: Lowest First</option>
+                        <option value="name-az">Name: A to Z</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Categories Tabs Bar -->
-            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2 border-t border-slate-100" id="category-tabs"></div>
+            <!-- Category Filter Pills -->
+            <div id="category-filter-container" class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2 pb-2"></div>
         </div>
 
-        <!-- Produce Grid -->
-        <div id="catalog-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+        <!-- Dynamic Product Grid -->
+        <div id="products-grid" class="product-grid"></div>
+
     </main>
 
-    <!-- Flipkart / Amazon Style Mobile Navigation Bar -->
-    <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-2xl flex justify-around items-center">
-        <a href="index.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800">
-            <span class="material-symbols-outlined text-xl">home</span>
-            <span>Home</span>
-        </a>
-        <a href="products.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-emerald-800">
-            <span class="material-symbols-outlined text-xl">grid_view</span>
-            <span>Categories</span>
-        </a>
-        <a href="enquiry.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800 relative">
-            <span class="material-symbols-outlined text-xl">shopping_cart</span>
-            <span id="mobile-cart-badge" class="absolute -top-1 right-2 bg-emerald-700 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">0</span>
-            <span>Quotes</span>
-        </a>
-        <a href="orders.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800">
-            <span class="material-symbols-outlined text-xl">receipt_long</span>
-            <span>Orders</span>
-        </a>
-        <a href="admin/index.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800">
-            <span class="material-symbols-outlined text-xl">person</span>
-            <span>Account</span>
+    <!-- Floating Sticky Cart Bar -->
+    <div id="sticky-cart-bar" class="sticky-cart-bar hidden">
+        <div>
+            <div class="text-[11px] text-emerald-200 font-bold uppercase tracking-wider">Your Vegetable Order</div>
+            <div class="font-extrabold text-sm flex items-center gap-2">
+                <span id="sticky-cart-qty">0 Items</span>
+                <span>•</span>
+                <span id="sticky-cart-total" class="text-emerald-300">₹0</span>
+            </div>
+        </div>
+        <a href="cart.html" class="btn bg-white text-emerald-950 hover:bg-slate-100 btn-sm font-extrabold flex items-center gap-1.5 shadow-md">
+            <span>View Cart</span>
+            <span class="material-symbols-outlined text-sm">arrow_forward</span>
         </a>
     </div>
 
-    <script src="js/data.js"></script>
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-nav flex justify-around items-center md:hidden">
+        <a href="index.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">home</span>
+            <span>Home</span>
+        </a>
+        <a href="products.html" class="mobile-nav-item active">
+            <span class="material-symbols-outlined text-2xl">grid_view</span>
+            <span>Vegetables</span>
+        </a>
+        <a href="cart.html" class="mobile-nav-item relative">
+            <span class="material-symbols-outlined text-2xl">shopping_cart</span>
+            <span id="mobile-cart-badge" class="nav-badge" style="display: none;">0</span>
+            <span>Cart</span>
+        </a>
+        <a href="about.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">info</span>
+            <span>About</span>
+        </a>
+        <a href="contact.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">call</span>
+            <span>Contact</span>
+        </a>
+    </nav>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 text-slate-400 py-10 border-t border-slate-800 mt-16">
+        <div class="container text-center text-xs space-y-2">
+            <div class="font-bold text-white">Abhis Farm Fresh • Premium Fresh Vegetables</div>
+            <p>WhatsApp / Call: <a href="https://wa.me/916380710362" class="text-emerald-400 underline font-bold">6380710362</a> • Instagram: <a href="https://www.instagram.com/abhisfarmfresh?igsi=MXVhOXIzY2g0cHRwYw==" class="text-pink-400 underline font-bold">@abhisfarmfresh</a></p>
+            <p class="text-slate-600">&copy; 2026 Abhis Farm Fresh. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="shared/js/config.js"></script>
+    <script src="shared/js/firebase-init.js"></script>
+    <script src="shared/js/utils.js"></script>
+    <script src="shared/js/whatsapp.js"></script>
+    <script src="js/cart.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/products.js"></script>
 </body>
 </html>

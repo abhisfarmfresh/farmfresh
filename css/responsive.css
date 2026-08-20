@@ -1,0 +1,118 @@
+/*
+ * Abhis Farm Fresh — Responsive Breakpoints
+ * Mobile-first approach
+ */
+
+/* ─── Mobile First (default) ─── */
+
+/* Hide on mobile */
+.desktop-only { display: none !important; }
+
+/* Show on mobile */
+.mobile-only { display: block !important; }
+
+/* Container */
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* Product grid: 1 column on mobile */
+.product-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+/* Page body padding for bottom nav */
+.page-body {
+  padding-bottom: 80px;
+}
+
+/* ─── Small Tablets (480px+) ─── */
+@media (min-width: 480px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .container {
+    padding: 0 20px;
+  }
+}
+
+/* ─── Tablets (640px+) ─── */
+@media (min-width: 640px) {
+  .container {
+    padding: 0 24px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+/* ─── Medium Tablets / Small Laptops (768px+) ─── */
+@media (min-width: 768px) {
+  .desktop-only { display: block !important; }
+  .mobile-only { display: none !important; }
+
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+
+  .page-body {
+    padding-bottom: 0;
+  }
+
+  /* Hide mobile bottom nav */
+  .mobile-nav { display: none !important; }
+}
+
+/* ─── Laptops (1024px+) ─── */
+@media (min-width: 1024px) {
+  .product-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+
+  .container {
+    padding: 0 32px;
+  }
+}
+
+/* ─── Large Desktops (1280px+) ─── */
+@media (min-width: 1280px) {
+  .container {
+    padding: 0 48px;
+  }
+}
+
+/* ─── Print ─── */
+@media print {
+  .mobile-nav,
+  .sticky-cart-bar,
+  .glass-nav,
+  footer { display: none !important; }
+
+  body {
+    background: white;
+    color: black;
+  }
+}

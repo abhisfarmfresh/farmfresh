@@ -3,100 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact Us | Abhis Farm Fresh - Premium veggies at your doorstep</title>
+    <title>Contact Us | Abhis Farm Fresh - Phone, WhatsApp & Instagram</title>
+    <meta name="description" content="Contact Abhis Farm Fresh for fresh vegetable orders, wholesale contracts, and customer support. Call or WhatsApp 6380710362.">
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body class="bg-[#f6f9f6] text-slate-900 min-h-screen flex flex-col pb-16 md:pb-0">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+</head>
+<body class="page-body">
+
+    <!-- Header -->
     <header class="glass-nav sticky top-0 z-50 border-b border-slate-200/80">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-            <a href="index.html" class="flex items-center gap-3">
-                <img src="images/logo.png" alt="Logo" class="h-10 w-auto">
+        <div class="container h-20 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-3 group">
+                <div class="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-800 to-emerald-950 p-1.5 shadow-md flex items-center justify-center">
+                    <img src="images/logo.png" alt="Abhis Farm Fresh Logo" class="h-full w-auto object-contain">
+                </div>
                 <div>
-                    <div class="font-extrabold text-lg text-emerald-950">Abhis Farm Fresh</div>
-                    <div class="text-[11px] text-emerald-800 font-semibold">Premium veggies at your doorstep.</div>
+                    <div class="font-extrabold text-lg sm:text-xl text-emerald-950 tracking-tight leading-tight">Abhis Farm Fresh</div>
+                    <div class="text-[11px] text-emerald-800 font-semibold">Contact & Support</div>
                 </div>
             </a>
+
             <nav class="hidden md:flex items-center gap-7 text-xs font-bold text-slate-700">
-                <a href="index.html">Home</a>
-                <a href="products.html">Catalogue</a>
-                <a href="enquiry.html">Bulk Quote Builder</a>
-                <a href="orders.html">My Orders</a>
-                <a href="contact.html" class="text-emerald-800">Contact Us</a>
-                <a href="admin/index.html" class="bg-slate-100 px-3 py-1.5 rounded-lg border">Admin CRM</a>
+                <a href="index.html" class="nav-link hover:text-emerald-800 transition-colors">Home</a>
+                <a href="products.html" class="nav-link hover:text-emerald-800 transition-colors">Vegetables</a>
+                <a href="cart.html" class="nav-link hover:text-emerald-800 transition-colors flex items-center gap-1.5">
+                    Cart
+                    <span id="header-cart-badge" class="bg-emerald-700 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold" style="display: none;">0</span>
+                </a>
+                <a href="about.html" class="nav-link hover:text-emerald-800 transition-colors">About Us</a>
+                <a href="contact.html" class="nav-link text-emerald-800 font-extrabold">Contact</a>
             </nav>
+
+            <a href="https://wa.me/916380710362" target="_blank" class="btn-whatsapp px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                <span class="material-symbols-outlined text-base">chat</span>
+                <span class="hidden sm:inline">6380710362</span>
+                <span class="sm:hidden">WhatsApp</span>
+            </a>
         </div>
     </header>
 
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
-        <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Contact Abhis Farm Fresh</h1>
-            <p class="text-xs sm:text-sm text-slate-500 mt-1">Premium veggies at your doorstep. Reach out via WhatsApp, Instagram, or Phone.</p>
+    <!-- Main Contact Content -->
+    <main class="container py-8 space-y-8">
+        
+        <div class="max-w-xl">
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Get in Touch with Our Team</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">Direct support for vegetable orders, custom hotel contracts, and daily deliveries.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
-                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-xl">call</span>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Direct Channel Cards (Col 5) -->
+            <div class="lg:col-span-5 space-y-4">
+                
+                <!-- WhatsApp Card -->
+                <a href="https://wa.me/916380710362" target="_blank" 
+                   class="card p-6 bg-gradient-to-br from-emerald-900 to-emerald-950 text-white rounded-2xl flex items-center justify-between hover:shadow-lg transition-all group">
+                    <div class="space-y-1">
+                        <div class="text-[11px] text-emerald-300 font-bold uppercase tracking-wider">Fastest Response</div>
+                        <h3 class="text-lg font-extrabold text-white group-hover:text-emerald-200 transition-colors">WhatsApp Order Desk</h3>
+                        <p class="text-xs text-slate-300">Instant answers on produce stock & rates</p>
+                        <div class="font-bold text-sm text-emerald-300 pt-2 flex items-center gap-1">
+                            <span>6380710362</span>
+                            <span class="material-symbols-outlined text-sm">open_in_new</span>
+                        </div>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-[#25d366] text-white flex items-center justify-center shadow-md">
+                        <span class="material-symbols-outlined text-2xl">chat</span>
+                    </div>
+                </a>
+
+                <!-- Phone Call Card -->
+                <a href="tel:6380710362" 
+                   class="card p-6 bg-white border border-slate-200 rounded-2xl flex items-center justify-between hover:shadow-md transition-all group">
+                    <div class="space-y-1">
+                        <div class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Direct Hotline</div>
+                        <h3 class="text-base font-extrabold text-slate-900 group-hover:text-emerald-800 transition-colors">Direct Phone Call</h3>
+                        <p class="text-xs text-slate-500">5:00 AM – 9:00 PM (Daily Support)</p>
+                        <div class="font-bold text-sm text-emerald-800 pt-1">+91 6380710362</div>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl">call</span>
+                    </div>
+                </a>
+
+                <!-- Instagram Card -->
+                <a href="https://www.instagram.com/abhisfarmfresh?igsi=MXVhOXIzY2g0cHRwYw==" target="_blank" 
+                   class="card p-6 bg-white border border-slate-200 rounded-2xl flex items-center justify-between hover:shadow-md transition-all group">
+                    <div class="space-y-1">
+                        <div class="text-[11px] text-pink-600 font-bold uppercase tracking-wider">Social Updates</div>
+                        <h3 class="text-base font-extrabold text-slate-900 group-hover:text-pink-600 transition-colors">Instagram Channel</h3>
+                        <p class="text-xs text-slate-500">Daily harvest stories & crop arrivals</p>
+                        <div class="font-bold text-sm text-pink-600 pt-1">@abhisfarmfresh</div>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 text-white flex items-center justify-center shadow-sm">
+                        <span class="material-symbols-outlined text-2xl">photo_camera</span>
+                    </div>
+                </a>
+
+                <!-- Email Card -->
+                <div class="card p-6 bg-white border border-slate-200 rounded-2xl flex items-center justify-between">
+                    <div class="space-y-1">
+                        <div class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Billing & Accounts</div>
+                        <h3 class="text-base font-extrabold text-slate-900">Email Inquiries</h3>
+                        <p class="text-xs text-slate-500">Contract RFQs & GST Invoicing</p>
+                        <div class="font-bold text-sm text-slate-800 pt-1">orders@abhisfarmfresh.com</div>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl">mail</span>
+                    </div>
                 </div>
-                <h3 class="font-bold text-base text-slate-900">Phone & WhatsApp</h3>
-                <p class="text-xs text-slate-500 leading-relaxed">
-                    Direct Contact / WhatsApp: <a href="https://wa.me/916380710362" target="_blank" class="text-emerald-800 font-bold underline">6380710362</a><br>
-                    Website Domain: <strong class="text-slate-800">www.abhisfarmfresh.com</strong>
-                </p>
+
             </div>
 
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
-                <div class="w-10 h-10 rounded-xl bg-pink-50 text-pink-700 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-xl">camera_alt</span>
+            <!-- Quick Inquiry Form (Col 7) -->
+            <div class="lg:col-span-7">
+                <div class="card p-6 sm:p-8 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-5">
+                    <div>
+                        <h2 class="font-extrabold text-lg text-slate-900">Send an Instant Message</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Fill out your query and our team will connect with you on WhatsApp or call.</p>
+                    </div>
+
+                    <form id="contact-inquiry-form" class="space-y-4">
+                        <div>
+                            <label class="form-label" for="inquiry-name">Your Name / Business Name <span class="required">*</span></label>
+                            <input type="text" id="inquiry-name" required placeholder="e.g. Anand (Madurai Kitchens)" class="form-input">
+                        </div>
+
+                        <div>
+                            <label class="form-label" for="inquiry-phone">Phone / WhatsApp Number <span class="required">*</span></label>
+                            <input type="tel" id="inquiry-phone" required placeholder="e.g. 6380710362" class="form-input">
+                        </div>
+
+                        <div>
+                            <label class="form-label" for="inquiry-msg">Vegetable Requirement / Message <span class="required">*</span></label>
+                            <textarea id="inquiry-msg" rows="4" required placeholder="e.g. We need 50 KG Tomato, 30 KG Onion and 10 KG Capsicum daily morning..." class="form-input"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-full py-3 text-xs font-extrabold flex items-center justify-center gap-2 shadow-md">
+                            <span class="material-symbols-outlined text-base">send</span>
+                            <span>Send Query via WhatsApp</span>
+                        </button>
+                    </form>
                 </div>
-                <h3 class="font-bold text-base text-slate-900">Instagram Handle</h3>
-                <p class="text-xs text-slate-500 leading-relaxed">
-                    Follow us on Instagram:<br>
-                    <a href="https://www.instagram.com/abhisfarmfresh?igsi=MXVhOXIzY2g0cHRwYw==" target="_blank" class="text-pink-600 font-bold underline">@abhisfarmfresh</a>
-                </p>
             </div>
 
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
-                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-xl">location_on</span>
-                </div>
-                <h3 class="font-bold text-base text-slate-900">Farm Hub Address</h3>
-                <p class="text-xs text-slate-500 leading-relaxed">Plot 42, Agribusiness Hub, Shamshabad, Hyderabad - 501218, Telangana.</p>
-            </div>
         </div>
+
     </main>
 
-    <!-- Flipkart / Amazon Style Mobile Navigation Bar -->
-    <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-2xl flex justify-around items-center">
-        <a href="index.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800">
-            <span class="material-symbols-outlined text-xl">home</span>
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-nav flex justify-around items-center md:hidden">
+        <a href="index.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">home</span>
             <span>Home</span>
         </a>
-        <a href="products.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800">
-            <span class="material-symbols-outlined text-xl">grid_view</span>
-            <span>Categories</span>
+        <a href="products.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">grid_view</span>
+            <span>Vegetables</span>
         </a>
-        <a href="enquiry.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800 relative">
-            <span class="material-symbols-outlined text-xl">shopping_cart</span>
-            <span id="mobile-cart-badge" class="absolute -top-1 right-2 bg-emerald-700 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">0</span>
-            <span>Quotes</span>
+        <a href="cart.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">shopping_cart</span>
+            <span id="mobile-cart-badge" class="nav-badge" style="display: none;">0</span>
+            <span>Cart</span>
         </a>
-        <a href="orders.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800">
-            <span class="material-symbols-outlined text-xl">receipt_long</span>
-            <span>Orders</span>
+        <a href="about.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">info</span>
+            <span>About</span>
         </a>
-        <a href="admin/index.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800">
-            <span class="material-symbols-outlined text-xl">person</span>
-            <span>Account</span>
+        <a href="contact.html" class="mobile-nav-item active">
+            <span class="material-symbols-outlined text-2xl">call</span>
+            <span>Contact</span>
         </a>
-    </div>
+    </nav>
 
-    <script src="js/data.js"></script>
+    <!-- Footer -->
+    <footer class="bg-slate-950 text-slate-400 py-10 border-t border-slate-800 mt-16">
+        <div class="container text-center text-xs space-y-2">
+            <div class="font-bold text-white">Abhis Farm Fresh • Premium Fresh Vegetables</div>
+            <p>Phone / WhatsApp: <a href="https://wa.me/916380710362" class="text-emerald-400 underline font-bold">6380710362</a> • Instagram: <a href="https://www.instagram.com/abhisfarmfresh?igsi=MXVhOXIzY2g0cHRwYw==" class="text-pink-400 underline font-bold">@abhisfarmfresh</a></p>
+            <p class="text-slate-600">&copy; 2026 Abhis Farm Fresh. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="shared/js/config.js"></script>
+    <script src="shared/js/firebase-init.js"></script>
+    <script src="shared/js/utils.js"></script>
+    <script src="shared/js/whatsapp.js"></script>
+    <script src="js/cart.js"></script>
     <script src="js/app.js"></script>
+
+    <script>
+    document.getElementById('contact-inquiry-form')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('inquiry-name').value.trim();
+        const phone = document.getElementById('inquiry-phone').value.trim();
+        const msg = document.getElementById('inquiry-msg').value.trim();
+
+        const fullMsg = `Hi Abhis Farm Fresh! 🌱\n\n*Name/Business:* ${name}\n*Phone:* ${phone}\n*Requirement:*\n${msg}`;
+        const waUrl = `https://wa.me/916380710362?text=${encodeURIComponent(fullMsg)}`;
+        window.open(waUrl, '_blank');
+    });
+    </script>
 </body>
 </html>
