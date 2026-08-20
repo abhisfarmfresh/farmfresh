@@ -1,6 +1,7 @@
-# Private Firebase Keys & Secrets
+# Private Firebase & Cloudinary Keys & Secrets
 js/firebase-config.js
 firebase-config.js
+js/cloudinary.config.js
 .env
 .env.local
 
