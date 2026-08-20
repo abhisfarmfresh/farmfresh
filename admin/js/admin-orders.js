@@ -6,20 +6,20 @@
 let allAdminOrders = [];
 let activeStatusFilter = 'all';
 let currentSearchQuery = '';
-let currentActiveOrderId = null; // Currently inspected order in modal
+let currentActiveOrderId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   setupOrderFiltersAndSearch();
+  updateConnectionStatus();
   await loadAdminOrders();
+  updateConnectionStatus();
   
-  // Handle direct order inspection via URL query parameter (e.g. orders.html?orderId=AFF-...)
   const params = new URLSearchParams(window.location.search);
   const targetId = params.get('orderId');
   if (targetId) {
     setTimeout(() => openOrderModal(targetId), 300);
   }
 
-  // Close modals on Escape key or backdrop click
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeOrderModal();
@@ -28,6 +28,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 });
+
+function updateConnectionStatus() {
+  const badge = document.getElementById('firebase-connection-badge');
+  if (!badge) return;
+
+  const isConfigured = typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey !== 'YOUR_FIREBASE_API_KEY_HERE';
+  const isReady = window.FirebaseApp && window.FirebaseApp.isReady();
+
+  if (isReady || (isConfigured && typeof firebase !== 'undefined')) {
+    const projectId = (typeof firebaseConfig !== 'undefined') ? firebaseConfig.projectId : 'abhisfarmfresh-3e7d3';
+    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm';
+    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Firestore Live: ${projectId}</span>`;
+  } else {
+    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300';
+    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>Connecting to Firestore...</span>`;
+  }
+}
 
 function setupOrderFiltersAndSearch() {
   const searchInput = document.getElementById('order-search-input');
@@ -63,55 +80,12 @@ async function loadAdminOrders() {
   try {
     if (window.FirebaseApp && window.FirebaseApp.isReady()) {
       allAdminOrders = await window.FirebaseApp.getAllOrders();
+    } else {
+      allAdminOrders = [];
     }
   } catch (err) {
     console.warn('Error loading orders from Firestore:', err);
-  }
-
-  // Fallback demo orders if database is currently empty
-  if (!allAdminOrders || allAdminOrders.length === 0) {
-    const now = new Date();
-    allAdminOrders = [
-      {
-        id: 'ord_demo_1',
-        orderNumber: 'AFF-20260820-001',
-        customerName: 'John Varma',
-        shopName: 'Sri Lakshmi Hotel',
-        phone: '6380710362',
-        email: 'customer@gmail.com',
-        businessAddress: '14/B Main Road, Thanjavur - 613001',
-        deliveryAddress: 'Sri Lakshmi Hotel Kitchen Gate 2, Thanjavur',
-        grandTotal: 221,
-        totalQuantity: 6,
-        status: 'pending',
-        createdAt: now,
-        items: [
-          { productName: 'Fresh Tomato', quantity: 2, unit: 'KG', unitPrice: 35, totalPrice: 70 },
-          { productName: 'Red Onion', quantity: 3, unit: 'KG', unitPrice: 32, totalPrice: 96 },
-          { productName: 'Fresh Carrot', quantity: 1, unit: 'KG', unitPrice: 55, totalPrice: 55 }
-        ]
-      },
-      {
-        id: 'ord_demo_2',
-        orderNumber: 'AFF-20260820-002',
-        customerName: 'Chef Arvind',
-        shopName: 'Green Leaf Restaurant',
-        phone: '6380710362',
-        email: 'arvind@greenleaf.com',
-        businessAddress: 'Plot 4, Madhapur, Hyderabad',
-        deliveryAddress: 'Green Leaf Kitchen Dock, Madhapur',
-        grandTotal: 1850,
-        totalQuantity: 25,
-        status: 'confirmed',
-        confirmedAt: new Date(now.getTime() - 3600000 * 2),
-        createdAt: new Date(now.getTime() - 3600000 * 4),
-        items: [
-          { productName: 'Butterhead Lettuce', quantity: 10, unit: 'KG', unitPrice: 120, totalPrice: 1200 },
-          { productName: 'Green Capsicum', quantity: 10, unit: 'KG', unitPrice: 45, totalPrice: 450 },
-          { productName: 'Genovese Basil', quantity: 5, unit: 'KG', unitPrice: 240, totalPrice: 1200 }
-        ]
-      }
-    ];
+    allAdminOrders = [];
   }
 
   renderOrdersTable();
@@ -144,9 +118,9 @@ function renderOrdersTable() {
     tbody.innerHTML = `
       <tr>
         <td colspan="8" class="text-center py-12 text-slate-400">
-          <span class="material-symbols-outlined text-4xl mb-2 text-slate-300">search_off</span>
+          <span class="material-symbols-outlined text-4xl mb-2 text-slate-300">receipt_long</span>
           <div class="font-bold text-slate-700 text-sm">No orders found</div>
-          <div class="text-xs text-slate-400 mt-0.5">No orders match the current filter or search query.</div>
+          <div class="text-xs text-slate-400 mt-0.5">When customers place orders on your website, they will appear here live.</div>
         </td>
       </tr>
     `;
@@ -163,8 +137,6 @@ function renderOrdersTable() {
   tbody.innerHTML = sorted.map(order => {
     const status = (order.status || 'pending').toLowerCase();
     const isPending = status === 'pending';
-    const isConfirmed = status === 'confirmed';
-    const isRejected = status === 'rejected';
 
     return `
       <tr class="border-b border-slate-100 hover:bg-slate-50/80 transition-colors" id="order-row-${order.id}">
@@ -210,7 +182,7 @@ function renderOrdersTable() {
             
             <!-- WhatsApp Action -->
             <button type="button" 
-                    onclick="handleOrderWhatsApp('${order.id}')"
+                    onclick="handleOrderWhatsApp('${order.id}')" 
                     class="p-1.5 text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors" 
                     title="Send WhatsApp to ${order.customerName || 'Customer'} (${order.phone || 'N/A'})">
               <span class="material-symbols-outlined text-lg">chat</span>
@@ -227,7 +199,7 @@ function renderOrdersTable() {
             <!-- Quick Confirm if pending -->
             ${isPending ? `
               <button type="button" 
-                      onclick="showConfirmDialog('${order.id}')"
+                      onclick="showConfirmDialog('${order.id}')" 
                       class="admin-btn admin-btn-primary text-xs py-1 px-2.5 rounded-lg shadow-sm"
                       title="Confirm Order">
                 <span>Confirm</span>
@@ -242,12 +214,10 @@ function renderOrdersTable() {
 
 /**
  * Open the complete Order Details inspection modal
- * Handles lookups by doc id, orderNumber, or async Firestore fetch
  */
 async function openOrderModal(orderId) {
   let order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
 
-  // If not found in local array, attempt to fetch from Firestore
   if (!order && window.FirebaseApp && window.FirebaseApp.isReady()) {
     try {
       order = await window.FirebaseApp.getOrder(orderId);
@@ -266,12 +236,10 @@ async function openOrderModal(orderId) {
   const modal = document.getElementById('order-details-modal');
   if (!modal) return;
 
-  // Order Info
   document.getElementById('modal-order-number').textContent = order.orderNumber || order.id;
   document.getElementById('modal-order-status').innerHTML = Utils.getStatusBadge(order.status || 'pending');
   document.getElementById('modal-order-date').textContent = Utils.formatDateTime(order.createdAt);
   
-  // Customer Info
   document.getElementById('modal-customer-name').textContent = order.customerName || '—';
   document.getElementById('modal-shop-name').textContent = order.shopName || '—';
   document.getElementById('modal-phone').textContent = order.phone || '—';
@@ -280,13 +248,12 @@ async function openOrderModal(orderId) {
   document.getElementById('modal-delivery-address').textContent = order.deliveryAddress || '—';
   document.getElementById('modal-admin-notes').value = order.adminNotes || '';
 
-  // Order Items
   const itemsTbody = document.getElementById('modal-items-tbody');
   const items = order.items || [];
 
   if (itemsTbody) {
     if (items.length === 0) {
-      itemsTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">No items listed.</td></tr>`;
+      itemsTbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-400">No items listed.</td></tr>`;
     } else {
       itemsTbody.innerHTML = items.map(item => {
         const name = item.productName || item.name;
@@ -307,7 +274,6 @@ async function openOrderModal(orderId) {
     }
   }
 
-  // Summary
   const subtotal = order.subtotal || order.grandTotal || 0;
   const totalQty = order.totalQuantity || (items.reduce((s, i) => s + (Number(i.quantity) || 0), 0));
   const grandTotal = order.grandTotal || subtotal;
@@ -322,7 +288,6 @@ async function openOrderModal(orderId) {
   if (subtotalEl) subtotalEl.textContent = Utils.formatCurrency(subtotal);
   if (grandTotalEl) grandTotalEl.textContent = Utils.formatCurrency(grandTotal);
 
-  // Status Action Section
   const status = (order.status || 'pending').toLowerCase();
   const actionContainer = document.getElementById('modal-actions-container');
 
@@ -391,7 +356,6 @@ async function openOrderModal(orderId) {
     }
   }
 
-  // Show modal
   modal.classList.remove('hidden');
   modal.style.display = 'flex';
 }
@@ -404,9 +368,6 @@ function closeOrderModal() {
   }
 }
 
-/**
- * WhatsApp Action for a specific order
- */
 function handleOrderWhatsApp(orderId) {
   const order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
   if (!order) {
@@ -417,9 +378,6 @@ function handleOrderWhatsApp(orderId) {
   WhatsAppService.openCustomerWhatsApp(order);
 }
 
-/**
- * Show Confirmation Modal Dialog
- */
 function showConfirmDialog(orderId) {
   const order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
   if (!order) return;
@@ -446,9 +404,6 @@ function closeConfirmDialog() {
   }
 }
 
-/**
- * Execute Order Confirmation Action (Updates DB -> Updates UI -> Sends Email -> Success Toast)
- */
 async function executeOrderConfirmation(orderId) {
   const order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
   if (!order) return;
@@ -462,7 +417,6 @@ async function executeOrderConfirmation(orderId) {
   const notes = document.getElementById('modal-admin-notes')?.value || order.adminNotes || '';
 
   try {
-    // 1. Update Database Status to 'confirmed'
     if (window.FirebaseApp && window.FirebaseApp.isReady()) {
       await window.FirebaseApp.updateOrderStatus(order.id, 'confirmed', { 
         adminNotes: notes,
@@ -470,22 +424,18 @@ async function executeOrderConfirmation(orderId) {
       });
     }
 
-    // 2. Update local state
     order.status = 'confirmed';
     order.adminNotes = notes;
     order.confirmedAt = new Date();
 
-    // 3. Trigger Customer Confirmation Email (if EmailJS is configured)
     if (window.EmailService && order.email) {
       window.EmailService.sendOrderConfirmation(order);
     }
 
-    // 4. Update UI immediately without reload
     Utils.showToast(`Order ${order.orderNumber || order.id} confirmed successfully.`, 'success');
     closeConfirmDialog();
     renderOrdersTable();
 
-    // If modal is currently open, refresh its action buttons
     if (currentActiveOrderId === order.id || currentActiveOrderId === order.orderNumber) {
       openOrderModal(order.id);
     }
@@ -501,9 +451,6 @@ async function executeOrderConfirmation(orderId) {
   }
 }
 
-/**
- * Show Rejection Modal Dialog
- */
 function showRejectDialog(orderId) {
   const order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
   if (!order) return;
@@ -534,9 +481,6 @@ function closeRejectDialog() {
   }
 }
 
-/**
- * Execute Order Rejection Action (Updates DB -> Updates UI -> Sends Email -> Toast)
- */
 async function executeOrderRejection(orderId) {
   const order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
   if (!order) return;
@@ -558,7 +502,6 @@ async function executeOrderRejection(orderId) {
   const notes = document.getElementById('modal-admin-notes')?.value || order.adminNotes || '';
 
   try {
-    // 1. Update Database Status to 'rejected'
     if (window.FirebaseApp && window.FirebaseApp.isReady()) {
       await window.FirebaseApp.updateOrderStatus(order.id, 'rejected', { 
         adminNotes: notes,
@@ -567,23 +510,19 @@ async function executeOrderRejection(orderId) {
       });
     }
 
-    // 2. Update local state
     order.status = 'rejected';
     order.adminNotes = notes;
     order.rejectionReason = finalReason;
     order.rejectedAt = new Date();
 
-    // 3. Trigger Customer Rejection Email (if EmailJS is configured)
     if (window.EmailService && order.email) {
       window.EmailService.sendOrderRejection(order, finalReason);
     }
 
-    // 4. Update UI immediately without reload
     Utils.showToast(`Order ${order.orderNumber || order.id} rejected.`, 'info');
     closeRejectDialog();
     renderOrdersTable();
 
-    // If modal is currently open, refresh its action buttons
     if (currentActiveOrderId === order.id || currentActiveOrderId === order.orderNumber) {
       openOrderModal(order.id);
     }
@@ -599,7 +538,6 @@ async function executeOrderRejection(orderId) {
   }
 }
 
-// Window global exports
 window.filterOrdersByStatus = filterOrdersByStatus;
 window.openOrderModal = openOrderModal;
 window.closeOrderModal = closeOrderModal;

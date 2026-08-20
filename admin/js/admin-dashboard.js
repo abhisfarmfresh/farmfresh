@@ -1,6 +1,6 @@
 /**
  * Abhis Farm Fresh - Admin Dashboard Controller
- * Dynamic Date/Month Filtering (Current Month default), Real-time KPI metrics, and Order summaries
+ * Dynamic Date/Month Filtering (Current Month default), Real-time KPI metrics, and Live Firestore Data
  */
 
 let allDashboardOrders = [];
@@ -10,8 +10,29 @@ let activeDateRange = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   initDateFilter();
+  updateConnectionStatus();
   await loadDashboardData();
 });
+
+/**
+ * Update the live Firebase Connection indicator
+ */
+function updateConnectionStatus() {
+  const badge = document.getElementById('firebase-connection-badge');
+  if (!badge) return;
+
+  const isConfigured = typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey !== 'YOUR_FIREBASE_API_KEY_HERE';
+  const isReady = window.FirebaseApp && window.FirebaseApp.isReady();
+
+  if (isReady || (isConfigured && typeof firebase !== 'undefined')) {
+    const projectId = (typeof firebaseConfig !== 'undefined') ? firebaseConfig.projectId : 'abhisfarmfresh-3e7d3';
+    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm';
+    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Firestore Live: ${projectId}</span>`;
+  } else {
+    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300';
+    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>Connecting to Firestore...</span>`;
+  }
+}
 
 /**
  * Initialize Date Filter controls with Current Month as default
@@ -20,12 +41,10 @@ function initDateFilter() {
   activeDateRange = Utils.getCurrentMonthRange();
   updateDateFilterUI();
 
-  // Setup Custom Date inputs if changed
   const startDateInput = document.getElementById('dash-start-date');
   const endDateInput = document.getElementById('dash-end-date');
 
   if (startDateInput && endDateInput) {
-    // Format YYYY-MM-DD for date inputs
     const toISODate = (d) => {
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -63,7 +82,6 @@ function initDateFilter() {
 
 /**
  * Select a predefined Date Filter Preset
- * @param {'current-month' | 'previous-month' | 'custom'} preset
  */
 function selectDashboardPreset(preset) {
   activePreset = preset;
@@ -80,7 +98,7 @@ function selectDashboardPreset(preset) {
 
   if (preset === 'custom') {
     if (customContainer) customContainer.classList.remove('hidden');
-    return; // Wait for user to pick dates
+    return;
   } else {
     if (customContainer) customContainer.classList.add('hidden');
     if (startDateInput && endDateInput && activeDateRange) {
@@ -99,9 +117,6 @@ function selectDashboardPreset(preset) {
   recalculateAndRenderDashboard();
 }
 
-/**
- * Update the visual buttons and range label
- */
 function updateDateFilterUI() {
   const currentBtn = document.getElementById('filter-btn-current-month');
   const prevBtn = document.getElementById('filter-btn-prev-month');
@@ -121,7 +136,7 @@ function updateDateFilterUI() {
 }
 
 /**
- * Load raw data from Firestore (or fallback defaults)
+ * Load raw data from Firestore
  */
 async function loadDashboardData() {
   showDashboardSkeletons();
@@ -134,51 +149,17 @@ async function loadDashboardData() {
       ]);
       allDashboardOrders = orders || [];
       allDashboardProducts = products || [];
+    } else {
+      allDashboardOrders = [];
+      allDashboardProducts = [];
     }
   } catch (e) {
     console.warn('Error fetching live dashboard metrics from Firestore:', e);
+    allDashboardOrders = [];
+    allDashboardProducts = [];
   }
 
-  // If no DB orders yet, provide fallback demo data with current dates
-  if (!allDashboardOrders || allDashboardOrders.length === 0) {
-    const now = new Date();
-    allDashboardOrders = [
-      {
-        id: 'ord_demo_1',
-        orderNumber: 'AFF-20260820-001',
-        customerName: 'John Varma',
-        shopName: 'Sri Lakshmi Hotel',
-        phone: '6380710362',
-        grandTotal: 221,
-        status: 'pending',
-        createdAt: now,
-        items: [
-          { productName: 'Fresh Tomato', quantity: 2, unit: 'KG', totalPrice: 70 },
-          { productName: 'Red Onion', quantity: 3, unit: 'KG', totalPrice: 96 },
-          { productName: 'Fresh Carrot', quantity: 1, unit: 'KG', totalPrice: 55 }
-        ]
-      },
-      {
-        id: 'ord_demo_2',
-        orderNumber: 'AFF-20260820-002',
-        customerName: 'Chef Arvind',
-        shopName: 'Green Leaf Restaurant',
-        phone: '6380710362',
-        grandTotal: 1850,
-        status: 'confirmed',
-        createdAt: new Date(now.getTime() - 3600000 * 4),
-        items: [
-          { productName: 'Butterhead Lettuce', quantity: 10, unit: 'KG', totalPrice: 1200 },
-          { productName: 'Green Capsicum', quantity: 10, unit: 'KG', totalPrice: 450 }
-        ]
-      }
-    ];
-  }
-
-  if (!allDashboardProducts || allDashboardProducts.length === 0) {
-    allDashboardProducts = window.DEFAULT_PRODUCTS || [];
-  }
-
+  updateConnectionStatus();
   recalculateAndRenderDashboard();
 }
 
@@ -199,22 +180,24 @@ function recalculateAndRenderDashboard() {
     return orderDate >= start && orderDate <= end;
   });
 
-  renderKPIs(filteredOrders, allDashboardOrders.length);
+  renderKPIs(filteredOrders);
   renderRecentOrders(filteredOrders);
   renderProductOverview(allDashboardProducts);
 }
 
 /**
- * Render KPI Cards based on the filtered orders
+ * Render KPI Cards based on filtered orders
  */
-function renderKPIs(orders, totalAllTimeOrders) {
-  const pending = orders.filter(o => o.status === 'pending').length;
-  const confirmed = orders.filter(o => o.status === 'confirmed').length;
-  const rejected = orders.filter(o => o.status === 'rejected').length;
+function renderKPIs(orders) {
+  const pending = orders.filter(o => (o.status || 'pending').toLowerCase() === 'pending').length;
+  const confirmed = orders.filter(o => (o.status || '').toLowerCase() === 'confirmed').length;
+  const rejected = orders.filter(o => (o.status || '').toLowerCase() === 'rejected').length;
 
-  // Total sales: sum of valid orders (excluding rejected/cancelled)
   const totalSales = orders
-    .filter(o => o.status !== 'rejected' && o.status !== 'cancelled')
+    .filter(o => {
+      const s = (o.status || '').toLowerCase();
+      return s !== 'rejected' && s !== 'cancelled';
+    })
     .reduce((sum, o) => sum + (Number(o.grandTotal) || 0), 0);
 
   const salesEl = document.getElementById('kpi-total-sales');
@@ -239,16 +222,16 @@ function renderRecentOrders(orders) {
   if (!tbody) return;
 
   if (countLabel) {
-    countLabel.textContent = `${orders.length} Order${orders.length === 1 ? '' : 's'} in selected period`;
+    countLabel.textContent = `${orders.length} Order${orders.length === 1 ? '' : 's'}`;
   }
 
   if (orders.length === 0) {
     tbody.innerHTML = `
       <tr>
         <td colspan="7" class="text-center py-10 text-slate-400">
-          <span class="material-symbols-outlined text-3xl mb-1 text-slate-300">event_busy</span>
-          <div class="font-bold text-slate-700 text-xs">No orders found in this date range</div>
-          <div class="text-[11px] text-slate-400 mt-0.5">Try selecting a different month or viewing all orders.</div>
+          <span class="material-symbols-outlined text-3xl mb-1 text-slate-300">inbox</span>
+          <div class="font-bold text-slate-700 text-xs">No orders in this period</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">Orders placed by customers will appear here in real-time.</div>
         </td>
       </tr>
     `;
@@ -268,7 +251,7 @@ function renderRecentOrders(orders) {
     <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
       <td class="py-3 px-4 font-extrabold text-slate-900 font-mono text-xs">${o.orderNumber || o.id}</td>
       <td class="py-3 px-4">
-        <div class="font-bold text-xs text-slate-800">${Utils.escapeHtml(o.customerName || '—')}</div>
+        <div class="font-bold text-xs text-slate-900">${Utils.escapeHtml(o.customerName || '—')}</div>
         <div class="text-[11px] text-emerald-800 font-semibold">${Utils.escapeHtml(o.shopName || '')}</div>
       </td>
       <td class="py-3 px-4 text-slate-600 font-mono text-xs">${o.phone || '—'}</td>
