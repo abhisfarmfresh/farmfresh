@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wholesale Orders & Quotes | Abhis Farm Fresh Admin</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col md:flex-row">
+
+    <aside class="hidden md:flex w-64 bg-slate-900 text-slate-300 border-r border-slate-800 flex-col fixed top-0 bottom-0 left-0 z-40">
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+            <div class="h-9 w-9 rounded-xl bg-emerald-700 p-1 flex items-center justify-center"><img src="../images/logo.png" alt="Logo" class="h-full w-auto"></div>
+            <div><h2 class="font-extrabold text-sm text-white">Abhis Farm Fresh</h2><p class="text-[11px] text-emerald-400 font-semibold">B2B Admin CRM</p></div>
+        </div>
+        <nav class="flex-1 p-4 space-y-1.5 text-xs font-semibold">
+            <a href="dashboard.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800"><span class="material-symbols-outlined text-base">dashboard</span> Executive Dashboard</a>
+            <a href="orders.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-emerald-800 text-white shadow-sm"><span class="material-symbols-outlined text-base">request_quote</span> Orders & RFQ Quotes</a>
+            <a href="inventory.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800"><span class="material-symbols-outlined text-base">warehouse</span> Cold Store Inventory</a>
+            <a href="customers.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800"><span class="material-symbols-outlined text-base">group</span> Customer Accounts</a>
+        </nav>
+    </aside>
+
+    <main class="md:ml-64 flex-1 p-4 sm:p-8 space-y-6">
+        <div class="flex justify-between items-center">
+            <h1 class="text-2xl font-extrabold text-slate-900">Wholesale Orders & Quotes Management</h1>
+        </div>
+
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-200 text-[10px]">
+                        <th class="py-3 px-4">RFQ ID</th>
+                        <th class="py-3 px-4">Client Name</th>
+                        <th class="py-3 px-4">Date</th>
+                        <th class="py-3 px-4">Amount</th>
+                        <th class="py-3 px-4">Status</th>
+                        <th class="py-3 px-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-tbody"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="../js/data.js"></script>
+    <script src="js/admin.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tbody = document.getElementById('orders-tbody');
+            if (tbody && window.APP_DATA && window.APP_DATA.quotes) {
+                tbody.innerHTML = window.APP_DATA.quotes.map(q => `
+                    <tr class="border-b border-slate-200/70 hover:bg-slate-50">
+                        <td class="py-3.5 px-4 font-bold text-slate-900">${q.id}</td>
+                        <td class="py-3.5 px-4 font-semibold text-slate-800">${q.clientName}</td>
+                        <td class="py-3.5 px-4 text-slate-500">${q.date}</td>
+                        <td class="py-3.5 px-4 font-extrabold text-slate-900">₹${q.totalEstimate.toLocaleString('en-IN')}</td>
+                        <td class="py-3.5 px-4"><span class="chip ${q.status === 'Approved' ? 'chip-success' : 'chip-warning'}">${q.status}</span></td>
+                        <td class="py-3.5 px-4"><button onclick="alert('Quote ${q.id} Approved!')" class="bg-emerald-800 text-white text-xs px-3 py-1.5 rounded-lg font-bold">Approve</button></td>
+                    </tr>
+                `).join('');
+            }
+        });
+    </script>
+</body>
+</html>

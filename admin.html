@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abhis Farm Fresh | B2B Admin CRM Panel</title>
+    
+    <!-- Google Fonts & Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-[#f1f5f9] text-slate-900 min-h-screen flex flex-col md:flex-row">
+
+    <!-- Mobile Top Navigation Header -->
+    <header class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-2 font-bold text-sm">
+            <img src="images/logo.png" alt="Logo" class="h-7 w-auto">
+            Abhis CRM
+        </div>
+        <a href="index.html" class="text-xs bg-slate-800 text-emerald-400 px-3 py-1.5 rounded-lg border border-slate-700">
+            Public Site &rarr;
+        </a>
+    </header>
+
+    <!-- Sidebar Navigation (Desktop) -->
+    <aside class="hidden md:flex w-64 bg-slate-900 text-slate-300 border-r border-slate-800 flex-col fixed top-0 bottom-0 left-0 z-40">
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+            <div class="h-9 w-9 rounded-lg bg-emerald-700 p-1 flex items-center justify-center">
+                <img src="images/logo.png" alt="Logo" class="h-full w-auto">
+            </div>
+            <div>
+                <h2 class="font-extrabold text-sm text-white leading-tight">Abhis Farm Fresh</h2>
+                <p class="text-[11px] text-emerald-400 font-semibold">B2B Admin CRM</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-1.5 text-xs font-semibold overflow-y-auto">
+            <a href="#dashboard" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-emerald-800 text-white shadow-sm">
+                <span class="material-symbols-outlined text-base">dashboard</span>
+                Executive Dashboard
+            </a>
+            <a href="#quotes-sec" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                <span class="material-symbols-outlined text-base">request_quote</span>
+                Wholesale RFQs
+            </a>
+            <a href="#customers-sec" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                <span class="material-symbols-outlined text-base">group</span>
+                Customer Accounts
+            </a>
+            <a href="#inventory-sec" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                <span class="material-symbols-outlined text-base">warehouse</span>
+                Cold Store Batches
+            </a>
+            
+            <div class="pt-6">
+                <div class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Shortcuts</div>
+                <a href="index.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-emerald-400 hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-outlined text-base">arrow_back</span>
+                    Back to Public Site
+                </a>
+            </div>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800 bg-slate-950/60">
+            <div class="text-xs font-bold text-white">Abhishek V.</div>
+            <div class="text-[11px] text-slate-400">Supply Chain Director</div>
+        </div>
+    </aside>
+
+    <!-- Main CRM Content Area -->
+    <main class="md:ml-64 flex-1 flex flex-col min-w-0">
+        <!-- Top App Bar -->
+        <header class="h-16 bg-white border-b border-slate-200 px-6 hidden md:flex items-center justify-between sticky top-0 z-30">
+            <div class="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5 w-80">
+                <span class="material-symbols-outlined text-slate-400 text-sm">search</span>
+                <input type="text" placeholder="Search RFQ ID, client, batch..." class="bg-transparent text-xs outline-none w-full text-slate-800">
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="chip chip-success">CRM Sync Active</span>
+                <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-900 font-bold text-xs flex items-center justify-center">
+                    AV
+                </div>
+            </div>
+        </header>
+
+        <div class="p-4 sm:p-8 flex-1 space-y-8">
+            <!-- Header Title -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-slate-900">Executive B2B Operations Panel</h1>
+                    <p class="text-xs text-slate-500">Real-time revenue monitoring, customer credit limits, and wholesale quote approvals.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="location.reload()" class="bg-white border border-slate-200 text-slate-700 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1 hover:bg-slate-50">
+                        <span class="material-symbols-outlined text-sm">refresh</span> Refresh Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI Metric Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+                    <div class="flex justify-between items-center text-xs font-bold text-slate-500">
+                        <span>Monthly B2B Revenue</span>
+                        <span class="material-symbols-outlined text-emerald-600">trending_up</span>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 my-2">₹14,85,000</div>
+                    <span class="chip chip-success">+18.4% MoM Growth</span>
+                </div>
+
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+                    <div class="flex justify-between items-center text-xs font-bold text-slate-500">
+                        <span>Active B2B Accounts</span>
+                        <span class="material-symbols-outlined text-emerald-600">groups</span>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 my-2">142 Clients</div>
+                    <span class="chip chip-success">+12 Accounts Joined</span>
+                </div>
+
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+                    <div class="flex justify-between items-center text-xs font-bold text-slate-500">
+                        <span>Pending RFQ Quotes</span>
+                        <span class="material-symbols-outlined text-amber-600">pending_actions</span>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 my-2">8 Requests</div>
+                    <span class="chip chip-warning">Action Required</span>
+                </div>
+
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+                    <div class="flex justify-between items-center text-xs font-bold text-slate-500">
+                        <span>Fleet Fulfillment Rate</span>
+                        <span class="material-symbols-outlined text-emerald-600">local_shipping</span>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 my-2">98.2%</div>
+                    <span class="chip chip-success">36/37 On-Time Deliveries</span>
+                </div>
+            </div>
+
+            <!-- Wholesale Quotes Table -->
+            <section id="quotes-sec" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-emerald-800">request_quote</span>
+                        Wholesale RFQ Quote Requests
+                    </h2>
+                    <span class="text-xs text-slate-500 font-semibold">Live Submissions</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-200 text-[10px] tracking-wider">
+                                <th class="py-3 px-4">RFQ ID</th>
+                                <th class="py-3 px-4">Client Business</th>
+                                <th class="py-3 px-4">Date</th>
+                                <th class="py-3 px-4">Est. Total</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-quotes-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Customer Accounts Directory -->
+            <section id="customers-sec" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-emerald-800">group</span>
+                        B2B Customer Accounts & Credit Limits
+                    </h2>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-200 text-[10px] tracking-wider">
+                                <th class="py-3 px-4">Account Name</th>
+                                <th class="py-3 px-4">Type</th>
+                                <th class="py-3 px-4">Tier</th>
+                                <th class="py-3 px-4">Contact</th>
+                                <th class="py-3 px-4">Monthly Volume</th>
+                                <th class="py-3 px-4">Credit Used</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-cust-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Cold Storage Inventory Batches -->
+            <section id="inventory-sec" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-emerald-800">warehouse</span>
+                        Cold Storage Stock & Harvest Batches
+                    </h2>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-200 text-[10px] tracking-wider">
+                                <th class="py-3 px-4">SKU Code</th>
+                                <th class="py-3 px-4">Item Name</th>
+                                <th class="py-3 px-4">Location</th>
+                                <th class="py-3 px-4">Batch ID</th>
+                                <th class="py-3 px-4">Stock Qty</th>
+                                <th class="py-3 px-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-inv-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const custTbody = document.getElementById('admin-cust-tbody');
+            if (custTbody && APP_DATA.customers) {
+                custTbody.innerHTML = APP_DATA.customers.map(c => `
+                    <tr class="border-b border-slate-200/70 hover:bg-slate-50 transition-colors">
+                        <td class="py-3.5 px-4 font-bold text-slate-900">${c.name}</td>
+                        <td class="py-3.5 px-4 text-slate-600">${c.type}</td>
+                        <td class="py-3.5 px-4"><span class="chip chip-success">${c.tier}</span></td>
+                        <td class="py-3.5 px-4 text-slate-600">${c.contactPerson}</td>
+                        <td class="py-3.5 px-4 font-semibold text-slate-800">${c.monthlyVolume}</td>
+                        <td class="py-3.5 px-4 font-extrabold text-emerald-800">₹${c.creditUsed.toLocaleString()} / ₹${c.creditLimit.toLocaleString()}</td>
+                    </tr>
+                `).join('');
+            }
+
+            const invTbody = document.getElementById('admin-inv-tbody');
+            if (invTbody && APP_DATA.inventory) {
+                invTbody.innerHTML = APP_DATA.inventory.map(inv => `
+                    <tr class="border-b border-slate-200/70 hover:bg-slate-50 transition-colors">
+                        <td class="py-3.5 px-4 font-bold text-slate-900">${inv.sku}</td>
+                        <td class="py-3.5 px-4 text-slate-800 font-semibold">${inv.name}</td>
+                        <td class="py-3.5 px-4 text-slate-600">${inv.location}</td>
+                        <td class="py-3.5 px-4 text-slate-500 font-mono text-[11px]">${inv.batch}</td>
+                        <td class="py-3.5 px-4 font-extrabold text-slate-900">${inv.qty} ${inv.unit}</td>
+                        <td class="py-3.5 px-4"><span class="chip ${inv.status === 'Low Stock' ? 'chip-danger' : 'chip-success'}">${inv.status}</span></td>
+                    </tr>
+                `).join('');
+            }
+        });
+    </script>
+</body>
+</html>

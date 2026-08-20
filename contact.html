@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us | Abhis Farm Fresh - Premium veggies at your doorstep</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-[#f6f9f6] text-slate-900 min-h-screen flex flex-col pb-16 md:pb-0">
+
+    <header class="glass-nav sticky top-0 z-50 border-b border-slate-200/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-3">
+                <img src="images/logo.png" alt="Logo" class="h-10 w-auto">
+                <div>
+                    <div class="font-extrabold text-lg text-emerald-950">Abhis Farm Fresh</div>
+                    <div class="text-[11px] text-emerald-800 font-semibold">Premium veggies at your doorstep.</div>
+                </div>
+            </a>
+            <nav class="hidden md:flex items-center gap-7 text-xs font-bold text-slate-700">
+                <a href="index.html">Home</a>
+                <a href="products.html">Catalogue</a>
+                <a href="enquiry.html">Bulk Quote Builder</a>
+                <a href="orders.html">My Orders</a>
+                <a href="contact.html" class="text-emerald-800">Contact Us</a>
+                <a href="admin/index.html" class="bg-slate-100 px-3 py-1.5 rounded-lg border">Admin CRM</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Contact Abhis Farm Fresh</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">Premium veggies at your doorstep. Reach out via WhatsApp, Instagram, or Phone.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-xl">call</span>
+                </div>
+                <h3 class="font-bold text-base text-slate-900">Phone & WhatsApp</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    Direct Contact / WhatsApp: <a href="https://wa.me/916380710362" target="_blank" class="text-emerald-800 font-bold underline">6380710362</a><br>
+                    Website Domain: <strong class="text-slate-800">www.abhisfarmfresh.com</strong>
+                </p>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+                <div class="w-10 h-10 rounded-xl bg-pink-50 text-pink-700 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-xl">camera_alt</span>
+                </div>
+                <h3 class="font-bold text-base text-slate-900">Instagram Handle</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    Follow us on Instagram:<br>
+                    <a href="https://www.instagram.com/abhisfarmfresh?igsi=MXVhOXIzY2g0cHRwYw==" target="_blank" class="text-pink-600 font-bold underline">@abhisfarmfresh</a>
+                </p>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-xl">location_on</span>
+                </div>
+                <h3 class="font-bold text-base text-slate-900">Farm Hub Address</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">Plot 42, Agribusiness Hub, Shamshabad, Hyderabad - 501218, Telangana.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Flipkart / Amazon Style Mobile Navigation Bar -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-2xl flex justify-around items-center">
+        <a href="index.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800">
+            <span class="material-symbols-outlined text-xl">home</span>
+            <span>Home</span>
+        </a>
+        <a href="products.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800">
+            <span class="material-symbols-outlined text-xl">grid_view</span>
+            <span>Categories</span>
+        </a>
+        <a href="enquiry.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800 relative">
+            <span class="material-symbols-outlined text-xl">shopping_cart</span>
+            <span id="mobile-cart-badge" class="absolute -top-1 right-2 bg-emerald-700 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">0</span>
+            <span>Quotes</span>
+        </a>
+        <a href="orders.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800">
+            <span class="material-symbols-outlined text-xl">receipt_long</span>
+            <span>Orders</span>
+        </a>
+        <a href="admin/index.html" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-500 hover:text-emerald-800">
+            <span class="material-symbols-outlined text-xl">person</span>
+            <span>Account</span>
+        </a>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
