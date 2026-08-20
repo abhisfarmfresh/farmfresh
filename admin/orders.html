@@ -120,9 +120,9 @@
             </div>
 
             <!-- Search Input -->
-            <div class="relative sm:w-72">
+            <div class="relative sm:w-80">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base">search</span>
-                <input type="text" id="order-search-input" placeholder="Search order ID, shop, phone..." 
+                <input type="text" id="order-search-input" placeholder="Search Order ID, Customer, Shop, Phone..." 
                        class="admin-input pl-9 pr-3 py-2 text-xs">
             </div>
         </div>
@@ -134,13 +134,13 @@
                     <thead>
                         <tr>
                             <th>Order ID</th>
-                            <th>Customer & Shop</th>
+                            <th>Customer</th>
+                            <th>Shop / Business</th>
                             <th>Phone</th>
-                            <th>Total Qty</th>
-                            <th>Grand Total</th>
-                            <th>Date & Time</th>
+                            <th>Amount</th>
+                            <th>Order Date</th>
                             <th>Status</th>
-                            <th class="text-right">Action</th>
+                            <th class="text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="orders-table-tbody">
@@ -152,45 +152,50 @@
 
     </main>
 
-    <!-- Order Details Inspection Modal -->
+    <!-- 1. Full Order Details Inspection Modal -->
     <div id="order-details-modal" class="admin-modal-overlay hidden" style="display: none;">
         <div class="admin-modal p-6 sm:p-8 space-y-6 max-w-2xl">
             
             <!-- Modal Header -->
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Order Inspection</div>
-                    <div class="text-lg font-extrabold text-slate-900 font-mono flex items-center gap-2">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Order Details</div>
+                    <div class="text-lg font-extrabold text-slate-900 font-mono flex items-center gap-2 mt-0.5">
                         <span id="modal-order-number">AFF-20260820-001</span>
                         <span id="modal-order-status"><span class="chip chip-warning">Pending</span></span>
                     </div>
                 </div>
-                <button type="button" onclick="closeOrderModal()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+                <button type="button" onclick="closeOrderModal()" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100">
                     <span class="material-symbols-outlined text-xl">close</span>
                 </button>
             </div>
 
-            <!-- Customer & Delivery Information Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
-                <div>
-                    <div class="text-[10px] font-bold uppercase text-slate-400 mb-1">Customer Profile</div>
+            <!-- Order & Customer Information Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+                <div class="space-y-1">
+                    <div class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Customer Profile</div>
                     <div><strong id="modal-customer-name" class="text-slate-900 font-bold text-sm">John Varma</strong></div>
-                    <div id="modal-shop-name" class="text-emerald-800 font-semibold">Sri Lakshmi Hotel</div>
-                    <div id="modal-phone" class="font-mono text-slate-600">6380710362</div>
-                    <div id="modal-email" class="text-slate-500">customer@gmail.com</div>
+                    <div><span class="text-slate-500">Shop:</span> <strong id="modal-shop-name" class="text-emerald-800 font-semibold">Sri Lakshmi Hotel</strong></div>
+                    <div><span class="text-slate-500">Phone:</span> <strong id="modal-phone" class="font-mono text-slate-700">6380710362</strong></div>
+                    <div><span class="text-slate-500">Email:</span> <span id="modal-email" class="text-slate-600">customer@gmail.com</span></div>
                 </div>
 
-                <div>
-                    <div class="text-[10px] font-bold uppercase text-slate-400 mb-1">Delivery Destination</div>
-                    <div id="modal-delivery-address" class="text-slate-800 font-medium leading-relaxed">Kitchen Gate 2, Thanjavur</div>
-                    <div class="text-[10px] text-slate-400 mt-2">Registered Business Address:</div>
+                <div class="space-y-1 sm:border-l sm:border-slate-200 sm:pl-4">
+                    <div class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Delivery Destination</div>
+                    <div id="modal-delivery-address" class="text-slate-800 font-semibold leading-relaxed">Kitchen Gate 2, Thanjavur</div>
+                    <div class="text-[10px] text-slate-400 pt-1">Registered Address:</div>
                     <div id="modal-business-address" class="text-slate-600 text-[11px]">14/B Main Road, Thanjavur</div>
+                    <div class="text-[10px] text-slate-400 pt-1">Placed On: <span id="modal-order-date" class="font-semibold text-slate-700">—</span></div>
                 </div>
             </div>
 
             <!-- Ordered Items Breakdown Table -->
             <div class="space-y-2">
-                <div class="text-xs font-bold text-slate-800 uppercase tracking-wider">Ordered Vegetables</div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="font-bold text-slate-800 uppercase tracking-wider">Ordered Vegetables</span>
+                    <span id="modal-total-items" class="text-slate-500 font-semibold">0 Items</span>
+                </div>
+                
                 <div class="border border-slate-200 rounded-xl overflow-hidden">
                     <table class="w-full text-left text-xs">
                         <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] border-b border-slate-200">
@@ -198,50 +203,113 @@
                                 <th class="py-2.5 px-3">Product</th>
                                 <th class="py-2.5 px-3 text-center">Quantity</th>
                                 <th class="py-2.5 px-3 text-center">Unit Price</th>
-                                <th class="py-2.5 px-3 text-right">Total</th>
+                                <th class="py-2.5 px-3 text-right">Line Total</th>
                             </tr>
                         </thead>
                         <tbody id="modal-items-tbody">
-                            <!-- Injected -->
+                            <!-- Injected dynamically -->
                         </tbody>
-                        <tfoot class="bg-slate-50/80 border-t border-slate-200 font-bold">
-                            <tr>
-                                <td colspan="3" class="py-2.5 px-3 text-right text-slate-700">Order Grand Total:</td>
-                                <td id="modal-grand-total" class="py-2.5 px-3 text-right text-base font-extrabold text-slate-900">₹0.00</td>
-                            </tr>
-                        </tfoot>
                     </table>
+                </div>
+
+                <!-- Totals Breakdown -->
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5 text-xs">
+                    <div class="flex justify-between text-slate-600">
+                        <span>Total Quantity:</span>
+                        <span id="modal-total-qty" class="font-bold text-slate-800">0 KG</span>
+                    </div>
+                    <div class="flex justify-between text-slate-600">
+                        <span>Subtotal:</span>
+                        <span id="modal-subtotal" class="font-bold text-slate-800">₹0.00</span>
+                    </div>
+                    <div class="flex justify-between text-slate-900 font-extrabold text-sm pt-1 border-t border-slate-200">
+                        <span>Grand Total:</span>
+                        <span id="modal-grand-total" class="text-emerald-950 text-base">₹0.00</span>
+                    </div>
                 </div>
             </div>
 
             <!-- Admin Notes Input -->
             <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1" for="modal-admin-notes">Internal Admin Notes (Optional)</label>
-                <textarea id="modal-admin-notes" rows="2" placeholder="e.g. Verified stock in Cold Storage Bay 2. Delivery scheduled 5:30 AM." 
+                <label class="block text-xs font-bold text-slate-700 mb-1" for="modal-admin-notes">Admin Processing Notes (Optional)</label>
+                <textarea id="modal-admin-notes" rows="2" placeholder="e.g. Verified stock in Cold Storage. Scheduled for 5:00 AM morning slot." 
                           class="admin-input text-xs"></textarea>
             </div>
 
-            <!-- Modal Action Buttons -->
-            <div class="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-slate-100">
-                <button type="button" id="modal-reject-btn" 
-                        class="admin-btn admin-btn-danger w-full sm:w-auto text-xs py-2.5 px-4 rounded-xl">
-                    <span class="material-symbols-outlined text-base">cancel</span>
-                    <span>Reject Order</span>
-                </button>
-
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <button type="button" onclick="closeOrderModal()" class="admin-btn admin-btn-secondary flex-1 sm:flex-none text-xs py-2.5 px-4 rounded-xl">
-                        Close
-                    </button>
-
-                    <button type="button" id="modal-confirm-btn" 
-                            class="admin-btn admin-btn-primary flex-1 sm:flex-none text-xs py-2.5 px-5 rounded-xl shadow-md">
-                        <span class="material-symbols-outlined text-base">check_circle</span>
-                        <span>Confirm Order</span>
-                    </button>
-                </div>
+            <!-- Dynamic Actions Container based on status -->
+            <div id="modal-actions-container" class="pt-2 border-t border-slate-100">
+                <!-- Injected via admin-orders.js -->
             </div>
 
+        </div>
+    </div>
+
+    <!-- 2. Confirm Order Confirmation Dialog -->
+    <div id="confirm-order-dialog" class="admin-modal-overlay hidden" style="display: none;">
+        <div class="admin-modal p-6 space-y-4 max-w-md">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto shadow-inner">
+                <span class="material-symbols-outlined text-2xl">check_circle</span>
+            </div>
+            
+            <div class="text-center space-y-1">
+                <h3 class="text-lg font-extrabold text-slate-900">Confirm This Order?</h3>
+                <p class="text-xs text-slate-500">The order status will be updated to Confirmed in the database.</p>
+            </div>
+
+            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1">
+                <div class="flex justify-between"><span class="text-slate-400">Order ID:</span> <strong id="confirm-dialog-ordernum" class="font-mono text-slate-800">AFF-...</strong></div>
+                <div class="flex justify-between"><span class="text-slate-400">Customer:</span> <strong id="confirm-dialog-customer" class="text-slate-800">—</strong></div>
+                <div class="flex justify-between"><span class="text-slate-400">Total:</span> <strong id="confirm-dialog-total" class="text-emerald-900 font-extrabold">₹0.00</strong></div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closeConfirmDialog()" class="admin-btn admin-btn-secondary flex-1 py-2.5 text-xs rounded-xl">
+                    Cancel
+                </button>
+                <button type="button" id="confirm-dialog-submit-btn" class="admin-btn admin-btn-primary flex-1 py-2.5 text-xs rounded-xl shadow-md">
+                    <span>Confirm Order</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Reject Order Dialog with Reason Selection -->
+    <div id="reject-order-dialog" class="admin-modal-overlay hidden" style="display: none;">
+        <div class="admin-modal p-6 space-y-4 max-w-md">
+            <div class="w-12 h-12 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center mx-auto shadow-inner">
+                <span class="material-symbols-outlined text-2xl">cancel</span>
+            </div>
+            
+            <div class="text-center space-y-1">
+                <h3 class="text-lg font-extrabold text-slate-900">Reject This Order?</h3>
+                <p class="text-xs text-slate-500">Please provide a reason. The customer will be notified.</p>
+            </div>
+
+            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1">
+                <div class="flex justify-between"><span class="text-slate-400">Order ID:</span> <strong id="reject-dialog-ordernum" class="font-mono text-slate-800">AFF-...</strong></div>
+                <div class="flex justify-between"><span class="text-slate-400">Customer:</span> <strong id="reject-dialog-customer" class="text-slate-800">—</strong></div>
+            </div>
+
+            <div class="space-y-2 text-xs">
+                <label class="block font-bold text-slate-700" for="reject-reason-select">Rejection Reason:</label>
+                <select id="reject-reason-select" class="admin-input bg-white text-xs">
+                    <option value="Product unavailable">Product unavailable / out of harvest stock</option>
+                    <option value="Delivery unavailable">Delivery unavailable for selected location/time</option>
+                    <option value="Customer request">Customer requested cancellation</option>
+                    <option value="Other">Other (custom reason)</option>
+                </select>
+
+                <textarea id="reject-custom-reason" rows="2" placeholder="Optional details..." class="admin-input text-xs"></textarea>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closeRejectDialog()" class="admin-btn admin-btn-secondary flex-1 py-2.5 text-xs rounded-xl">
+                    Cancel
+                </button>
+                <button type="button" id="reject-dialog-submit-btn" class="admin-btn admin-btn-danger flex-1 py-2.5 text-xs rounded-xl shadow-md">
+                    <span>Reject Order</span>
+                </button>
+            </div>
         </div>
     </div>
 

@@ -89,10 +89,10 @@
     </aside>
 
     <!-- Main Workspace Content -->
-    <main class="admin-main space-y-8">
+    <main class="admin-main space-y-6">
         
-        <!-- Header Banner -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <!-- Header Banner & Quick Actions -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Executive Dashboard</h1>
                 <p class="text-xs sm:text-sm text-slate-500 mt-1">Real-time revenue monitoring, customer orders, and produce stock management.</p>
@@ -110,33 +110,92 @@
             </div>
         </div>
 
-        <!-- 5 KPI Stat Cards Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
+        <!-- 📅 Month & Date Filter Toolbar (Default: Current Month) -->
+        <div class="admin-card p-4 space-y-3 bg-white border border-slate-200 shadow-sm">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                        <span class="material-symbols-outlined text-emerald-800 text-sm">calendar_month</span>
+                        <span>Date Range:</span>
+                    </span>
+
+                    <!-- Filter Presets -->
+                    <button type="button" 
+                            id="filter-btn-current-month" 
+                            onclick="selectDashboardPreset('current-month')"
+                            class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all bg-emerald-800 text-white shadow-sm">
+                        Current Month
+                    </button>
+
+                    <button type="button" 
+                            id="filter-btn-prev-month" 
+                            onclick="selectDashboardPreset('previous-month')"
+                            class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">
+                        Previous Month
+                    </button>
+
+                    <button type="button" 
+                            id="filter-btn-custom" 
+                            onclick="selectDashboardPreset('custom')"
+                            class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">
+                        Custom Range
+                    </button>
+                </div>
+
+                <!-- Active Date Range Display -->
+                <div class="text-xs font-bold text-emerald-900 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5 self-start lg:self-auto">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="dash-active-range-label">Loading range...</span>
+                </div>
+            </div>
+
+            <!-- Custom Date Inputs (Appears when Custom Range is selected) -->
+            <div id="dash-custom-date-container" class="hidden pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs">
+                <div class="flex items-center gap-2">
+                    <label for="dash-start-date" class="font-bold text-slate-600">Start Date:</label>
+                    <input type="date" id="dash-start-date" class="admin-input py-1.5 px-2.5 text-xs w-36">
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="dash-end-date" class="font-bold text-slate-600">End Date:</label>
+                    <input type="date" id="dash-end-date" class="admin-input py-1.5 px-2.5 text-xs w-36">
+                </div>
+                <span class="text-[11px] text-slate-400">Stats update automatically upon date change.</span>
+            </div>
+        </div>
+
+        <!-- 5 KPI Stat Cards Grid (Filtered by Selected Date Range) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             
+            <!-- Total Sales -->
             <div class="admin-stat-card border-l-4 border-l-emerald-600">
                 <div class="stat-label">Total Sales (₹)</div>
                 <div id="kpi-total-sales" class="stat-value text-emerald-950">₹0</div>
-                <div class="text-[11px] text-emerald-700 font-semibold mt-1">Active Pipeline</div>
+                <div class="text-[11px] text-emerald-700 font-semibold mt-1">Filtered Period Revenue</div>
             </div>
 
-            <div class="admin-stat-card">
-                <div class="stat-label">Today's Orders</div>
-                <div id="kpi-today-orders" class="stat-value text-slate-900">0</div>
-                <div class="text-[11px] text-slate-400 mt-1">24h Activity</div>
+            <!-- Total Orders -->
+            <div class="admin-stat-card border-l-4 border-l-slate-700">
+                <div class="stat-label">Total Orders</div>
+                <div id="kpi-total-orders" class="stat-value text-slate-900">0</div>
+                <div class="text-[11px] text-slate-500 font-semibold mt-1">Orders in Range</div>
             </div>
 
+            <!-- Pending Orders -->
             <div class="admin-stat-card border-l-4 border-l-amber-500">
                 <div class="stat-label">Pending Orders</div>
                 <div id="kpi-pending-orders" class="stat-value text-amber-700">0</div>
                 <div class="text-[11px] text-amber-600 font-bold mt-1">Action Required</div>
             </div>
 
+            <!-- Confirmed Orders -->
             <div class="admin-stat-card border-l-4 border-l-emerald-500">
                 <div class="stat-label">Confirmed Orders</div>
                 <div id="kpi-confirmed-orders" class="stat-value text-emerald-700">0</div>
-                <div class="text-[11px] text-slate-400 mt-1">Approved for Dispatch</div>
+                <div class="text-[11px] text-emerald-600 font-semibold mt-1">Approved for Dispatch</div>
             </div>
 
+            <!-- Rejected Orders -->
             <div class="admin-stat-card border-l-4 border-l-red-400">
                 <div class="stat-label">Rejected Orders</div>
                 <div id="kpi-rejected-orders" class="stat-value text-red-600">0</div>
@@ -146,16 +205,19 @@
         </div>
 
         <!-- Content Split: Recent Orders (Col 8) & Stock Overview (Col 4) -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
             <!-- Recent Customer Orders Table (Col 8) -->
             <div class="lg:col-span-8 admin-card space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div class="flex items-center gap-2 font-extrabold text-base text-slate-900">
                         <span class="material-symbols-outlined text-emerald-800">receipt_long</span>
-                        <span>Recent Customer Orders</span>
+                        <span>Orders in Selected Period</span>
                     </div>
-                    <a href="orders.html" class="text-xs font-bold text-emerald-800 hover:underline">View All Orders &rarr;</a>
+                    <div class="flex items-center gap-3">
+                        <span id="dash-orders-count" class="text-[11px] font-bold text-slate-500">0 Orders</span>
+                        <a href="orders.html" class="text-xs font-bold text-emerald-800 hover:underline">View All &rarr;</a>
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -168,7 +230,7 @@
                                 <th>Date</th>
                                 <th>Grand Total</th>
                                 <th>Status</th>
-                                <th class="text-right">Action</th>
+                                <th class="text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="dash-orders-tbody">
@@ -214,6 +276,7 @@
     <script src="../shared/js/config.js"></script>
     <script src="../shared/js/firebase-init.js"></script>
     <script src="../shared/js/utils.js"></script>
+    <script src="../shared/js/whatsapp.js"></script>
     <script src="js/admin-auth.js"></script>
     <script src="js/admin-dashboard.js"></script>
 </body>

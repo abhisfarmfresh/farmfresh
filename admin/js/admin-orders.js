@@ -1,22 +1,32 @@
 /**
  * Abhis Farm Fresh - Admin Orders Management Controller
- * Handles order listing, status filtering, order details modal, confirmation & rejection workflows
+ * Reliable Order Inspection Modal, Confirm & Reject Workflows, Customer WhatsApp Direct Actions
  */
 
 let allAdminOrders = [];
 let activeStatusFilter = 'all';
 let currentSearchQuery = '';
+let currentActiveOrderId = null; // Currently inspected order in modal
 
 document.addEventListener('DOMContentLoaded', async () => {
   setupOrderFiltersAndSearch();
   await loadAdminOrders();
   
-  // Check if a specific orderId was passed in URL query
+  // Handle direct order inspection via URL query parameter (e.g. orders.html?orderId=AFF-...)
   const params = new URLSearchParams(window.location.search);
   const targetId = params.get('orderId');
   if (targetId) {
-    setTimeout(() => openOrderModal(targetId), 400);
+    setTimeout(() => openOrderModal(targetId), 300);
   }
+
+  // Close modals on Escape key or backdrop click
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeOrderModal();
+      closeConfirmDialog();
+      closeRejectDialog();
+    }
+  });
 });
 
 function setupOrderFiltersAndSearch() {
@@ -46,9 +56,9 @@ function filterOrdersByStatus(status) {
 
 async function loadAdminOrders() {
   const tbody = document.getElementById('orders-table-tbody');
-  if (!tbody) return;
-
-  tbody.innerHTML = `<tr><td colspan="8" class="admin-loading">Loading orders from database...</td></tr>`;
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="8" class="admin-loading">Loading orders from database...</td></tr>`;
+  }
 
   try {
     if (window.FirebaseApp && window.FirebaseApp.isReady()) {
@@ -58,8 +68,9 @@ async function loadAdminOrders() {
     console.warn('Error loading orders from Firestore:', err);
   }
 
-  // Fallback demo orders if database empty
+  // Fallback demo orders if database is currently empty
   if (!allAdminOrders || allAdminOrders.length === 0) {
+    const now = new Date();
     allAdminOrders = [
       {
         id: 'ord_demo_1',
@@ -73,7 +84,7 @@ async function loadAdminOrders() {
         grandTotal: 221,
         totalQuantity: 6,
         status: 'pending',
-        createdAt: new Date(),
+        createdAt: now,
         items: [
           { productName: 'Fresh Tomato', quantity: 2, unit: 'KG', unitPrice: 35, totalPrice: 70 },
           { productName: 'Red Onion', quantity: 3, unit: 'KG', unitPrice: 32, totalPrice: 96 },
@@ -84,7 +95,7 @@ async function loadAdminOrders() {
         id: 'ord_demo_2',
         orderNumber: 'AFF-20260820-002',
         customerName: 'Chef Arvind',
-        shopName: 'Green Leaf Fine Dining',
+        shopName: 'Green Leaf Restaurant',
         phone: '6380710362',
         email: 'arvind@greenleaf.com',
         businessAddress: 'Plot 4, Madhapur, Hyderabad',
@@ -92,8 +103,8 @@ async function loadAdminOrders() {
         grandTotal: 1850,
         totalQuantity: 25,
         status: 'confirmed',
-        confirmedAt: new Date(Date.now() - 3600000),
-        createdAt: new Date(Date.now() - 7200000),
+        confirmedAt: new Date(now.getTime() - 3600000 * 2),
+        createdAt: new Date(now.getTime() - 3600000 * 4),
         items: [
           { productName: 'Butterhead Lettuce', quantity: 10, unit: 'KG', unitPrice: 120, totalPrice: 1200 },
           { productName: 'Green Capsicum', quantity: 10, unit: 'KG', unitPrice: 45, totalPrice: 450 },
@@ -114,7 +125,7 @@ function renderOrdersTable() {
   let filtered = [...allAdminOrders];
 
   if (activeStatusFilter !== 'all') {
-    filtered = filtered.filter(o => o.status === activeStatusFilter);
+    filtered = filtered.filter(o => (o.status || 'pending').toLowerCase() === activeStatusFilter);
   }
 
   if (currentSearchQuery) {
@@ -122,7 +133,8 @@ function renderOrdersTable() {
       (o.orderNumber && o.orderNumber.toLowerCase().includes(currentSearchQuery)) ||
       (o.customerName && o.customerName.toLowerCase().includes(currentSearchQuery)) ||
       (o.shopName && o.shopName.toLowerCase().includes(currentSearchQuery)) ||
-      (o.phone && o.phone.includes(currentSearchQuery))
+      (o.phone && o.phone.includes(currentSearchQuery)) ||
+      (o.id && o.id.toLowerCase().includes(currentSearchQuery))
     );
   }
 
@@ -141,42 +153,125 @@ function renderOrdersTable() {
     return;
   }
 
-  tbody.innerHTML = filtered.map(order => `
-    <tr class="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
-      <td class="py-3.5 px-4 font-mono font-extrabold text-xs text-slate-900">${order.orderNumber || order.id}</td>
-      <td class="py-3.5 px-4">
-        <div class="font-bold text-xs text-slate-900">${Utils.escapeHtml(order.customerName || '—')}</div>
-        <div class="text-[11px] text-emerald-800 font-semibold">${Utils.escapeHtml(order.shopName || '')}</div>
-      </td>
-      <td class="py-3.5 px-4 font-mono text-xs text-slate-700">${order.phone || '—'}</td>
-      <td class="py-3.5 px-4 text-xs font-bold text-slate-700">${order.totalQuantity || 0} KG</td>
-      <td class="py-3.5 px-4 font-extrabold text-xs text-slate-900">${Utils.formatCurrency(order.grandTotal)}</td>
-      <td class="py-3.5 px-4 text-xs text-slate-500">${Utils.formatDateTime(order.createdAt)}</td>
-      <td class="py-3.5 px-4">${Utils.getStatusBadge(order.status || 'pending')}</td>
-      <td class="py-3.5 px-4 text-right">
-        <button onclick="openOrderModal('${order.id}')" class="admin-btn admin-btn-primary text-xs py-1.5 px-3">
-          <span>View</span>
-          <span class="material-symbols-outlined text-sm">visibility</span>
-        </button>
-      </td>
-    </tr>
-  `).join('');
+  // Sort newest first
+  const sorted = [...filtered].sort((a, b) => {
+    const da = Utils.parseDate(a.createdAt)?.getTime() || 0;
+    const db = Utils.parseDate(b.createdAt)?.getTime() || 0;
+    return db - da;
+  });
+
+  tbody.innerHTML = sorted.map(order => {
+    const status = (order.status || 'pending').toLowerCase();
+    const isPending = status === 'pending';
+    const isConfirmed = status === 'confirmed';
+    const isRejected = status === 'rejected';
+
+    return `
+      <tr class="border-b border-slate-100 hover:bg-slate-50/80 transition-colors" id="order-row-${order.id}">
+        <!-- Order ID -->
+        <td class="py-3.5 px-4 font-mono font-extrabold text-xs text-slate-900">
+          ${order.orderNumber || order.id}
+        </td>
+
+        <!-- Customer -->
+        <td class="py-3.5 px-4">
+          <div class="font-bold text-xs text-slate-900">${Utils.escapeHtml(order.customerName || '—')}</div>
+          <div class="text-[11px] text-slate-500">${Utils.escapeHtml(order.email || '')}</div>
+        </td>
+
+        <!-- Shop -->
+        <td class="py-3.5 px-4 font-bold text-xs text-emerald-800">
+          ${Utils.escapeHtml(order.shopName || '—')}
+        </td>
+
+        <!-- Phone -->
+        <td class="py-3.5 px-4 font-mono text-xs text-slate-700">
+          ${order.phone || '—'}
+        </td>
+
+        <!-- Amount -->
+        <td class="py-3.5 px-4 font-extrabold text-xs text-slate-900">
+          ${Utils.formatCurrency(order.grandTotal)}
+        </td>
+
+        <!-- Order Date -->
+        <td class="py-3.5 px-4 text-xs text-slate-500">
+          ${Utils.formatDateTime(order.createdAt)}
+        </td>
+
+        <!-- Status Badge -->
+        <td class="py-3.5 px-4" id="order-status-badge-${order.id}">
+          ${Utils.getStatusBadge(order.status || 'pending')}
+        </td>
+
+        <!-- Actions -->
+        <td class="py-3.5 px-4 text-right">
+          <div class="flex items-center justify-end gap-1.5">
+            
+            <!-- WhatsApp Action -->
+            <button type="button" 
+                    onclick="handleOrderWhatsApp('${order.id}')"
+                    class="p-1.5 text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors" 
+                    title="Send WhatsApp to ${order.customerName || 'Customer'} (${order.phone || 'N/A'})">
+              <span class="material-symbols-outlined text-lg">chat</span>
+            </button>
+
+            <!-- View / Inspect Button -->
+            <button type="button" 
+                    onclick="openOrderModal('${order.id}')" 
+                    class="admin-btn admin-btn-secondary text-xs py-1 px-2.5 rounded-lg flex items-center gap-1">
+              <span class="material-symbols-outlined text-sm">visibility</span>
+              <span>View</span>
+            </button>
+
+            <!-- Quick Confirm if pending -->
+            ${isPending ? `
+              <button type="button" 
+                      onclick="showConfirmDialog('${order.id}')"
+                      class="admin-btn admin-btn-primary text-xs py-1 px-2.5 rounded-lg shadow-sm"
+                      title="Confirm Order">
+                <span>Confirm</span>
+              </button>
+            ` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 /**
- * Open the complete Order Details inspection & action modal
+ * Open the complete Order Details inspection modal
+ * Handles lookups by doc id, orderNumber, or async Firestore fetch
  */
-function openOrderModal(orderId) {
-  const order = allAdminOrders.find(o => o.id === orderId);
-  if (!order) return;
+async function openOrderModal(orderId) {
+  let order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
+
+  // If not found in local array, attempt to fetch from Firestore
+  if (!order && window.FirebaseApp && window.FirebaseApp.isReady()) {
+    try {
+      order = await window.FirebaseApp.getOrder(orderId);
+    } catch (e) {
+      console.warn('Could not fetch single order:', e);
+    }
+  }
+
+  if (!order) {
+    Utils.showToast('Order details could not be found.', 'error');
+    return;
+  }
+
+  currentActiveOrderId = order.id || order.orderNumber;
 
   const modal = document.getElementById('order-details-modal');
   if (!modal) return;
 
+  // Order Info
   document.getElementById('modal-order-number').textContent = order.orderNumber || order.id;
   document.getElementById('modal-order-status').innerHTML = Utils.getStatusBadge(order.status || 'pending');
   document.getElementById('modal-order-date').textContent = Utils.formatDateTime(order.createdAt);
   
+  // Customer Info
   document.getElementById('modal-customer-name').textContent = order.customerName || '—';
   document.getElementById('modal-shop-name').textContent = order.shopName || '—';
   document.getElementById('modal-phone').textContent = order.phone || '—';
@@ -185,34 +280,118 @@ function openOrderModal(orderId) {
   document.getElementById('modal-delivery-address').textContent = order.deliveryAddress || '—';
   document.getElementById('modal-admin-notes').value = order.adminNotes || '';
 
+  // Order Items
   const itemsTbody = document.getElementById('modal-items-tbody');
-  if (itemsTbody && order.items) {
-    itemsTbody.innerHTML = order.items.map(item => `
-      <tr class="border-b border-slate-100 text-xs">
-        <td class="py-2.5 px-3 font-bold text-slate-900">${Utils.escapeHtml(item.productName)}</td>
-        <td class="py-2.5 px-3 text-center font-semibold">${item.quantity} ${item.unit || 'KG'}</td>
-        <td class="py-2.5 px-3 text-center">${Utils.formatCurrency(item.unitPrice)}</td>
-        <td class="py-2.5 px-3 text-right font-extrabold text-slate-900">${Utils.formatCurrency(item.totalPrice)}</td>
-      </tr>
-    `).join('');
+  const items = order.items || [];
+
+  if (itemsTbody) {
+    if (items.length === 0) {
+      itemsTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">No items listed.</td></tr>`;
+    } else {
+      itemsTbody.innerHTML = items.map(item => {
+        const name = item.productName || item.name;
+        const qty = item.quantity || 0;
+        const unit = item.unit || 'KG';
+        const unitPrice = Number(item.unitPrice || item.price) || 0;
+        const lineTotal = Number(item.totalPrice) || (unitPrice * qty);
+
+        return `
+          <tr class="border-b border-slate-100 text-xs hover:bg-slate-50/60">
+            <td class="py-2.5 px-3 font-bold text-slate-900">${Utils.escapeHtml(name)}</td>
+            <td class="py-2.5 px-3 text-center font-semibold">${qty} ${unit}</td>
+            <td class="py-2.5 px-3 text-center">${Utils.formatCurrency(unitPrice)}</td>
+            <td class="py-2.5 px-3 text-right font-extrabold text-slate-900">${Utils.formatCurrency(lineTotal)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
   }
 
-  document.getElementById('modal-grand-total').textContent = Utils.formatCurrency(order.grandTotal);
+  // Summary
+  const subtotal = order.subtotal || order.grandTotal || 0;
+  const totalQty = order.totalQuantity || (items.reduce((s, i) => s + (Number(i.quantity) || 0), 0));
+  const grandTotal = order.grandTotal || subtotal;
 
-  // Configure action buttons
-  const confirmBtn = document.getElementById('modal-confirm-btn');
-  const rejectBtn = document.getElementById('modal-reject-btn');
+  const totalItemsEl = document.getElementById('modal-total-items');
+  const totalQtyEl = document.getElementById('modal-total-qty');
+  const subtotalEl = document.getElementById('modal-subtotal');
+  const grandTotalEl = document.getElementById('modal-grand-total');
 
-  if (confirmBtn) {
-    confirmBtn.onclick = () => handleConfirmOrder(order.id);
-    confirmBtn.style.display = order.status === 'confirmed' ? 'none' : 'inline-flex';
+  if (totalItemsEl) totalItemsEl.textContent = `${items.length} Items`;
+  if (totalQtyEl) totalQtyEl.textContent = `${totalQty} KG`;
+  if (subtotalEl) subtotalEl.textContent = Utils.formatCurrency(subtotal);
+  if (grandTotalEl) grandTotalEl.textContent = Utils.formatCurrency(grandTotal);
+
+  // Status Action Section
+  const status = (order.status || 'pending').toLowerCase();
+  const actionContainer = document.getElementById('modal-actions-container');
+
+  if (actionContainer) {
+    if (status === 'pending') {
+      actionContainer.innerHTML = `
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-3 w-full">
+          <button type="button" 
+                  onclick="showRejectDialog('${order.id}')" 
+                  class="admin-btn admin-btn-danger w-full sm:w-auto text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5">
+            <span class="material-symbols-outlined text-base">cancel</span>
+            <span>Reject Order</span>
+          </button>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button type="button" 
+                    onclick="handleOrderWhatsApp('${order.id}')" 
+                    class="btn-whatsapp text-xs py-2.5 px-4 rounded-xl flex items-center gap-1.5 shadow-sm">
+              <span class="material-symbols-outlined text-base">chat</span>
+              <span>WhatsApp Customer</span>
+            </button>
+
+            <button type="button" 
+                    onclick="showConfirmDialog('${order.id}')" 
+                    class="admin-btn admin-btn-primary text-xs py-2.5 px-5 rounded-xl shadow-md flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-base">check_circle</span>
+              <span>Confirm Order</span>
+            </button>
+          </div>
+        </div>
+      `;
+    } else if (status === 'confirmed') {
+      actionContainer.innerHTML = `
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-3 w-full bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+          <div class="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+            <span class="material-symbols-outlined text-emerald-700 text-lg">verified</span>
+            <span>✓ Order Confirmed for Delivery</span>
+            ${order.confirmedAt ? `<span class="text-[10px] text-emerald-700 font-normal">(${Utils.formatDateTime(order.confirmedAt)})</span>` : ''}
+          </div>
+          <button type="button" 
+                  onclick="handleOrderWhatsApp('${order.id}')" 
+                  class="btn-whatsapp text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 shadow-sm">
+            <span class="material-symbols-outlined text-base">chat</span>
+            <span>Message Customer</span>
+          </button>
+        </div>
+      `;
+    } else if (status === 'rejected') {
+      actionContainer.innerHTML = `
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-3 w-full bg-red-50 p-3 rounded-xl border border-red-200">
+          <div class="text-xs space-y-0.5">
+            <div class="flex items-center gap-1.5 text-red-900 font-bold">
+              <span class="material-symbols-outlined text-red-600 text-lg">cancel</span>
+              <span>✕ Order Rejected</span>
+            </div>
+            ${order.rejectionReason ? `<div class="text-[11px] text-red-700">Reason: ${Utils.escapeHtml(order.rejectionReason)}</div>` : ''}
+          </div>
+          <button type="button" 
+                  onclick="handleOrderWhatsApp('${order.id}')" 
+                  class="btn-whatsapp text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 shadow-sm">
+            <span class="material-symbols-outlined text-base">chat</span>
+            <span>Notify Customer</span>
+          </button>
+        </div>
+      `;
+    }
   }
 
-  if (rejectBtn) {
-    rejectBtn.onclick = () => handleRejectOrder(order.id);
-    rejectBtn.style.display = order.status === 'rejected' ? 'none' : 'inline-flex';
-  }
-
+  // Show modal
   modal.classList.remove('hidden');
   modal.style.display = 'flex';
 }
@@ -226,68 +405,206 @@ function closeOrderModal() {
 }
 
 /**
- * Confirm Order Action
+ * WhatsApp Action for a specific order
  */
-async function handleConfirmOrder(orderId) {
-  const order = allAdminOrders.find(o => o.id === orderId);
-  if (!order) return;
-
-  const notes = document.getElementById('modal-admin-notes')?.value || '';
-
-  if (window.FirebaseApp && window.FirebaseApp.isReady()) {
-    await window.FirebaseApp.updateOrderStatus(orderId, 'confirmed', { adminNotes: notes });
+function handleOrderWhatsApp(orderId) {
+  const order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
+  if (!order) {
+    Utils.showToast('Order record not found.', 'error');
+    return;
   }
 
-  order.status = 'confirmed';
-  order.adminNotes = notes;
-  order.confirmedAt = new Date();
-
-  // Send Confirmation Email if EmailJS configured
-  if (window.EmailService && order.email) {
-    window.EmailService.sendOrderConfirmation(order);
-  }
-
-  Utils.showToast(`Order ${order.orderNumber} confirmed! Notification sent to ${order.email || 'customer'}.`, 'success');
-  closeOrderModal();
-  renderOrdersTable();
+  WhatsAppService.openCustomerWhatsApp(order);
 }
 
 /**
- * Reject Order Action with Reason
+ * Show Confirmation Modal Dialog
  */
-async function handleRejectOrder(orderId) {
-  const order = allAdminOrders.find(o => o.id === orderId);
+function showConfirmDialog(orderId) {
+  const order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
   if (!order) return;
 
-  const reason = prompt('Please enter the rejection reason (e.g. "Produce unavailable for tomorrow" or "Delivery location out of zone"):', 'Produce temporarily out of stock for tomorrow morning.');
-  if (reason === null) return; // cancelled prompt
+  const dialog = document.getElementById('confirm-order-dialog');
+  if (!dialog) return;
 
-  const notes = document.getElementById('modal-admin-notes')?.value || '';
+  document.getElementById('confirm-dialog-ordernum').textContent = order.orderNumber || order.id;
+  document.getElementById('confirm-dialog-customer').textContent = `${order.customerName || 'Customer'} (${order.shopName || '—'})`;
+  document.getElementById('confirm-dialog-total').textContent = Utils.formatCurrency(order.grandTotal);
 
-  if (window.FirebaseApp && window.FirebaseApp.isReady()) {
-    await window.FirebaseApp.updateOrderStatus(orderId, 'rejected', { 
-      adminNotes: notes,
-      rejectionReason: reason 
-    });
-  }
+  const confirmBtn = document.getElementById('confirm-dialog-submit-btn');
+  confirmBtn.onclick = () => executeOrderConfirmation(order.id);
 
-  order.status = 'rejected';
-  order.adminNotes = notes;
-  order.rejectionReason = reason;
-  order.rejectedAt = new Date();
-
-  // Send Rejection Email if EmailJS configured
-  if (window.EmailService && order.email) {
-    window.EmailService.sendOrderRejection(order, reason);
-  }
-
-  Utils.showToast(`Order ${order.orderNumber} marked as rejected.`, 'info');
-  closeOrderModal();
-  renderOrdersTable();
+  dialog.classList.remove('hidden');
+  dialog.style.display = 'flex';
 }
 
+function closeConfirmDialog() {
+  const dialog = document.getElementById('confirm-order-dialog');
+  if (dialog) {
+    dialog.classList.add('hidden');
+    dialog.style.display = 'none';
+  }
+}
+
+/**
+ * Execute Order Confirmation Action (Updates DB -> Updates UI -> Sends Email -> Success Toast)
+ */
+async function executeOrderConfirmation(orderId) {
+  const order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
+  if (!order) return;
+
+  const btn = document.getElementById('confirm-dialog-submit-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> Confirming...`;
+  }
+
+  const notes = document.getElementById('modal-admin-notes')?.value || order.adminNotes || '';
+
+  try {
+    // 1. Update Database Status to 'confirmed'
+    if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+      await window.FirebaseApp.updateOrderStatus(order.id, 'confirmed', { 
+        adminNotes: notes,
+        confirmedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    // 2. Update local state
+    order.status = 'confirmed';
+    order.adminNotes = notes;
+    order.confirmedAt = new Date();
+
+    // 3. Trigger Customer Confirmation Email (if EmailJS is configured)
+    if (window.EmailService && order.email) {
+      window.EmailService.sendOrderConfirmation(order);
+    }
+
+    // 4. Update UI immediately without reload
+    Utils.showToast(`Order ${order.orderNumber || order.id} confirmed successfully.`, 'success');
+    closeConfirmDialog();
+    renderOrdersTable();
+
+    // If modal is currently open, refresh its action buttons
+    if (currentActiveOrderId === order.id || currentActiveOrderId === order.orderNumber) {
+      openOrderModal(order.id);
+    }
+
+  } catch (err) {
+    console.error('Error confirming order:', err);
+    Utils.showToast('Unable to confirm this order. Please try again.', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span>Confirm Order</span>`;
+    }
+  }
+}
+
+/**
+ * Show Rejection Modal Dialog
+ */
+function showRejectDialog(orderId) {
+  const order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
+  if (!order) return;
+
+  const dialog = document.getElementById('reject-order-dialog');
+  if (!dialog) return;
+
+  document.getElementById('reject-dialog-ordernum').textContent = order.orderNumber || order.id;
+  document.getElementById('reject-dialog-customer').textContent = `${order.customerName || 'Customer'} (${order.shopName || '—'})`;
+
+  const reasonSelect = document.getElementById('reject-reason-select');
+  const customReasonInput = document.getElementById('reject-custom-reason');
+  if (reasonSelect) reasonSelect.value = 'Product unavailable';
+  if (customReasonInput) customReasonInput.value = '';
+
+  const submitBtn = document.getElementById('reject-dialog-submit-btn');
+  submitBtn.onclick = () => executeOrderRejection(order.id);
+
+  dialog.classList.remove('hidden');
+  dialog.style.display = 'flex';
+}
+
+function closeRejectDialog() {
+  const dialog = document.getElementById('reject-order-dialog');
+  if (dialog) {
+    dialog.classList.add('hidden');
+    dialog.style.display = 'none';
+  }
+}
+
+/**
+ * Execute Order Rejection Action (Updates DB -> Updates UI -> Sends Email -> Toast)
+ */
+async function executeOrderRejection(orderId) {
+  const order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
+  if (!order) return;
+
+  const btn = document.getElementById('reject-dialog-submit-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> Rejecting...`;
+  }
+
+  const reasonSelect = document.getElementById('reject-reason-select');
+  const customReasonInput = document.getElementById('reject-custom-reason');
+  
+  let finalReason = reasonSelect ? reasonSelect.value : 'Product unavailable';
+  if (finalReason === 'Other' && customReasonInput && customReasonInput.value.trim()) {
+    finalReason = customReasonInput.value.trim();
+  }
+
+  const notes = document.getElementById('modal-admin-notes')?.value || order.adminNotes || '';
+
+  try {
+    // 1. Update Database Status to 'rejected'
+    if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+      await window.FirebaseApp.updateOrderStatus(order.id, 'rejected', { 
+        adminNotes: notes,
+        rejectionReason: finalReason,
+        rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    // 2. Update local state
+    order.status = 'rejected';
+    order.adminNotes = notes;
+    order.rejectionReason = finalReason;
+    order.rejectedAt = new Date();
+
+    // 3. Trigger Customer Rejection Email (if EmailJS is configured)
+    if (window.EmailService && order.email) {
+      window.EmailService.sendOrderRejection(order, finalReason);
+    }
+
+    // 4. Update UI immediately without reload
+    Utils.showToast(`Order ${order.orderNumber || order.id} rejected.`, 'info');
+    closeRejectDialog();
+    renderOrdersTable();
+
+    // If modal is currently open, refresh its action buttons
+    if (currentActiveOrderId === order.id || currentActiveOrderId === order.orderNumber) {
+      openOrderModal(order.id);
+    }
+
+  } catch (err) {
+    console.error('Error rejecting order:', err);
+    Utils.showToast('Unable to reject this order. Please try again.', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span>Reject Order</span>`;
+    }
+  }
+}
+
+// Window global exports
 window.filterOrdersByStatus = filterOrdersByStatus;
 window.openOrderModal = openOrderModal;
 window.closeOrderModal = closeOrderModal;
-window.handleConfirmOrder = handleConfirmOrder;
-window.handleRejectOrder = handleRejectOrder;
+window.handleOrderWhatsApp = handleOrderWhatsApp;
+window.showConfirmDialog = showConfirmDialog;
+window.closeConfirmDialog = closeConfirmDialog;
+window.showRejectDialog = showRejectDialog;
+window.closeRejectDialog = closeRejectDialog;

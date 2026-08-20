@@ -1,6 +1,6 @@
 /**
  * Abhis Farm Fresh — Utility Functions
- * Shared helpers for formatting, dates, and DOM utilities
+ * Shared helpers for formatting, dates, phone normalization, and DOM utilities
  */
 
 const Utils = {
@@ -8,18 +8,31 @@ const Utils = {
    * Format currency in Indian Rupees
    */
   formatCurrency(amount) {
-    return '₹' + Number(amount).toLocaleString('en-IN', {
+    const num = Number(amount) || 0;
+    return '₹' + num.toLocaleString('en-IN', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
     });
   },
 
   /**
-   * Format date to readable string
+   * Robust Date parser for Firestore Timestamp, ISO string, epoch number, or Date
+   */
+  parseDate(val) {
+    if (!val) return null;
+    if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+    if (typeof val.toDate === 'function') return val.toDate();
+    if (typeof val.seconds === 'number') return new Date(val.seconds * 1000);
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  },
+
+  /**
+   * Format date to readable string (e.g. "20 Aug 2026")
    */
   formatDate(timestamp) {
-    if (!timestamp) return '—';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const date = this.parseDate(timestamp);
+    if (!date) return '—';
     return date.toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'short',
@@ -28,11 +41,11 @@ const Utils = {
   },
 
   /**
-   * Format date with time
+   * Format date with time (e.g. "20 Aug 2026, 05:30 PM")
    */
   formatDateTime(timestamp) {
-    if (!timestamp) return '—';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const date = this.parseDate(timestamp);
+    if (!date) return '—';
     return date.toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'short',
@@ -43,10 +56,67 @@ const Utils = {
   },
 
   /**
+   * Get dynamic month boundaries (handles 28, 29, 30, 31 days and leap years automatically)
+   * @param {number} year - full year (e.g. 2026)
+   * @param {number} month - 0-indexed month (0 = Jan, 11 = Dec)
+   * @returns {{ start: Date, end: Date, label: string }}
+   */
+  getMonthRange(year, month) {
+    const start = new Date(year, month, 1, 0, 0, 0, 0);
+    // Passing 0 as the day for month+1 returns the last day of month
+    const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+    const monthName = start.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    return {
+      start,
+      end,
+      label: monthName,
+      formattedRange: `${this.formatDate(start)} – ${this.formatDate(end)}`
+    };
+  },
+
+  /**
+   * Get current month range dynamically
+   */
+  getCurrentMonthRange() {
+    const now = new Date();
+    return this.getMonthRange(now.getFullYear(), now.getMonth());
+  },
+
+  /**
+   * Get previous month range dynamically
+   */
+  getPreviousMonthRange() {
+    const now = new Date();
+    let year = now.getFullYear();
+    let month = now.getMonth() - 1;
+    if (month < 0) {
+      month = 11;
+      year -= 1;
+    }
+    return this.getMonthRange(year, month);
+  },
+
+  /**
+   * Normalize phone number for WhatsApp and validation
+   */
+  normalizePhone(phone) {
+    if (!phone) return null;
+    const clean = String(phone).replace(/\D/g, '');
+    if (clean.length === 10) {
+      return '91' + clean;
+    } else if (clean.length === 12 && clean.startsWith('91')) {
+      return clean;
+    } else if (clean.length >= 10) {
+      return clean;
+    }
+    return null;
+  },
+
+  /**
    * Generate slug from text
    */
   slugify(text) {
-    return text
+    return (text || '')
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')
       .replace(/\s+/g, '-')
@@ -80,19 +150,20 @@ const Utils = {
     };
 
     toast.className = `fixed bottom-20 left-1/2 -translate-x-1/2 z-[9999] bg-slate-900 text-white text-xs font-semibold px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-slide-up max-w-sm`;
-    toast.innerHTML = `<span class="material-symbols-outlined ${colors[type]} text-base">${icons[type]}</span> ${message}`;
+    toast.innerHTML = `<span class="material-symbols-outlined ${colors[type] || 'text-white'} text-base">${icons[type] || 'info'}</span> ${this.escapeHtml(message)}`;
     toast.style.display = 'flex';
 
     clearTimeout(toast._timeout);
     toast._timeout = setTimeout(() => {
       toast.style.display = 'none';
-    }, 3000);
+    }, 3500);
   },
 
   /**
    * Get status badge HTML
    */
   getStatusBadge(status) {
+    const norm = (status || 'pending').toLowerCase();
     const map = {
       pending: { class: 'chip-warning', label: 'Pending' },
       confirmed: { class: 'chip-success', label: 'Confirmed' },
@@ -104,7 +175,7 @@ const Utils = {
       inactive: { class: 'chip-warning', label: 'Inactive' }
     };
 
-    const info = map[status] || { class: '', label: status };
+    const info = map[norm] || { class: 'chip-neutral', label: status };
     return `<span class="chip ${info.class}">${info.label}</span>`;
   },
 
@@ -140,8 +211,9 @@ const Utils = {
    * Escape HTML for safe display
    */
   escapeHtml(text) {
+    if (text === null || text === undefined) return '';
     const div = document.createElement('div');
-    div.textContent = text;
+    div.textContent = String(text);
     return div.innerHTML;
   }
 };
