@@ -1,0 +1,12 @@
+{
+  "name": "abhis-farm-fresh",
+  "version": "1.0.0",
+  "description": "Abhis Farm Fresh B2B and Customer E-Commerce Platform",
+  "scripts": {
+    "build": "node build-config.js",
+    "start": "python3 -m http.server 8543"
+  },
+  "keywords": ["farm-fresh", "vegetables", "b2b", "e-commerce"],
+  "author": "Abhis Farm Fresh",
+  "license": "ISC"
+}
