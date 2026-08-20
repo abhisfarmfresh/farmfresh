@@ -216,6 +216,50 @@
   padding: 0 4px;
 }
 
+/* ─── Product Card Direct Stepper ─── */
+.card-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: var(--green-800);
+  color: white;
+  border-radius: var(--radius-xl);
+  padding: 3px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.card-stepper-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.card-stepper-btn:hover {
+  background: var(--green-900);
+}
+
+.card-stepper-btn:active {
+  transform: scale(0.9);
+}
+
+.card-stepper-qty {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: white;
+  user-select: none;
+}
+
 /* ─── Product Card ─── */
 .product-card {
   display: flex;

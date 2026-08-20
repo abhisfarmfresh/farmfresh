@@ -1,6 +1,6 @@
 /**
  * Abhis Farm Fresh - Products Catalogue Controller
- * Handles fetching, category filtering, search, sorting, and quantity stepper logic
+ * Handles fetching, category filtering, search, sorting, and direct one-tap cart steppers
  */
 
 let allProducts = [];
@@ -11,6 +11,11 @@ let currentSort = 'default';
 document.addEventListener('DOMContentLoaded', async () => {
   initCategoryPills();
   setupSearchAndSort();
+  window.addEventListener('aff_cart_updated', () => {
+    if (allProducts.length > 0) {
+      renderProductsGrid();
+    }
+  });
   await loadProducts();
 });
 
@@ -78,7 +83,6 @@ async function loadProducts() {
   const grid = document.getElementById('products-grid') || document.getElementById('featured-products-grid');
   if (!grid) return;
 
-  // Show loading skeletons
   grid.innerHTML = Utils.createSkeleton(8);
 
   try {
@@ -153,8 +157,8 @@ function renderProductsGrid() {
   grid.innerHTML = filtered.map(product => {
     const isOutOfStock = product.status === 'out_of_stock' || product.stock <= 0;
     const cartItem = cartItems.find(c => c.id === product.id);
-    const inCart = Boolean(cartItem);
-    const initialQty = cartItem ? cartItem.quantity : 1; // Strict MOQ = 1 KG
+    const inCart = Boolean(cartItem && cartItem.quantity > 0);
+    const currentQty = cartItem ? cartItem.quantity : 0;
 
     return `
       <div class="card product-card group bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between" id="card-${product.id}">
@@ -210,24 +214,37 @@ function renderProductsGrid() {
           </div>
         </div>
 
-        <!-- Quantity Stepper & Add to Cart -->
+        <!-- Direct One-Tap Add / Interactive Stepper Action -->
         <div class="p-4 pt-0 bg-white">
-          <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
-            <!-- Stepper (Strict MOQ = 1 KG) -->
-            <div class="stepper ${isOutOfStock ? 'opacity-40 pointer-events-none' : ''}">
-              <button type="button" class="stepper-btn" onclick="stepCardQty('${product.id}', -1)" aria-label="Decrease quantity">-</button>
-              <span class="stepper-value" id="card-qty-${product.id}">${initialQty}</span>
-              <button type="button" class="stepper-btn" onclick="stepCardQty('${product.id}', 1)" aria-label="Increase quantity">+</button>
-            </div>
-
-            <!-- Add to Cart CTA -->
-            <button type="button"
-                    ${isOutOfStock ? 'disabled' : ''}
-                    onclick="handleCardAddToCart('${product.id}')"
-                    class="btn flex-1 ${inCart ? 'bg-slate-800 hover:bg-slate-900' : 'btn-primary'} text-xs font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm active:scale-98">
-              <span class="material-symbols-outlined text-base">${inCart ? 'check_circle' : 'add_shopping_cart'}</span>
-              <span>${isOutOfStock ? 'Out of Stock' : (inCart ? 'Added ✓' : 'Add to Cart')}</span>
-            </button>
+          <div class="pt-2 border-t border-slate-100">
+            ${isOutOfStock ? `
+              <button type="button" disabled class="btn w-full opacity-50 cursor-not-allowed bg-slate-100 text-slate-400 text-xs font-bold py-2.5 px-3 rounded-xl border border-slate-200">
+                Out of Stock
+              </button>
+            ` : inCart ? `
+              <div class="card-stepper">
+                <button type="button" 
+                        class="card-stepper-btn" 
+                        onclick="Cart.updateQuantity('${product.id}', -1)" 
+                        aria-label="Decrease quantity of ${Utils.escapeHtml(product.name)}">
+                  <span class="material-symbols-outlined text-lg">remove</span>
+                </button>
+                <span class="card-stepper-qty">${currentQty} KG</span>
+                <button type="button" 
+                        class="card-stepper-btn" 
+                        onclick="Cart.updateQuantity('${product.id}', 1)" 
+                        aria-label="Increase quantity of ${Utils.escapeHtml(product.name)}">
+                  <span class="material-symbols-outlined text-lg">add</span>
+                </button>
+              </div>
+            ` : `
+              <button type="button"
+                      onclick="handleDirectAdd('${product.id}')"
+                      class="btn btn-primary w-full py-2.5 px-4 text-xs font-extrabold rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-98">
+                <span class="material-symbols-outlined text-base">add</span>
+                <span>ADD</span>
+              </button>
+            `}
           </div>
         </div>
       </div>
@@ -236,38 +253,12 @@ function renderProductsGrid() {
 }
 
 /**
- * Handle quantity changes on the product card stepper
- * Strictly enforces minimum 1 KG
+ * Directly add 1 KG of product to cart
  */
-function stepCardQty(productId, delta) {
-  const qtyEl = document.getElementById(`card-qty-${productId}`);
-  if (!qtyEl) return;
-
-  let current = parseInt(qtyEl.textContent, 10) || 1;
-  let next = current + delta;
-  if (next < 1) next = 1; // Strict MOQ = 1 KG rule
-
-  qtyEl.textContent = next;
-
-  // If item is already in cart, update cart state directly
-  const cartItems = Cart.getItems();
-  if (cartItems.some(i => i.id === productId)) {
-    Cart.setQuantity(productId, next);
-  }
-}
-
-/**
- * Add product to cart with the chosen quantity
- */
-function handleCardAddToCart(productId) {
+function handleDirectAdd(productId) {
   const product = allProducts.find(p => p.id === productId);
   if (!product) return;
-
-  const qtyEl = document.getElementById(`card-qty-${productId}`);
-  const qty = qtyEl ? (parseInt(qtyEl.textContent, 10) || 1) : 1;
-
-  Cart.addItem(product, qty);
-  renderProductsGrid();
+  Cart.addItem(product, 1);
 }
 
 /**
@@ -281,6 +272,5 @@ function resetCatalogueFilters() {
 }
 
 window.setProductCategory = setProductCategory;
-window.stepCardQty = stepCardQty;
-window.handleCardAddToCart = handleCardAddToCart;
+window.handleDirectAdd = handleDirectAdd;
 window.resetCatalogueFilters = resetCatalogueFilters;
