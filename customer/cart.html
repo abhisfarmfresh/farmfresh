@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Vegetable Cart | Abhis Farm Fresh</title>
+    <meta name="description" content="Review your selected fresh vegetables, adjust quantities, and proceed to checkout. Minimum order quantity 1 KG.">
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="../js/firebase-config.js"></script>
+</head>
+<body class="page-body">
+
+    <!-- Header -->
+    <header class="glass-nav sticky top-0 z-50 border-b border-slate-200/80">
+        <div class="container h-20 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-3 group">
+                <div class="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-800 to-emerald-950 p-1.5 shadow-md flex items-center justify-center">
+                    <img src="../images/logo.png" alt="Abhis Farm Fresh Logo" class="h-full w-auto object-contain">
+                </div>
+                <div>
+                    <div class="font-extrabold text-lg sm:text-xl text-emerald-950 tracking-tight leading-tight">Abhis Farm Fresh</div>
+                    <div class="text-[11px] text-emerald-800 font-semibold">Your Shopping Cart</div>
+                </div>
+            </a>
+
+            <!-- Nav Links -->
+            <nav class="hidden md:flex items-center gap-7 text-xs font-bold text-slate-700">
+                <a href="index.html" class="nav-link hover:text-emerald-800 transition-colors">Home</a>
+                <a href="products.html" class="nav-link hover:text-emerald-800 transition-colors">Vegetables</a>
+                <a href="cart.html" class="nav-link text-emerald-800 font-extrabold flex items-center gap-1.5">
+                    Cart
+                    <span id="header-cart-badge" class="bg-emerald-700 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold" style="display: none;">0</span>
+                </a>
+                <a href="about.html" class="nav-link hover:text-emerald-800 transition-colors">About Us</a>
+                <a href="contact.html" class="nav-link hover:text-emerald-800 transition-colors">Contact</a>
+            </nav>
+
+            <a href="https://wa.me/916380710362" target="_blank" class="btn-whatsapp px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                <span class="material-symbols-outlined text-base">chat</span>
+                <span class="hidden sm:inline">6380710362</span>
+                <span class="sm:hidden">WhatsApp</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Cart Workspace -->
+    <main class="container py-8">
+        
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-4">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Your Vegetable Cart</h1>
+                <p class="text-xs text-slate-500 mt-1">Review produce items and quantities. Strict minimum order quantity is 1 KG.</p>
+            </div>
+            <div id="cart-item-count-label" class="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 self-start sm:self-auto">
+                0 Items in Cart
+            </div>
+        </div>
+
+        <!-- Cart Grid Layout (Items List + Summary Box) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Cart Items Table / Cards (Col 8) -->
+            <div class="lg:col-span-8 space-y-4">
+                
+                <!-- Table Container for Desktop -->
+                <div class="card overflow-hidden bg-white border border-slate-200 rounded-2xl shadow-sm">
+                    <div id="cart-table-wrapper" class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                                    <th class="py-3.5 px-4">Vegetable</th>
+                                    <th class="py-3.5 px-4 text-center">Unit Price</th>
+                                    <th class="py-3.5 px-4 text-center">Quantity (KG)</th>
+                                    <th class="py-3.5 px-4 text-right">Item Total</th>
+                                    <th class="py-3.5 px-4 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cart-items-tbody">
+                                <!-- Dynamic Items Injected Here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Empty State Box -->
+                    <div id="cart-empty-state" class="empty-state hidden">
+                        <span class="material-symbols-outlined empty-icon text-5xl text-slate-300">shopping_cart</span>
+                        <h3 class="text-lg font-bold text-slate-800">Your Cart Is Empty</h3>
+                        <p class="text-xs text-slate-500 max-w-sm mx-auto">Add fresh farm vegetables to start your order. Minimum order quantity is 1 KG per vegetable.</p>
+                        <a href="products.html" class="btn btn-primary btn-sm">
+                            <span class="material-symbols-outlined text-base">storefront</span>
+                            Browse Fresh Vegetables
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Bulk B2B Notice -->
+                <div class="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2.5 text-emerald-950 font-medium">
+                        <span class="material-symbols-outlined text-emerald-800 text-lg">verified</span>
+                        <span>All produce is Grade A farm fresh, sorted and packed in sanitized crates.</span>
+                    </div>
+                    <a href="products.html" class="text-emerald-800 font-bold hover:underline hidden sm:inline">
+                        + Add More Items
+                    </a>
+                </div>
+            </div>
+
+            <!-- Order Summary Box (Col 4) -->
+            <div class="lg:col-span-4 space-y-4">
+                <div class="card p-6 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-5 sticky top-28">
+                    <h3 class="font-extrabold text-base text-slate-900 border-b border-slate-100 pb-3">Order Summary</h3>
+
+                    <div class="space-y-3 text-xs">
+                        <div class="flex justify-between text-slate-600">
+                            <span>Subtotal</span>
+                            <span id="summary-subtotal" class="font-bold text-slate-900">₹0.00</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>Total Items</span>
+                            <span id="summary-items-count" class="font-bold text-slate-900">0</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>Total Quantity</span>
+                            <span id="summary-total-qty" class="font-bold text-slate-900">0 KG</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>Payment Method</span>
+                            <span class="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded text-[11px]">Pay on Delivery</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-200 flex justify-between items-baseline">
+                        <div>
+                            <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Grand Total</div>
+                            <div class="text-[10px] text-slate-400">Offline payment upon delivery</div>
+                        </div>
+                        <div id="summary-grand-total" class="text-2xl font-extrabold text-slate-900">₹0.00</div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="space-y-2 pt-2">
+                        <a href="checkout.html" id="proceed-checkout-btn" 
+                           class="btn btn-primary w-full py-3 text-xs font-extrabold flex items-center justify-center gap-2 shadow-md">
+                            <span>Proceed to Confirm Order</span>
+                            <span class="material-symbols-outlined text-base">arrow_forward</span>
+                        </a>
+
+                        <a href="products.html" class="btn btn-secondary w-full py-2.5 text-xs font-bold text-center block">
+                            Continue Shopping
+                        </a>
+                    </div>
+
+                    <div class="text-[11px] text-slate-400 text-center leading-relaxed">
+                        🔒 No payment gateway or credit card required. Final order confirmed via WhatsApp & Email.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-nav flex justify-around items-center md:hidden">
+        <a href="index.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">home</span>
+            <span>Home</span>
+        </a>
+        <a href="products.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">grid_view</span>
+            <span>Vegetables</span>
+        </a>
+        <a href="cart.html" class="mobile-nav-item active relative">
+            <span class="material-symbols-outlined text-2xl">shopping_cart</span>
+            <span id="mobile-cart-badge" class="nav-badge" style="display: none;">0</span>
+            <span>Cart</span>
+        </a>
+        <a href="contact.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">call</span>
+            <span>Contact</span>
+        </a>
+        <a href="../admin/login.html" class="mobile-nav-item">
+            <span class="material-symbols-outlined text-2xl">person</span>
+            <span>Admin</span>
+        </a>
+    </nav>
+
+    <!-- Scripts -->
+    <script src="../shared/js/config.js"></script>
+    <script src="../shared/js/firebase-init.js"></script>
+    <script src="../shared/js/utils.js"></script>
+    <script src="../shared/js/whatsapp.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        renderCartPage();
+        window.addEventListener('aff_cart_updated', renderCartPage);
+    });
+
+    function renderCartPage() {
+        const items = Cart.getItems();
+        const tbody = document.getElementById('cart-items-tbody');
+        const emptyState = document.getElementById('cart-empty-state');
+        const tableWrapper = document.getElementById('cart-table-wrapper');
+        const countLabel = document.getElementById('cart-item-count-label');
+        const checkoutBtn = document.getElementById('proceed-checkout-btn');
+
+        const subtotalEl = document.getElementById('summary-subtotal');
+        const itemsCountEl = document.getElementById('summary-items-count');
+        const totalQtyEl = document.getElementById('summary-total-qty');
+        const grandTotalEl = document.getElementById('summary-grand-total');
+
+        if (countLabel) countLabel.textContent = `${items.length} Item${items.length === 1 ? '' : 's'} in Cart`;
+
+        if (items.length === 0) {
+            if (tbody) tbody.innerHTML = '';
+            if (tableWrapper) tableWrapper.classList.add('hidden');
+            if (emptyState) emptyState.classList.remove('hidden');
+            if (checkoutBtn) {
+                checkoutBtn.classList.add('opacity-50', 'pointer-events-none');
+            }
+            if (subtotalEl) subtotalEl.textContent = '₹0.00';
+            if (itemsCountEl) itemsCountEl.textContent = '0';
+            if (totalQtyEl) totalQtyEl.textContent = '0 KG';
+            if (grandTotalEl) grandTotalEl.textContent = '₹0.00';
+            return;
+        }
+
+        if (tableWrapper) tableWrapper.classList.remove('hidden');
+        if (emptyState) emptyState.classList.add('hidden');
+        if (checkoutBtn) {
+            checkoutBtn.classList.remove('opacity-50', 'pointer-events-none');
+        }
+
+        tbody.innerHTML = items.map(item => {
+            const itemTotal = Number(item.price) * Number(item.quantity);
+            return `
+                <tr class="border-b border-slate-100 hover:bg-slate-50/70 transition-colors">
+                    <td class="py-4 px-4">
+                        <div class="flex items-center gap-3">
+                            <img src="${item.imageUrl}" 
+                                 alt="${Utils.escapeHtml(item.name)}" 
+                                 onerror="this.src='../images/farm_fresh_media_01.jpeg'"
+                                 class="w-12 h-12 rounded-xl object-cover bg-slate-100 border border-slate-200">
+                            <div>
+                                <div class="font-bold text-xs text-slate-900">${Utils.escapeHtml(item.name)}</div>
+                                <div class="text-[11px] text-slate-400 capitalize">${item.category || 'Fresh Produce'}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4 px-4 text-center font-bold text-slate-700">
+                        ${Utils.formatCurrency(item.price)} <span class="text-[11px] text-slate-400 font-normal">/ KG</span>
+                    </td>
+                    <td class="py-4 px-4 text-center">
+                        <div class="stepper inline-flex">
+                            <button type="button" class="stepper-btn" onclick="Cart.updateQuantity('${item.id}', -1)" title="Decrease">-</button>
+                            <span class="stepper-value">${item.quantity}</span>
+                            <button type="button" class="stepper-btn" onclick="Cart.updateQuantity('${item.id}', 1)" title="Increase">+</button>
+                        </div>
+                    </td>
+                    <td class="py-4 px-4 text-right font-extrabold text-slate-900">
+                        ${Utils.formatCurrency(itemTotal)}
+                    </td>
+                    <td class="py-4 px-4 text-center">
+                        <button type="button" 
+                                onclick="Cart.removeItem('${item.id}')" 
+                                class="text-slate-400 hover:text-red-600 transition-colors p-1.5 rounded-lg hover:bg-red-50"
+                                title="Remove ${Utils.escapeHtml(item.name)}">
+                            <span class="material-symbols-outlined text-base">delete</span>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        const subtotal = Cart.getSubtotal();
+        const totalQty = Cart.getTotalQuantity();
+
+        if (subtotalEl) subtotalEl.textContent = Utils.formatCurrency(subtotal);
+        if (itemsCountEl) itemsCountEl.textContent = items.length;
+        if (totalQtyEl) totalQtyEl.textContent = `${totalQty} KG`;
+        if (grandTotalEl) grandTotalEl.textContent = Utils.formatCurrency(subtotal);
+    }
+    </script>
+</body>
+</html>
