@@ -179,6 +179,7 @@ if (!window.DEFAULT_PRODUCTS || window.DEFAULT_PRODUCTS.length === 0) {
 
 document.addEventListener('DOMContentLoaded', () => {
   highlightActiveNav();
+  initStorePromoBanner();
   if (window.Cart) {
     window.Cart.syncUI();
   }
@@ -209,3 +210,71 @@ function highlightActiveNav() {
     }
   });
 }
+
+/**
+ * Dynamically render the storewide Promo Banner from Firestore
+ */
+async function initStorePromoBanner() {
+  if (sessionStorage.getItem('aff_banner_dismissed') === 'true') return;
+
+  let banner = null;
+  try {
+    if (window.FirebaseApp && typeof window.FirebaseApp.getBannerSettings === 'function') {
+      banner = await window.FirebaseApp.getBannerSettings();
+    }
+  } catch (e) {
+    console.warn('Banner fetch error, using cache/fallback:', e);
+  }
+
+  if (!banner) {
+    const stored = localStorage.getItem('aff_promo_banner');
+    banner = stored ? JSON.parse(stored) : {
+      enabled: true,
+      text: '🌱 Daily 5 AM Fresh Harvest Picked & Shipped! Min Order 1 KG • Use code FRESH15 for bulk discount',
+      code: 'FRESH15',
+      linkText: 'Shop Vegetables',
+      linkUrl: 'products.html',
+      theme: 'emerald'
+    };
+  }
+
+  if (!banner || banner.enabled === false || !banner.text) {
+    const existing = document.getElementById('aff-promo-banner-bar');
+    if (existing) existing.remove();
+    return;
+  }
+
+  const themeGradients = {
+    emerald: 'bg-gradient-to-r from-emerald-900 via-teal-900 to-emerald-950 text-white border-b border-emerald-700/50',
+    ocean: 'bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white border-b border-indigo-700/50',
+    amber: 'bg-gradient-to-r from-amber-700 via-orange-800 to-amber-900 text-white border-b border-amber-600/50',
+    violet: 'bg-gradient-to-r from-purple-900 via-pink-900 to-slate-900 text-white border-b border-purple-700/50'
+  };
+
+  const themeClass = themeGradients[banner.theme] || themeGradients.emerald;
+
+  let existing = document.getElementById('aff-promo-banner-bar');
+  if (!existing) {
+    existing = document.createElement('div');
+    existing.id = 'aff-promo-banner-bar';
+    document.body.prepend(existing);
+  }
+
+  existing.className = `${themeClass} py-2 px-4 text-xs font-semibold shadow-sm relative z-50`;
+  existing.innerHTML = `
+    <div class="container flex items-center justify-between gap-3 text-center sm:text-left">
+      <div class="flex-1 flex flex-wrap items-center justify-center gap-2">
+        <span>${banner.text}</span>
+        ${banner.code ? `<span class="bg-white/20 border border-white/30 text-white px-2 py-0.5 rounded text-[10px] font-mono font-extrabold uppercase tracking-wider">${banner.code}</span>` : ''}
+        ${banner.linkText && banner.linkUrl ? `<a href="${banner.linkUrl}" class="underline font-bold text-emerald-200 hover:text-white transition-colors ml-1">${banner.linkText} &rarr;</a>` : ''}
+      </div>
+      <button onclick="dismissPromoBanner()" class="text-white/70 hover:text-white p-1 text-sm font-bold leading-none" title="Dismiss announcement">&times;</button>
+    </div>
+  `;
+}
+
+window.dismissPromoBanner = function() {
+  sessionStorage.setItem('aff_banner_dismissed', 'true');
+  const el = document.getElementById('aff-promo-banner-bar');
+  if (el) el.remove();
+};

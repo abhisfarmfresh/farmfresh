@@ -359,6 +359,270 @@ const FirebaseApp = {
     }
   },
 
+  // ─── CATEGORIES ───────────────────────────────────────
+
+  /**
+   * Fetch all product categories
+   */
+  async getCategories() {
+    if (!this.isReady()) {
+      return (typeof AFF_CONFIG !== 'undefined' && AFF_CONFIG.categories) ? AFF_CONFIG.categories : [];
+    }
+    try {
+      const snap = await this.db.collection('categories').orderBy('order', 'asc').get();
+      if (snap.empty) {
+        return (typeof AFF_CONFIG !== 'undefined' && AFF_CONFIG.categories) ? AFF_CONFIG.categories : [];
+      }
+      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (err) {
+      console.warn('Error fetching categories from Firestore, using config fallback:', err);
+      return (typeof AFF_CONFIG !== 'undefined' && AFF_CONFIG.categories) ? AFF_CONFIG.categories : [];
+    }
+  },
+
+  /**
+   * Add or upsert a category
+   */
+  async addCategory(catData) {
+    if (!this.isReady()) return null;
+    try {
+      catData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      catData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      const docId = catData.id || `cat_${Date.now()}`;
+      await this.db.collection('categories').doc(docId).set(catData, { merge: true });
+      console.log('✅ Category saved:', docId);
+      return docId;
+    } catch (err) {
+      console.error('Error adding category:', err);
+      return null;
+    }
+  },
+
+  /**
+   * Update category
+   */
+  async updateCategory(catId, updates) {
+    if (!this.isReady()) return false;
+    try {
+      updates.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      await this.db.collection('categories').doc(catId).set(updates, { merge: true });
+      console.log('✅ Category updated:', catId);
+      return true;
+    } catch (err) {
+      console.error('Error updating category:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Delete category
+   */
+  async deleteCategory(catId) {
+    if (!this.isReady()) return false;
+    try {
+      await this.db.collection('categories').doc(catId).delete();
+      console.log('✅ Category deleted:', catId);
+      return true;
+    } catch (err) {
+      console.error('Error deleting category:', err);
+      return false;
+    }
+  },
+
+  // ─── INQUIRIES & LEADS ────────────────────────────────
+
+  /**
+   * Fetch all customer contact inquiries
+   */
+  async getInquiries() {
+    if (!this.isReady()) return [];
+    try {
+      const snap = await this.db.collection('inquiries').orderBy('createdAt', 'desc').get();
+      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (err) {
+      console.error('Error fetching inquiries:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Add a new customer inquiry
+   */
+  async addInquiry(inquiryData) {
+    if (!this.isReady()) return null;
+    try {
+      inquiryData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      inquiryData.status = inquiryData.status || 'unread';
+      const docRef = await this.db.collection('inquiries').add(inquiryData);
+      console.log('✅ Inquiry saved:', docRef.id);
+      return docRef.id;
+    } catch (err) {
+      console.error('Error adding inquiry:', err);
+      return null;
+    }
+  },
+
+  /**
+   * Update inquiry status ('unread', 'contacted', 'resolved')
+   */
+  async updateInquiryStatus(inquiryId, status) {
+    if (!this.isReady()) return false;
+    try {
+      await this.db.collection('inquiries').doc(inquiryId).update({
+        status,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      console.log('✅ Inquiry status updated:', inquiryId, '→', status);
+      return true;
+    } catch (err) {
+      console.error('Error updating inquiry:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Delete an inquiry
+   */
+  async deleteInquiry(inquiryId) {
+    if (!this.isReady()) return false;
+    try {
+      await this.db.collection('inquiries').doc(inquiryId).delete();
+      console.log('✅ Inquiry deleted:', inquiryId);
+      return true;
+    } catch (err) {
+      console.error('Error deleting inquiry:', err);
+      return false;
+    }
+  },
+
+  // ─── SETTINGS & PROMO BANNER ──────────────────────────
+
+  /**
+   * Get storewide promo banner settings
+   */
+  async getBannerSettings() {
+    if (!this.isReady()) {
+      return {
+        enabled: true,
+        text: '🌱 Daily 5 AM Fresh Harvest Picked & Shipped! Min Order 1 KG • Use code FRESH15 for bulk discount',
+        code: 'FRESH15',
+        linkText: 'Shop Vegetables',
+        linkUrl: 'products.html',
+        theme: 'emerald' // emerald, ocean, amber, violet
+      };
+    }
+    try {
+      const doc = await this.db.collection('settings').doc('banner').get();
+      if (doc.exists) {
+        return doc.data();
+      }
+      return {
+        enabled: true,
+        text: '🌱 Daily 5 AM Fresh Harvest Picked & Shipped! Min Order 1 KG • Use code FRESH15 for bulk discount',
+        code: 'FRESH15',
+        linkText: 'Shop Vegetables',
+        linkUrl: 'products.html',
+        theme: 'emerald'
+      };
+    } catch (err) {
+      console.warn('Error fetching banner settings:', err);
+      return {
+        enabled: true,
+        text: '🌱 Daily 5 AM Fresh Harvest Picked & Shipped! Min Order 1 KG',
+        code: 'FRESH15',
+        linkText: 'Shop Vegetables',
+        linkUrl: 'products.html',
+        theme: 'emerald'
+      };
+    }
+  },
+
+  /**
+   * Save storewide promo banner settings
+   */
+  async saveBannerSettings(bannerData) {
+    if (!this.isReady()) {
+      localStorage.setItem('aff_promo_banner', JSON.stringify(bannerData));
+      return true;
+    }
+    try {
+      bannerData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      await this.db.collection('settings').doc('banner').set(bannerData, { merge: true });
+      localStorage.setItem('aff_promo_banner', JSON.stringify(bannerData));
+      console.log('✅ Banner settings saved');
+      return true;
+    } catch (err) {
+      console.error('Error saving banner settings:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Get Cloudinary & App settings
+   */
+  async getAppSettings() {
+    const defaultSettings = {
+      cloudName: 'abhisfarmfresh',
+      uploadPreset: 'jpnbyoak',
+      folder: 'abhis/farmfresh'
+    };
+    if (!this.isReady()) {
+      const stored = localStorage.getItem('aff_cloudinary_settings');
+      return stored ? JSON.parse(stored) : defaultSettings;
+    }
+    try {
+      const doc = await this.db.collection('settings').doc('cloudinary').get();
+      if (doc.exists) {
+        return doc.data();
+      }
+      return defaultSettings;
+    } catch (err) {
+      return defaultSettings;
+    }
+  },
+
+  /**
+   * Save Cloudinary & App settings
+   */
+  async saveAppSettings(settingsData) {
+    localStorage.setItem('aff_cloudinary_settings', JSON.stringify(settingsData));
+    if (!this.isReady()) return true;
+    try {
+      settingsData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      await this.db.collection('settings').doc('cloudinary').set(settingsData, { merge: true });
+      console.log('✅ Cloudinary settings saved to Firestore');
+      return true;
+    } catch (err) {
+      console.error('Error saving app settings:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Get total document counts across collections for diagnostics
+   */
+  async getDatabaseStats() {
+    if (!this.isReady()) return { connected: false, products: 0, orders: 0, customers: 0, inquiries: 0 };
+    try {
+      const [prodSnap, orderSnap, custSnap, inqSnap] = await Promise.all([
+        this.db.collection('products').get().catch(() => ({ size: 0 })),
+        this.db.collection('orders').get().catch(() => ({ size: 0 })),
+        this.db.collection('customers').get().catch(() => ({ size: 0 })),
+        this.db.collection('inquiries').get().catch(() => ({ size: 0 }))
+      ]);
+      return {
+        connected: true,
+        projectId: firebaseConfig.projectId,
+        products: prodSnap.size,
+        orders: orderSnap.size,
+        customers: custSnap.size,
+        inquiries: inqSnap.size
+      };
+    } catch (err) {
+      return { connected: false, error: err.message };
+    }
+  },
+
   // ─── AUTH ──────────────────────────────────────────
 
   /**

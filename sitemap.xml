@@ -1,33 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <!-- Homepage -->
   <url>
-    <loc>https://www.abhisfarmfresh.com/</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://abhisfarmfresh.in/</loc>
+    <lastmod>2026-08-22</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://abhisfarmfresh.in/images/farm_fresh_media_01.jpeg</image:loc>
+      <image:title>Abhis Farm Fresh Daily Harvest Produce</image:title>
+      <image:caption>Grade A farm fresh vegetables delivered direct from farmers</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://abhisfarmfresh.in/images/logo.png</image:loc>
+      <image:title>Abhis Farm Fresh Logo</image:title>
+    </image:image>
   </url>
+
+  <!-- Vegetables Catalogue & Rates -->
   <url>
-    <loc>https://www.abhisfarmfresh.com/index.html</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://www.abhisfarmfresh.com/products.html</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://abhisfarmfresh.in/products.html</loc>
+    <lastmod>2026-08-22</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://abhisfarmfresh.in/images/farm_fresh_media_01.jpeg</image:loc>
+      <image:title>Farm Fresh Hybrid Tomatoes</image:title>
+      <image:caption>Grade A fresh red tomatoes</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://abhisfarmfresh.in/images/farm_fresh_media_02.jpeg</image:loc>
+      <image:title>Green Bell Pepper Capsicum</image:title>
+      <image:caption>Farm fresh crisp green capsicum</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://abhisfarmfresh.in/images/farm_fresh_media_03.jpeg</image:loc>
+      <image:title>Red Country Onions</image:title>
+      <image:caption>Graded red country onions</image:caption>
+    </image:image>
   </url>
+
+  <!-- About Us & Quality Standards -->
   <url>
-    <loc>https://www.abhisfarmfresh.com/about.html</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <loc>https://abhisfarmfresh.in/about.html</loc>
+    <lastmod>2026-08-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://abhisfarmfresh.in/images/farm_fresh_media_01.jpeg</image:loc>
+      <image:title>About Abhis Farm Fresh Direct Sourcing</image:title>
+    </image:image>
   </url>
+
+  <!-- Contact & Bulk Wholesale Procurement -->
   <url>
-    <loc>https://www.abhisfarmfresh.com/contact.html</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <loc>https://abhisfarmfresh.in/contact.html</loc>
+    <lastmod>2026-08-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

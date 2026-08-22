@@ -8,7 +8,7 @@ const AFF_CONFIG = {
     name: 'Abhis Farm Fresh',
     tagline: 'Premium Fresh Vegetables. Delivered to Your Business.',
     shortTagline: 'Premium veggies at your doorstep.',
-    domain: 'www.abhisfarmfresh.com',
+    domain: 'abhisfarmfresh.in',
     copyright: '© 2026 Abhis Farm Fresh. All rights reserved.'
   },
 
@@ -17,7 +17,7 @@ const AFF_CONFIG = {
     phoneFormatted: '+91 6380710362',
     whatsapp: '916380710362',
     whatsappLink: 'https://wa.me/916380710362',
-    email: 'orders@abhisfarmfresh.com',
+    email: 'orders@abhisfarmfresh.in',
     instagram: '@abhisfarmfresh',
     instagramUrl: 'https://www.instagram.com/abhisfarmfresh?igsi=MXVhOXIzY2g0cHRwYw=='
   },

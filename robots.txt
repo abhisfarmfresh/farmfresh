@@ -1,12 +1,18 @@
 # Abhis Farm Fresh - Search Engine Crawler Directives
 User-agent: *
 Allow: /
-Allow: /customer/
 Allow: /images/
+Allow: /css/
+Allow: /js/
+Allow: /shared/
+Allow: /customer/
 
-# Disallow Admin CRM from indexing
+# Disallow Private & Admin Areas
 Disallow: /admin/
 Disallow: /admin/*
 Disallow: /seed.html
+Disallow: /checkout.html
+Disallow: /order-success.html
 
-Sitemap: https://www.abhisfarmfresh.com/sitemap.xml
+# Sitemap Directive
+Sitemap: https://abhisfarmfresh.in/sitemap.xml

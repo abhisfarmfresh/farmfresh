@@ -1,6 +1,6 @@
 /**
- * Abhis Farm Fresh - Admin Authentication & Route Guard
- * Supports Firebase Authentication with fallback session management
+ * Abhis Farm Fresh — Admin Authentication & Route Guard
+ * Firebase Authentication + Session Guard + Auto-Redirect
  */
 
 const AdminAuth = {
@@ -11,16 +11,14 @@ const AdminAuth = {
    * Check if admin is currently authenticated
    */
   isAuthenticated() {
-    // 1. Check Firebase Auth
     if (window.firebaseAuth && window.firebaseAuth.currentUser) {
       return true;
     }
-    // 2. Check session storage
     return sessionStorage.getItem(this.SESSION_KEY) === 'true';
   },
 
   /**
-   * Get current admin email/name
+   * Get current admin profile
    */
   getAdminUser() {
     if (window.firebaseAuth && window.firebaseAuth.currentUser) {
@@ -34,13 +32,13 @@ const AdminAuth = {
   },
 
   /**
-   * Sign in admin using Firebase Auth (or fallback for initial setup)
+   * Sign in admin using Firebase Auth (with mock credential fallback)
    */
   async login(email, password) {
     const cleanEmail = (email || '').trim();
     const cleanPass = (password || '').trim();
 
-    // 1. Try Firebase Auth if configured
+    // 1. Try Firebase Auth
     if (window.FirebaseApp && window.FirebaseApp.isReady() && window.FirebaseApp.auth) {
       try {
         const res = await window.FirebaseApp.signIn(cleanEmail, cleanPass);
@@ -50,11 +48,11 @@ const AdminAuth = {
           return { success: true };
         }
       } catch (err) {
-        console.warn('Firebase Auth failed, checking default credentials:', err);
+        console.warn('Firebase Auth attempt failed:', err);
       }
     }
 
-    // 2. Fallback check for initial setup
+    // 2. Fallback check for initial offline / dev setup
     if ((cleanEmail === 'admin@abhisfarmfresh.com' || cleanEmail === 'admin') && cleanPass === 'admin123') {
       sessionStorage.setItem(this.SESSION_KEY, 'true');
       sessionStorage.setItem(this.USER_KEY, JSON.stringify({ email: 'admin@abhisfarmfresh.com', name: 'Admin Officer' }));
@@ -71,7 +69,9 @@ const AdminAuth = {
     sessionStorage.removeItem(this.SESSION_KEY);
     sessionStorage.removeItem(this.USER_KEY);
     if (window.FirebaseApp) {
-      await window.FirebaseApp.signOut();
+      try {
+        await window.FirebaseApp.signOut();
+      } catch (e) {}
     }
     window.location.href = 'login.html';
   },
@@ -86,19 +86,38 @@ const AdminAuth = {
     } else if (this.isAuthenticated() && isLoginPage) {
       window.location.href = 'index.html';
     }
+  },
+
+  /**
+   * Synchronize active profile information in UI
+   */
+  syncProfileUI() {
+    const adminNameEl = document.getElementById('admin-profile-name');
+    const adminEmailEl = document.getElementById('admin-profile-email');
+    const user = this.getAdminUser();
+    if (adminNameEl) adminNameEl.textContent = user.name;
+    if (adminEmailEl) adminEmailEl.textContent = user.email;
   }
 };
 
 window.AdminAuth = AdminAuth;
 
-// Auto-run protection
+// Auto-run protection & sync
 document.addEventListener('DOMContentLoaded', () => {
   AdminAuth.protect();
-  
-  // Update admin user badge in sidebar if present
-  const adminNameEl = document.getElementById('admin-profile-name');
-  const adminEmailEl = document.getElementById('admin-profile-email');
-  const user = AdminAuth.getAdminUser();
-  if (adminNameEl) adminNameEl.textContent = user.name;
-  if (adminEmailEl) adminEmailEl.textContent = user.email;
+  AdminAuth.syncProfileUI();
+
+  // Watch Firebase Auth state
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        sessionStorage.setItem(AdminAuth.SESSION_KEY, 'true');
+        sessionStorage.setItem(AdminAuth.USER_KEY, JSON.stringify({
+          email: user.email,
+          name: user.displayName || 'Admin Officer'
+        }));
+        AdminAuth.syncProfileUI();
+      }
+    });
+  }
 });

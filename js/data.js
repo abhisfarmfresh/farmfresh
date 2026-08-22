@@ -6,11 +6,11 @@ const APP_DATA = {
     brand: {
         name: "Abhis Farm Fresh",
         tagline: "Premium veggies at your doorstep.",
-        domain: "www.abhisfarmfresh.com",
+        domain: "abhisfarmfresh.in",
         gst: "36AAACA1234F1Z5",
         phone: "+91 6380710362",
         whatsapp: "916380710362",
-        email: "orders@abhisfarmfresh.com",
+        email: "orders@abhisfarmfresh.in",
         instagram: "https://www.instagram.com/abhisfarmfresh?igsi=MXVhOXIzY2g0cHRwYw==",
         address: "Plot 42, Agribusiness Hub, Shamshabad, Hyderabad - 501218"
     },

@@ -3,9 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact Us | Abhis Farm Fresh - Phone, WhatsApp & Instagram</title>
-    <meta name="description" content="Contact Abhis Farm Fresh for fresh vegetable orders, wholesale contracts, and customer support. Call or WhatsApp 6380710362.">
+    <title>Contact Us & Wholesale Bulk Inquiries | Abhis Farm Fresh</title>
+    <meta name="description" content="Get in touch with Abhis Farm Fresh for fresh vegetable orders, bulk wholesale contracts for hotels, or customer support. Call or WhatsApp +91 6380710362.">
+    <meta name="keywords" content="contact abhis farm fresh, vegetable wholesale inquiries, bulk vegetable orders, hotel vegetable supply contact">
+    <meta name="author" content="Abhis Farm Fresh">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="theme-color" content="#064e3b">
     
+    <!-- Google Search Console Verification -->
+    <meta name="google-site-verification" content="CBlauqx2UT-hn-mSyK7hd74LU96vcTh_hgC4B58JJAg">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://abhisfarmfresh.in/contact.html">
+
+    <!-- Open Graph SEO -->
+    <meta property="og:locale" content="en_IN">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Abhis Farm Fresh">
+    <meta property="og:title" content="Contact Us & Wholesale Bulk Inquiries | Abhis Farm Fresh">
+    <meta property="og:description" content="Contact Abhis Farm Fresh for fresh vegetable orders, wholesale contracts, and customer support. Call or WhatsApp +91 6380710362.">
+    <meta property="og:url" content="https://abhisfarmfresh.in/contact.html">
+    <meta property="og:image" content="https://abhisfarmfresh.in/images/farm_fresh_media_01.jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Performance Preconnects -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
@@ -213,15 +240,47 @@
     <script src="js/app.js"></script>
 
     <script>
-    document.getElementById('contact-inquiry-form')?.addEventListener('submit', (e) => {
+    document.getElementById('contact-inquiry-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
         const name = document.getElementById('inquiry-name').value.trim();
         const phone = document.getElementById('inquiry-phone').value.trim();
         const msg = document.getElementById('inquiry-msg').value.trim();
 
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> Sending Inquiry...`;
+        }
+
+        // Save lead to Firestore inquiries collection
+        try {
+            if (window.FirebaseApp) {
+                await window.FirebaseApp.addInquiry({
+                    name,
+                    phone,
+                    message: msg,
+                    source: 'customer_contact_form',
+                    status: 'unread'
+                });
+            }
+        } catch (err) {
+            console.warn('Inquiry Firestore log error:', err);
+        }
+
+        if (window.Utils && window.Utils.showToast) {
+            window.Utils.showToast('Inquiry recorded! Opening WhatsApp...', 'success');
+        }
+
         const fullMsg = `Hi Abhis Farm Fresh! 🌱\n\n*Name/Business:* ${name}\n*Phone:* ${phone}\n*Requirement:*\n${msg}`;
         const waUrl = `https://wa.me/916380710362?text=${encodeURIComponent(fullMsg)}`;
-        window.open(waUrl, '_blank');
+        
+        setTimeout(() => {
+            window.open(waUrl, '_blank');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<span class="material-symbols-outlined text-lg">chat</span><span>Send WhatsApp Inquiry</span>`;
+            }
+        }, 400);
     });
     </script>
 </body>

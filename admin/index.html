@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Executive Dashboard | Abhis Farm Fresh Admin</title>
+    <title>Executive Admin CRM | Abhis Farm Fresh</title>
     <meta name="robots" content="noindex, nofollow">
     
     <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
     
     <!-- Tailwind CSS CDN -->
@@ -23,199 +25,173 @@
 <body class="bg-slate-100 min-h-screen">
 
     <!-- Mobile Top Navigation Header -->
-    <header class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-50">
+    <header class="md:hidden bg-slate-950 text-white p-4 flex justify-between items-center sticky top-0 z-50 border-b border-slate-800">
         <div class="flex items-center gap-2 font-bold text-sm">
             <img src="../images/logo.png" alt="Logo" class="h-7 w-auto object-contain bg-white rounded-md p-0.5">
-            <span>Abhis Admin CRM</span>
+            <span>Abhis Admin Suite</span>
         </div>
         <div class="flex items-center gap-2">
-            <a href="orders.html" class="p-1.5 text-slate-300 hover:text-white"><span class="material-symbols-outlined text-xl">receipt_long</span></a>
+            <button onclick="AdminCore.loadAllData().then(() => AdminCore.renderCurrentTab())" class="p-1.5 text-slate-300 hover:text-white" title="Refresh">
+                <span class="material-symbols-outlined text-xl">refresh</span>
+            </button>
             <button onclick="AdminAuth.logout()" class="text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg">Sign Out</button>
         </div>
     </header>
 
+    <!-- Mobile Bottom Tab Bar -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950 border-t border-slate-800 z-50 flex justify-around p-2 text-[10px] text-slate-400">
+        <a href="#orders" onclick="AdminCore.switchTab('orders')" class="flex flex-col items-center gap-1 p-1 hover:text-white">
+            <span class="material-symbols-outlined text-xl">receipt_long</span>
+            <span>Orders</span>
+        </a>
+        <a href="#products" onclick="AdminCore.switchTab('products')" class="flex flex-col items-center gap-1 p-1 hover:text-white">
+            <span class="material-symbols-outlined text-xl">inventory_2</span>
+            <span>Produce</span>
+        </a>
+        <a href="#categories" onclick="AdminCore.switchTab('categories')" class="flex flex-col items-center gap-1 p-1 hover:text-white">
+            <span class="material-symbols-outlined text-xl">category</span>
+            <span>Categories</span>
+        </a>
+        <a href="#inquiries" onclick="AdminCore.switchTab('inquiries')" class="flex flex-col items-center gap-1 p-1 hover:text-white">
+            <span class="material-symbols-outlined text-xl">mail</span>
+            <span>Leads</span>
+        </a>
+        <a href="#banner" onclick="AdminCore.switchTab('banner')" class="flex flex-col items-center gap-1 p-1 hover:text-white">
+            <span class="material-symbols-outlined text-xl">campaign</span>
+            <span>Banner</span>
+        </a>
+        <a href="#settings" onclick="AdminCore.switchTab('settings')" class="flex flex-col items-center gap-1 p-1 hover:text-white">
+            <span class="material-symbols-outlined text-xl">settings</span>
+            <span>Hub</span>
+        </a>
+    </nav>
+
     <!-- Sidebar Navigation (Desktop) -->
     <aside class="admin-sidebar">
         <!-- Brand Header -->
-        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+        <div class="p-6 border-b border-slate-800/80 flex items-center gap-3">
             <img src="../images/logo.png" alt="Logo" class="h-10 w-auto object-contain bg-white rounded-xl p-1 shadow-sm">
             <div>
                 <h2 class="font-extrabold text-sm text-white leading-tight">Abhis Farm Fresh</h2>
-                <p class="text-[11px] text-emerald-400 font-semibold">Executive Admin CRM</p>
+                <p class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Executive Suite</p>
             </div>
         </div>
 
-        <!-- Navigation Links -->
+        <!-- Navigation Tabs -->
         <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
-            <a href="index.html" class="admin-sidebar-link active">
-                <span class="material-symbols-outlined text-base">dashboard</span>
-                <span>Executive Dashboard</span>
+            <a href="#orders" onclick="AdminCore.switchTab('orders')" class="admin-sidebar-link active" data-tab="orders">
+                <span class="material-symbols-outlined text-lg">receipt_long</span>
+                <span>Orders CMS</span>
             </a>
-            <a href="orders.html" class="admin-sidebar-link">
-                <span class="material-symbols-outlined text-base">receipt_long</span>
-                <span>Orders & Verification</span>
+            <a href="#products" onclick="AdminCore.switchTab('products')" class="admin-sidebar-link" data-tab="products">
+                <span class="material-symbols-outlined text-lg">inventory_2</span>
+                <span>Produce & Stock</span>
             </a>
-            <a href="products.html" class="admin-sidebar-link">
-                <span class="material-symbols-outlined text-base">inventory_2</span>
-                <span>Product & Price CRUD</span>
+            <a href="#categories" onclick="AdminCore.switchTab('categories')" class="admin-sidebar-link" data-tab="categories">
+                <span class="material-symbols-outlined text-lg">category</span>
+                <span>Category CMS</span>
             </a>
-            <a href="customers.html" class="admin-sidebar-link">
-                <span class="material-symbols-outlined text-base">group</span>
-                <span>Customer Accounts</span>
+            <a href="#inquiries" onclick="AdminCore.switchTab('inquiries')" class="admin-sidebar-link" data-tab="inquiries">
+                <span class="material-symbols-outlined text-lg">mail</span>
+                <span>Customer Leads</span>
+            </a>
+            <a href="#banner" onclick="AdminCore.switchTab('banner')" class="admin-sidebar-link" data-tab="banner">
+                <span class="material-symbols-outlined text-lg">campaign</span>
+                <span>Promo Banner</span>
+            </a>
+            <a href="#settings" onclick="AdminCore.switchTab('settings')" class="admin-sidebar-link" data-tab="settings">
+                <span class="material-symbols-outlined text-lg">settings</span>
+                <span>Cloud & Settings Hub</span>
             </a>
 
             <div class="pt-6 border-t border-slate-800/80 mt-6">
-                <a href="../index.html" target="_blank" class="admin-sidebar-link text-emerald-400 hover:bg-slate-800">
-                    <span class="material-symbols-outlined text-base">open_in_new</span>
-                    <span>View Customer Website</span>
+                <a href="../index.html" target="_blank" class="admin-sidebar-link text-emerald-400 hover:bg-slate-800/60">
+                    <span class="material-symbols-outlined text-lg">open_in_new</span>
+                    <span>View Customer Store</span>
                 </a>
             </div>
         </nav>
 
         <!-- Admin Profile Footer -->
-        <div class="p-4 border-t border-slate-800 bg-slate-950/60 flex justify-between items-center text-xs">
+        <div class="p-4 border-t border-slate-800/80 bg-slate-950/70 flex justify-between items-center text-xs">
             <div class="space-y-0.5">
                 <div id="admin-profile-name" class="font-bold text-white">Admin Officer</div>
                 <div id="admin-profile-email" class="text-[10px] text-slate-400">admin@abhisfarmfresh.com</div>
             </div>
-            <button onclick="AdminAuth.logout()" class="text-xs text-red-400 hover:text-red-300 font-semibold hover:underline">
-                Logout
+            <button onclick="AdminAuth.logout()" class="text-xs text-red-400 hover:text-red-300 font-semibold hover:underline" title="Sign Out">
+                <span class="material-symbols-outlined text-base">logout</span>
             </button>
         </div>
     </aside>
 
     <!-- Main Workspace Content -->
-    <main class="admin-main space-y-6">
+    <main class="admin-main space-y-6 pb-20 md:pb-8">
         
-        <!-- Header Banner & Quick Actions -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <!-- Top Status & Diagnostic Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
             <div>
-                <div class="flex items-center gap-3">
-                    <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Executive Dashboard</h1>
-                    <div id="firebase-connection-badge"></div>
-                </div>
-                <p class="text-xs sm:text-sm text-slate-500 mt-1">Real-time revenue monitoring, customer orders, and produce stock management.</p>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Executive Management Suite</h1>
+                <p class="text-xs text-slate-500 mt-0.5">Live store management, customer orders, produce inventory, and promo engine.</p>
             </div>
 
             <div class="flex items-center gap-3">
-                <a href="products.html" class="admin-btn admin-btn-secondary text-xs">
-                    <span class="material-symbols-outlined text-base">edit_note</span>
-                    <span>Update Daily Prices</span>
-                </a>
-                <a href="orders.html" class="admin-btn admin-btn-primary text-xs shadow-md">
-                    <span class="material-symbols-outlined text-base">add_task</span>
-                    <span>Manage Orders</span>
-                </a>
-            </div>
-        </div>
-
-        <!-- 📅 Month & Date Filter Toolbar (Default: Current Month) -->
-        <div class="admin-card p-4 space-y-3 bg-white border border-slate-200 shadow-sm">
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                        <span class="material-symbols-outlined text-emerald-800 text-sm">calendar_month</span>
-                        <span>Date Range:</span>
+                <div id="firebase-connection-badge">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Firestore Live</span>
                     </span>
-
-                    <!-- Filter Presets -->
-                    <button type="button" 
-                            id="filter-btn-current-month" 
-                            onclick="selectDashboardPreset('current-month')"
-                            class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all bg-emerald-800 text-white shadow-sm">
-                        Current Month
-                    </button>
-
-                    <button type="button" 
-                            id="filter-btn-prev-month" 
-                            onclick="selectDashboardPreset('previous-month')"
-                            class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">
-                        Previous Month
-                    </button>
-
-                    <button type="button" 
-                            id="filter-btn-custom" 
-                            onclick="selectDashboardPreset('custom')"
-                            class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200">
-                        Custom Range
-                    </button>
                 </div>
-
-                <!-- Active Date Range Display -->
-                <div class="text-xs font-bold text-emerald-900 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5 self-start lg:self-auto">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span id="dash-active-range-label">Loading range...</span>
-                </div>
-            </div>
-
-            <!-- Custom Date Inputs (Appears when Custom Range is selected) -->
-            <div id="dash-custom-date-container" class="hidden pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs">
-                <div class="flex items-center gap-2">
-                    <label for="dash-start-date" class="font-bold text-slate-600">Start Date:</label>
-                    <input type="date" id="dash-start-date" class="admin-input py-1.5 px-2.5 text-xs w-36">
-                </div>
-                <div class="flex items-center gap-2">
-                    <label for="dash-end-date" class="font-bold text-slate-600">End Date:</label>
-                    <input type="date" id="dash-end-date" class="admin-input py-1.5 px-2.5 text-xs w-36">
-                </div>
-                <span class="text-[11px] text-slate-400">Stats update automatically upon date change.</span>
+                <button onclick="AdminCore.loadAllData().then(() => AdminCore.renderCurrentTab()); AdminCore.showToast('Data refreshed!', 'info');" 
+                        class="admin-btn admin-btn-secondary text-xs py-1.5 px-3" title="Sync live Firestore data">
+                    <span class="material-symbols-outlined text-sm">sync</span>
+                    <span>Sync</span>
+                </button>
             </div>
         </div>
 
-        <!-- 5 KPI Stat Cards Grid (Filtered by Selected Date Range) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            
-            <!-- Total Sales -->
-            <div class="admin-stat-card border-l-4 border-l-emerald-600">
-                <div class="stat-label">Total Sales (₹)</div>
-                <div id="kpi-total-sales" class="stat-value text-emerald-950">₹0</div>
-                <div class="text-[11px] text-emerald-700 font-semibold mt-1">Filtered Period Revenue</div>
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- TAB 1: 📦 ORDERS MANAGEMENT CMS                       -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div id="tab-orders" class="admin-tab-pane active space-y-6">
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="admin-stat-card">
+                    <div class="stat-label">Total Revenue</div>
+                    <div id="orders-kpi-revenue" class="stat-value text-emerald-700">₹0</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="stat-label">Total Orders</div>
+                    <div id="orders-kpi-total" class="stat-value text-slate-900">0</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="stat-label">Pending Verification</div>
+                    <div id="orders-kpi-pending" class="stat-value text-amber-600">0</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="stat-label">Delivered / Confirmed</div>
+                    <div id="orders-kpi-delivered" class="stat-value text-blue-600">0</div>
+                </div>
             </div>
 
-            <!-- Total Orders -->
-            <div class="admin-stat-card border-l-4 border-l-slate-700">
-                <div class="stat-label">Total Orders</div>
-                <div id="kpi-total-orders" class="stat-value text-slate-900">0</div>
-                <div class="text-[11px] text-slate-500 font-semibold mt-1">Orders in Range</div>
-            </div>
-
-            <!-- Pending Orders -->
-            <div class="admin-stat-card border-l-4 border-l-amber-500">
-                <div class="stat-label">Pending Orders</div>
-                <div id="kpi-pending-orders" class="stat-value text-amber-700">0</div>
-                <div class="text-[11px] text-amber-600 font-bold mt-1">Action Required</div>
-            </div>
-
-            <!-- Confirmed Orders -->
-            <div class="admin-stat-card border-l-4 border-l-emerald-500">
-                <div class="stat-label">Confirmed Orders</div>
-                <div id="kpi-confirmed-orders" class="stat-value text-emerald-700">0</div>
-                <div class="text-[11px] text-emerald-600 font-semibold mt-1">Approved for Dispatch</div>
-            </div>
-
-            <!-- Rejected Orders -->
-            <div class="admin-stat-card border-l-4 border-l-red-400">
-                <div class="stat-label">Rejected Orders</div>
-                <div id="kpi-rejected-orders" class="stat-value text-red-600">0</div>
-                <div class="text-[11px] text-slate-400 mt-1">Declined</div>
-            </div>
-
-        </div>
-
-        <!-- Content Split: Recent Orders (Col 8) & Stock Overview (Col 4) -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
-            <!-- Recent Customer Orders Table (Col 8) -->
-            <div class="lg:col-span-8 admin-card space-y-4">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div class="flex items-center gap-2 font-extrabold text-base text-slate-900">
-                        <span class="material-symbols-outlined text-emerald-800">receipt_long</span>
-                        <span>Orders in Selected Period</span>
+            <!-- Orders Table Container -->
+            <div class="admin-card space-y-4 p-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <h2 class="font-extrabold text-slate-900 text-base">Customer Orders</h2>
+                        <span class="text-xs text-slate-400 font-semibold">Real-time Firestore</span>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <span id="dash-orders-count" class="text-[11px] font-bold text-slate-500">0 Orders</span>
-                        <a href="orders.html" class="text-xs font-bold text-emerald-800 hover:underline">View All &rarr;</a>
+
+                    <div class="flex flex-wrap items-center gap-3">
+                        <input type="text" id="orders-search-input" placeholder="Search order #, customer, phone..." 
+                               class="admin-input text-xs py-1.5 px-3 w-56">
+                        <select id="orders-status-filter" class="admin-input text-xs py-1.5 px-3 w-40 font-semibold">
+                            <option value="all">All Order Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="out_for_delivery">Out for Delivery</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
                     </div>
                 </div>
 
@@ -223,61 +199,477 @@
                     <table class="admin-table">
                         <thead>
                             <tr>
-                                <th>Order ID</th>
+                                <th>Order #</th>
                                 <th>Customer & Shop</th>
-                                <th>Phone</th>
-                                <th>Date</th>
-                                <th>Grand Total</th>
+                                <th>Volume / Items</th>
+                                <th>Total</th>
                                 <th>Status</th>
+                                <th>Date</th>
                                 <th class="text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="dash-orders-tbody">
-                            <!-- Injected via admin-dashboard.js -->
+                        <tbody id="orders-table-body">
+                            <!-- Populated dynamically by admin-core.js -->
                         </tbody>
                     </table>
                 </div>
             </div>
+        </div>
 
-            <!-- Produce Inventory & Stock Overview (Col 4) -->
-            <div class="lg:col-span-4 space-y-6">
-                <div class="admin-card space-y-4">
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                        <div class="flex items-center gap-2 font-extrabold text-sm text-slate-900">
-                            <span class="material-symbols-outlined text-emerald-800 text-base">warehouse</span>
-                            <span>Produce Stock Status</span>
-                        </div>
-                        <a href="products.html" class="text-[11px] font-bold text-emerald-800 hover:underline">Manage &rarr;</a>
-                    </div>
-
-                    <div id="dash-products-overview" class="space-y-1">
-                        <!-- Injected via admin-dashboard.js -->
-                    </div>
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- TAB 2: 🍎 PRODUCTS & INVENTORY MANAGEMENT CMS         -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div id="tab-products" class="admin-tab-pane space-y-6">
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="admin-stat-card">
+                    <div class="stat-label">Active Produce Items</div>
+                    <div id="products-kpi-active" class="stat-value text-emerald-700">0</div>
                 </div>
-
-                <!-- Quick Admin Notice -->
-                <div class="p-5 bg-gradient-to-br from-emerald-950 to-slate-900 rounded-2xl text-white space-y-2 text-xs">
-                    <div class="flex items-center gap-2 text-emerald-300 font-bold">
-                        <span class="material-symbols-outlined text-base">notifications_active</span>
-                        <span>Daily 5 AM Morning Dispatch</span>
-                    </div>
-                    <p class="text-slate-300 leading-relaxed text-[11px]">
-                        Verify and confirm all pending B2B hotel and kitchen orders before 10 PM each night for morning 5 AM packing.
-                    </p>
+                <div class="admin-stat-card">
+                    <div class="stat-label">Low Stock Warnings (< 50kg)</div>
+                    <div id="products-kpi-low" class="stat-value text-amber-600">0</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="stat-label">Out of Stock Items</div>
+                    <div id="products-kpi-out" class="stat-value text-red-600">0</div>
                 </div>
             </div>
 
+            <!-- Products Toolbar & Grid -->
+            <div class="admin-card space-y-5 p-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <h2 class="font-extrabold text-slate-900 text-base">Vegetables & Produce Catalog</h2>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3">
+                        <input type="text" id="products-search-input" placeholder="Search vegetables, tags, SKU..." 
+                               class="admin-input text-xs py-1.5 px-3 w-52">
+                        <select id="products-category-filter" class="admin-input text-xs py-1.5 px-3 w-40 font-semibold">
+                            <option value="all">All Categories</option>
+                        </select>
+                        <button onclick="AdminCore.openAddProductModal()" class="admin-btn admin-btn-primary text-xs py-2 px-4 shadow-sm">
+                            <span class="material-symbols-outlined text-sm">add_circle</span>
+                            <span>Add New Product</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="products-management-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <!-- Populated dynamically by admin-core.js -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- TAB 3: 🏷️ CATEGORY CMS                                -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div id="tab-categories" class="admin-tab-pane space-y-6">
+            <div class="admin-card space-y-4 p-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h2 class="font-extrabold text-slate-900 text-base">Produce Categories CMS</h2>
+                        <p class="text-xs text-slate-500">Configure storefront categories, icons, and display ordering.</p>
+                    </div>
+                    <button onclick="AdminCore.openAddCategoryModal()" class="admin-btn admin-btn-primary text-xs py-2 px-4">
+                        <span class="material-symbols-outlined text-sm">add</span>
+                        <span>Add Category</span>
+                    </button>
+                </div>
+
+                <div id="categories-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                    <!-- Populated dynamically by admin-core.js -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- TAB 4: 📬 CUSTOMER INQUIRIES & CONTACT LEADS CMS      -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div id="tab-inquiries" class="admin-tab-pane space-y-6">
+            <!-- Inquiries KPIs -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="admin-stat-card">
+                    <div class="stat-label">Total Leads</div>
+                    <div id="inquiries-kpi-total" class="stat-value text-slate-900">0</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="stat-label">Unread Inquiries</div>
+                    <div id="inquiries-kpi-unread" class="stat-value text-red-600">0</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="stat-label">Contacted</div>
+                    <div id="inquiries-kpi-contacted" class="stat-value text-amber-600">0</div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="stat-label">Resolved Deals</div>
+                    <div id="inquiries-kpi-resolved" class="stat-value text-emerald-700">0</div>
+                </div>
+            </div>
+
+            <!-- Inquiries List -->
+            <div class="admin-card space-y-4 p-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h2 class="font-extrabold text-slate-900 text-base">Inbound Customer Requirements</h2>
+                        <p class="text-xs text-slate-500">Submissions from <code>contact.html</code> with instant WhatsApp follow-up.</p>
+                    </div>
+                    <select id="inquiries-status-filter" class="admin-input text-xs py-1.5 px-3 w-40 font-semibold">
+                        <option value="all">All Inquiries</option>
+                        <option value="unread">Unread</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="resolved">Resolved</option>
+                    </select>
+                </div>
+
+                <div id="inquiries-list" class="space-y-3 pt-2">
+                    <!-- Populated dynamically by admin-core.js -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- TAB 5: 📢 TOP ALERT & PROMO BANNER CMS                -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div id="tab-banner" class="admin-tab-pane space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Banner Live Preview -->
+                <div class="lg:col-span-1 space-y-4">
+                    <div class="admin-card p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-extrabold text-slate-900 text-sm">Storefront Live Preview</h3>
+                            <div id="banner-status-indicator"></div>
+                        </div>
+                        <p class="text-xs text-slate-500">Renders automatically at the top of all customer store pages.</p>
+                        
+                        <div class="pt-2">
+                            <div id="banner-live-preview"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Banner Settings Form -->
+                <div class="lg:col-span-2">
+                    <form id="banner-form" class="admin-card p-6 space-y-5">
+                        <div class="flex items-center justify-between border-b pb-4 border-slate-100">
+                            <div>
+                                <h3 class="font-extrabold text-slate-900 text-base">Announcement Banner Controller</h3>
+                                <p class="text-xs text-slate-500">Saved to Firestore <code>settings/banner</code> doc.</p>
+                            </div>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="banner-form-enabled" class="w-4 h-4 text-emerald-600 rounded">
+                                <span class="text-xs font-bold text-slate-800">Banner Enabled</span>
+                            </label>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Announcement Message</label>
+                            <input type="text" id="banner-form-text" class="admin-input" 
+                                   placeholder="🌱 Daily 5 AM Fresh Harvest Picked & Shipped! Min Order 1 KG">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Promo Coupon Code</label>
+                                <input type="text" id="banner-form-code" class="admin-input uppercase font-mono" placeholder="FRESH15">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Color Theme Gradient</label>
+                                <select id="banner-form-theme" class="admin-input font-bold">
+                                    <option value="emerald">Emerald Forest (Green)</option>
+                                    <option value="ocean">Ocean Midnight (Blue/Indigo)</option>
+                                    <option value="amber">Amber Sunrise (Orange/Gold)</option>
+                                    <option value="violet">Royal Berry (Purple/Pink)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">CTA Button Text</label>
+                                <input type="text" id="banner-form-link-text" class="admin-input" placeholder="Shop Vegetables">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">CTA Destination URL</label>
+                                <input type="text" id="banner-form-link-url" class="admin-input" placeholder="products.html">
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit" class="admin-btn admin-btn-primary w-full py-2.5 text-xs font-bold shadow-md">
+                                <span class="material-symbols-outlined text-sm">save</span>
+                                <span>Save & Broadcast Banner to Store</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- TAB 6: ⚙️ SETTINGS HUB                                -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div id="tab-settings" class="admin-tab-pane space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Cloudinary Configuration -->
+                <form id="settings-form" class="admin-card p-6 space-y-4">
+                    <div class="flex items-center gap-3 border-b pb-3 border-slate-100">
+                        <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-xl">cloud_upload</span>
+                        </div>
+                        <div>
+                            <h3 class="font-extrabold text-slate-900 text-sm">Cloudinary Image Hosting</h3>
+                            <p class="text-xs text-slate-500">Unsigned upload preset for direct produce photos.</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Cloud Name</label>
+                        <input type="text" id="settings-cloudinary-name" class="admin-input font-mono" value="abhisfarmfresh">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Upload Preset (Unsigned)</label>
+                        <input type="text" id="settings-cloudinary-preset" class="admin-input font-mono" value="jpnbyoak">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Target Folder</label>
+                        <input type="text" id="settings-cloudinary-folder" class="admin-input font-mono" value="abhis/farmfresh">
+                    </div>
+
+                    <div class="pt-2 flex items-center gap-3">
+                        <button type="submit" class="admin-btn admin-btn-primary flex-1 text-xs py-2">
+                            <span class="material-symbols-outlined text-sm">save</span>
+                            <span>Save Cloudinary Settings</span>
+                        </button>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100">
+                        <label class="block text-xs font-bold text-slate-700 mb-2">Test Image Upload</label>
+                        <input type="file" id="cloudinary-test-file" accept="image/*" class="text-xs text-slate-500">
+                    </div>
+                </form>
+
+                <!-- Firebase Diagnostics & Database Seed Tools -->
+                <div class="admin-card p-6 space-y-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-3 border-b pb-3 border-slate-100 mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-xl">database</span>
+                            </div>
+                            <div>
+                                <h3 class="font-extrabold text-slate-900 text-sm">Firebase Firestore Diagnostics</h3>
+                                <p class="text-xs text-slate-500">Live collection counts and data persistence.</p>
+                            </div>
+                        </div>
+
+                        <div id="settings-firebase-stats" class="py-2">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 space-y-2">
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Database Tools</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" onclick="AdminCore.seedSampleProducts()" class="admin-btn admin-btn-secondary text-xs py-2">
+                                <span class="material-symbols-outlined text-sm">spa</span>
+                                <span>Seed Default Produce</span>
+                            </button>
+                            <button type="button" onclick="localStorage.clear(); AdminCore.showToast('Local demo cache cleared.', 'info');" 
+                                    class="admin-btn admin-btn-secondary text-xs py-2">
+                                <span class="material-symbols-outlined text-sm">cleaning_services</span>
+                                <span>Reset Local Cache</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
     </main>
 
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- MODALS                                                 -->
+    <!-- ══════════════════════════════════════════════════════ -->
+
+    <!-- Order Details Modal -->
+    <div id="order-details-modal" class="admin-modal-overlay">
+        <div class="admin-modal max-w-xl p-6 relative">
+            <button onclick="AdminCore.closeModal('order-details-modal')" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700">
+                <span class="material-symbols-outlined text-2xl">close</span>
+            </button>
+            <div id="order-details-modal-content"></div>
+        </div>
+    </div>
+
+    <!-- Product Add / Edit Modal -->
+    <div id="product-modal" class="admin-modal-overlay">
+        <div class="admin-modal max-w-2xl p-6 relative">
+            <button onclick="AdminCore.closeModal('product-modal')" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700">
+                <span class="material-symbols-outlined text-2xl">close</span>
+            </button>
+
+            <h3 id="product-modal-title" class="text-lg font-extrabold text-slate-900 mb-4">Produce Details</h3>
+
+            <form id="product-form" class="space-y-4">
+                <input type="hidden" id="product-form-id">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Product Name *</label>
+                        <input type="text" id="product-form-name" required class="admin-input" placeholder="e.g. Fresh Hybrid Tomato">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Category *</label>
+                        <select id="product-form-category" class="admin-input font-semibold"></select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Price (₹) *</label>
+                        <input type="number" id="product-form-price" required min="0" step="0.5" class="admin-input" placeholder="35">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Discount Price (₹)</label>
+                        <input type="number" id="product-form-discount" min="0" step="0.5" class="admin-input" placeholder="Optional">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Unit *</label>
+                        <select id="product-form-unit" class="admin-input font-semibold">
+                            <option value="KG">KG</option>
+                            <option value="Bunch">Bunch</option>
+                            <option value="Box">Box</option>
+                            <option value="Piece">Piece</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Stock Quantity *</label>
+                        <input type="number" id="product-form-stock" required min="0" class="admin-input" placeholder="500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">SKU / Item Code</label>
+                        <input type="text" id="product-form-sku" class="admin-input font-mono" placeholder="AFF-TOM-01">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Origin / Farm Source</label>
+                        <input type="text" id="product-form-origin" class="admin-input" placeholder="Thanjavur Hydroponic Farm">
+                    </div>
+                </div>
+
+                <!-- Badges Selection -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Produce Badges</label>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-full text-xs font-bold cursor-pointer">
+                            <input type="checkbox" value="Organic" class="product-badge-checkbox rounded text-emerald-600">
+                            <span>🌱 Organic</span>
+                        </label>
+                        <label class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-full text-xs font-bold cursor-pointer">
+                            <input type="checkbox" value="Fresh Picked" class="product-badge-checkbox rounded text-emerald-600">
+                            <span>✨ Fresh Picked</span>
+                        </label>
+                        <label class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-full text-xs font-bold cursor-pointer">
+                            <input type="checkbox" value="Seasonal" class="product-badge-checkbox rounded text-emerald-600">
+                            <span>☀️ Seasonal</span>
+                        </label>
+                        <label class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-full text-xs font-bold cursor-pointer">
+                            <input type="checkbox" value="Best Seller" class="product-badge-checkbox rounded text-emerald-600">
+                            <span>🔥 Best Seller</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Cloudinary Image Drag-and-Drop Dropzone -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Product Photo</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                        <div id="product-image-dropzone" class="admin-dropzone sm:col-span-2">
+                            <span class="material-symbols-outlined text-3xl text-slate-400">cloud_upload</span>
+                            <div class="text-xs font-bold text-slate-700 mt-1">Drag & Drop Image or Click to Browse</div>
+                            <div class="text-[10px] text-slate-400">Direct unsigned upload to Cloudinary</div>
+                            <input type="file" id="product-file-input" accept="image/*" class="hidden">
+                        </div>
+                        <div class="h-28 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 flex items-center justify-center">
+                            <img id="product-image-preview" src="images/farm_fresh_media_01.jpeg" alt="Preview" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <input type="text" id="product-form-image-url" class="admin-input text-xs font-mono" placeholder="Or enter direct image URL / path">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Description & Quality Notes</label>
+                    <textarea id="product-form-desc" rows="2" class="admin-input text-xs" placeholder="Grade A sorted produce..."></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="AdminCore.closeModal('product-modal')" class="admin-btn admin-btn-secondary text-xs">Cancel</button>
+                    <button type="submit" class="admin-btn admin-btn-primary text-xs py-2 px-5">Save Produce</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Category Add / Edit Modal -->
+    <div id="category-modal" class="admin-modal-overlay">
+        <div class="admin-modal max-w-md p-6 relative">
+            <button onclick="AdminCore.closeModal('category-modal')" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700">
+                <span class="material-symbols-outlined text-2xl">close</span>
+            </button>
+
+            <h3 id="category-modal-title" class="text-lg font-extrabold text-slate-900 mb-4">Category Details</h3>
+
+            <form id="category-form" class="space-y-4">
+                <input type="hidden" id="category-form-id">
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Category Name *</label>
+                    <input type="text" id="category-form-name" required class="admin-input" placeholder="e.g. Farm Vegetables">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Material Icon *</label>
+                        <input type="text" id="category-form-icon" required class="admin-input font-mono" placeholder="agriculture">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Display Order</label>
+                        <input type="number" id="category-form-order" min="1" class="admin-input" value="1">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Subtitle / Summary</label>
+                    <input type="text" id="category-form-subtitle" class="admin-input" placeholder="Daily harvested kitchen essentials">
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="AdminCore.closeModal('category-modal')" class="admin-btn admin-btn-secondary text-xs">Cancel</button>
+                    <button type="submit" class="admin-btn admin-btn-primary text-xs py-2 px-5">Save Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hidden Printable Invoice DOM Area -->
+    <div id="invoice-print-area" class="hidden"></div>
+
+    <!-- Toast Notification Anchor -->
+    <div id="admin-toast-container"></div>
+
     <!-- Scripts -->
     <script src="../shared/js/config.js"></script>
-    <script src="../shared/js/default-products.js"></script>
     <script src="../shared/js/firebase-init.js"></script>
-    <script src="../shared/js/utils.js"></script>
-    <script src="../shared/js/whatsapp.js"></script>
+    <script src="../shared/js/cloudinary-upload.js"></script>
+    <script src="../shared/js/default-products.js"></script>
     <script src="js/admin-auth.js"></script>
-    <script src="js/admin-dashboard.js"></script>
+    <script src="js/admin-core.js"></script>
 </body>
 </html>
