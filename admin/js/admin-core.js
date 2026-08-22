@@ -1,6 +1,7 @@
 /**
  * Abhis Farm Fresh — Executive Admin Core Controller
  * Handles 7 Core Modules: Auth, Orders, Products, Categories, Inquiries, Banner, Settings
+ * Guaranteed Dual-Layer Persistence (Firestore Cloud + Local Persistent Cache)
  */
 
 const AdminCore = {
@@ -113,21 +114,20 @@ const AdminCore = {
   // ─── DATA LOADING ───────────────────────────────────────
   async loadAllData() {
     try {
-      // 1. Products
-      if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+      // 1. Products (Guaranteed dual-layer persistence)
+      if (window.FirebaseApp) {
         this.products = await window.FirebaseApp.getAllProducts();
-        if (this.products.length === 0 && window.DEFAULT_PRODUCTS) {
-          this.products = [...window.DEFAULT_PRODUCTS];
-        }
-      } else if (window.DEFAULT_PRODUCTS) {
-        this.products = [...window.DEFAULT_PRODUCTS];
+      }
+      if (!this.products || this.products.length === 0) {
+        this.products = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
       }
 
       // 2. Categories
-      if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+      if (window.FirebaseApp) {
         this.categories = await window.FirebaseApp.getCategories();
-      } else if (window.AFF_CONFIG && window.AFF_CONFIG.categories) {
-        this.categories = [...window.AFF_CONFIG.categories];
+      }
+      if (!this.categories || this.categories.length === 0) {
+        this.categories = (window.AFF_CONFIG && window.AFF_CONFIG.categories) ? [...window.AFF_CONFIG.categories] : [];
       }
 
       // 3. Orders
@@ -147,9 +147,10 @@ const AdminCore = {
       }
 
       // 5. Banner Settings
-      if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+      if (window.FirebaseApp) {
         this.bannerSettings = await window.FirebaseApp.getBannerSettings();
-      } else {
+      }
+      if (!this.bannerSettings) {
         const stored = localStorage.getItem('aff_promo_banner');
         this.bannerSettings = stored ? JSON.parse(stored) : {
           enabled: true,
@@ -162,9 +163,10 @@ const AdminCore = {
       }
 
       // 6. Cloudinary Settings
-      if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+      if (window.FirebaseApp) {
         this.cloudinarySettings = await window.FirebaseApp.getAppSettings();
-      } else {
+      }
+      if (!this.cloudinarySettings) {
         const stored = localStorage.getItem('aff_cloudinary_settings');
         this.cloudinarySettings = stored ? JSON.parse(stored) : {
           cloudName: 'abhisfarmfresh',
@@ -594,7 +596,6 @@ const AdminCore = {
       if (el) el.value = val;
     };
     setVal('product-form-id', '');
-    setVal('product-modal-title', 'Add New Fresh Produce');
     setVal('product-form-image-url', '');
     const titleEl = document.getElementById('product-modal-title');
     if (titleEl) titleEl.textContent = 'Add New Fresh Produce';
@@ -692,21 +693,29 @@ const AdminCore = {
 
     try {
       if (id) {
-        // Update
-        if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+        // Update both Firestore & Local persistent storage
+        if (window.FirebaseApp) {
           await window.FirebaseApp.updateProduct(id, productData);
         }
+        if (window.ProductStorage) {
+          window.ProductStorage.upsert({ id, ...productData });
+        }
+
         const index = this.products.findIndex(p => String(p.id) === String(id));
         if (index !== -1) {
           this.products[index] = { ...this.products[index], ...productData };
         }
-        this.showToast('Product updated successfully!', 'success');
+        this.showToast('Product updated & saved permanently!', 'success');
       } else {
-        // Create
+        // Create both in Firestore & Local persistent storage
         let newId = `prod_${Date.now()}`;
-        if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+        if (window.FirebaseApp) {
           newId = await window.FirebaseApp.addProduct(productData) || newId;
         }
+        if (window.ProductStorage) {
+          window.ProductStorage.upsert({ id: newId, ...productData });
+        }
+
         this.products.unshift({ id: newId, ...productData });
         this.showToast('New product added to catalogue!', 'success');
       }
@@ -729,8 +738,11 @@ const AdminCore = {
     p.stock = newStock;
     p.status = newStatus;
 
-    if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+    if (window.FirebaseApp) {
       await window.FirebaseApp.updateProduct(productId, { stock: newStock, status: newStatus });
+    }
+    if (window.ProductStorage) {
+      window.ProductStorage.upsert({ id: productId, stock: newStock, status: newStatus });
     }
 
     this.showToast(`${p.name} marked as ${isCurrentlyOut ? 'In Stock' : 'Out of Stock'}`, 'info');
@@ -740,8 +752,11 @@ const AdminCore = {
   async deleteProduct(productId) {
     if (!confirm('Are you sure you want to delete this produce item from the catalogue?')) return;
 
-    if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+    if (window.FirebaseApp) {
       await window.FirebaseApp.deleteProduct(productId);
+    }
+    if (window.ProductStorage) {
+      window.ProductStorage.delete(productId);
     }
 
     this.products = this.products.filter(p => String(p.id) !== String(productId));
@@ -1047,6 +1062,13 @@ const AdminCore = {
 
   // ─── TAB 6: SETTINGS HUB ────────────────────────────────
   async renderSettingsTab() {
+    // Populate Firebase API Key
+    const keyInput = document.getElementById('settings-firebase-api-key');
+    if (keyInput) {
+      const storedKey = localStorage.getItem('aff_firebase_api_key');
+      keyInput.value = storedKey || ((typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey !== 'YOUR_FIREBASE_API_KEY_HERE') ? firebaseConfig.apiKey : '');
+    }
+
     // Cloudinary Inputs
     if (this.cloudinarySettings) {
       const cName = document.getElementById('settings-cloudinary-name');
@@ -1067,19 +1089,19 @@ const AdminCore = {
       if (stats && stats.connected) {
         statsContainer.innerHTML = `
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-            <div class="p-3 bg-slate-50 rounded-xl">
-              <div class="text-[10px] font-bold text-slate-400 uppercase">Products</div>
-              <div class="text-xl font-extrabold text-slate-900">${stats.products}</div>
+            <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+              <div class="text-[10px] font-bold text-emerald-800 uppercase">Products in Cloud</div>
+              <div class="text-xl font-extrabold text-emerald-950">${stats.products}</div>
             </div>
-            <div class="p-3 bg-slate-50 rounded-xl">
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
               <div class="text-[10px] font-bold text-slate-400 uppercase">Orders</div>
               <div class="text-xl font-extrabold text-slate-900">${stats.orders}</div>
             </div>
-            <div class="p-3 bg-slate-50 rounded-xl">
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
               <div class="text-[10px] font-bold text-slate-400 uppercase">Customers</div>
               <div class="text-xl font-extrabold text-slate-900">${stats.customers}</div>
             </div>
-            <div class="p-3 bg-slate-50 rounded-xl">
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
               <div class="text-[10px] font-bold text-slate-400 uppercase">Inquiries</div>
               <div class="text-xl font-extrabold text-slate-900">${stats.inquiries}</div>
             </div>
@@ -1087,13 +1109,65 @@ const AdminCore = {
         `;
       } else {
         statsContainer.innerHTML = `
-          <div class="text-xs text-amber-700 bg-amber-50 p-3 rounded-xl border border-amber-200 flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">info</span>
-            <span>Firestore operates in offline/local mock mode (API keys not provided). Connect live Firebase credentials in <code>js/firebase-config.js</code></span>
+          <div class="text-xs text-amber-800 bg-amber-50 p-3.5 rounded-xl border border-amber-200 space-y-1">
+            <div class="flex items-center gap-1.5 font-bold">
+              <span class="material-symbols-outlined text-base">info</span>
+              <span>Operating in Local Storage Persistent Mode</span>
+            </div>
+            <p class="text-[11px] text-amber-700">All prices, stock, and changes are permanently saved on this device. Enter your Firebase Web API Key above to sync all items to Cloud Firestore!</p>
           </div>
         `;
       }
     }
+  },
+
+  async handleFirebaseKeySubmit(e) {
+    e.preventDefault();
+    const apiKey = document.getElementById('settings-firebase-api-key')?.value?.trim();
+    if (!apiKey) {
+      this.showToast('Please enter a valid Firebase Web API Key', 'error');
+      return;
+    }
+
+    localStorage.setItem('aff_firebase_api_key', apiKey);
+    if (typeof firebaseConfig !== 'undefined') {
+      firebaseConfig.apiKey = apiKey;
+    }
+
+    if (window.FirebaseApp) {
+      window.FirebaseApp._initialized = false;
+      window.FirebaseApp.db = null;
+      window.FirebaseApp.auth = null;
+      window.FirebaseApp.init();
+    }
+
+    this.showToast('Firebase API Key saved! Connecting...', 'info');
+    await this.renderSettingsTab();
+
+    if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+      this.showToast('🔥 Live Firebase connected successfully!', 'success');
+      await this.syncLocalToCloud();
+    } else {
+      this.showToast('Could not authenticate with this API key. Verify project permissions.', 'error');
+    }
+  },
+
+  async syncLocalToCloud() {
+    if (!window.FirebaseApp || !window.FirebaseApp.isReady()) {
+      this.showToast('Connect live Firebase first using your Web API Key', 'error');
+      return;
+    }
+
+    const localProducts = window.ProductStorage ? window.ProductStorage.getAll() : this.products;
+    if (!localProducts || localProducts.length === 0) {
+      this.showToast('No products available to sync.', 'info');
+      return;
+    }
+
+    this.showToast(`Syncing ${localProducts.length} produce items to Cloud Firestore...`, 'info');
+    const seeded = await window.FirebaseApp.seedDefaultProducts(localProducts);
+    this.showToast(`✅ Successfully synced ${seeded} products to Cloud Firestore!`, 'success');
+    await this.renderSettingsTab();
   },
 
   async handleSettingsFormSubmit(e) {
@@ -1144,15 +1218,18 @@ const AdminCore = {
   },
 
   async seedSampleProducts() {
-    if (!confirm('Seed default Grade A vegetable produce into Firestore?')) return;
+    if (!confirm('Reset produce catalog to Grade A default fresh vegetables?')) return;
+    if (window.ProductStorage) {
+      window.ProductStorage.resetToDefaults();
+    }
     if (window.FirebaseApp && window.FirebaseApp.isReady() && window.DEFAULT_PRODUCTS) {
       const count = await window.FirebaseApp.seedDefaultProducts(window.DEFAULT_PRODUCTS);
       this.showToast(`Successfully seeded ${count} produce items to Firestore!`, 'success');
-      await this.loadAllData();
-      this.renderProductsTab();
     } else {
-      this.showToast('Firestore not connected yet.', 'info');
+      this.showToast('Reset to default fresh vegetables locally.', 'success');
     }
+    await this.loadAllData();
+    this.renderProductsTab();
   },
 
   // ─── EVENT LISTENERS & CLOUDINARY DROPZONE ──────────────
@@ -1173,6 +1250,7 @@ const AdminCore = {
     document.getElementById('category-form')?.addEventListener('submit', (e) => this.handleCategoryFormSubmit(e));
     document.getElementById('banner-form')?.addEventListener('submit', (e) => this.handleBannerFormSubmit(e));
     document.getElementById('settings-form')?.addEventListener('submit', (e) => this.handleSettingsFormSubmit(e));
+    document.getElementById('firebase-key-form')?.addEventListener('submit', (e) => this.handleFirebaseKeySubmit(e));
 
     // Banner live preview listeners
     ['banner-form-text', 'banner-form-code', 'banner-form-link-text', 'banner-form-theme', 'banner-form-enabled'].forEach(id => {

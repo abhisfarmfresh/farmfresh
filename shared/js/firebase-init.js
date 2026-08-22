@@ -15,7 +15,7 @@ const FirebaseApp = {
    * Initialize Firebase services
    */
   init() {
-    if (this._initialized) return;
+    if (this._initialized && this.db) return;
 
     if (typeof firebase === 'undefined') {
       console.warn('⚠️ Firebase SDK not loaded');
@@ -24,23 +24,39 @@ const FirebaseApp = {
 
     try {
       if (typeof firebaseConfig !== 'undefined') {
-        if (!firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
+        const customKey = localStorage.getItem('aff_firebase_api_key');
+        if (customKey && customKey.trim() && customKey !== 'YOUR_FIREBASE_API_KEY_HERE') {
+          firebaseConfig.apiKey = customKey.trim();
         }
-        
-        this.db = firebase.firestore();
-        this.auth = firebase.auth();
-        this._initialized = true;
-        
-        console.log('🔥 Live Firebase initialized for project:', firebaseConfig.projectId);
+
+        const isRealKey = firebaseConfig.apiKey && 
+                          firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY_HERE" && 
+                          firebaseConfig.apiKey.length > 10;
+
+        if (isRealKey) {
+          if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+          }
+          this.db = firebase.firestore();
+          this.auth = firebase.auth();
+          this._initialized = true;
+          console.log('🔥 Live Firebase initialized for project:', firebaseConfig.projectId);
+        } else {
+          this._initialized = true;
+          this.db = null;
+          console.log('💾 Firebase in persistent Local Storage mode (Enter API Key in Settings to connect cloud).');
+        }
       }
     } catch (err) {
-      console.error('Firebase Init Error:', err);
+      console.warn('Firebase Init Note:', err.message);
+      this._initialized = true;
     }
+
+    this.updateConnectionBadge();
   },
 
   /**
-   * Check if Firebase is ready
+   * Check if live Firebase Firestore is ready
    */
   isReady() {
     return this._initialized && this.db !== null;
@@ -53,105 +69,151 @@ const FirebaseApp = {
     const badge = document.getElementById('firebase-connection-badge');
     if (!badge) return;
 
-    const projectId = (typeof firebaseConfig !== 'undefined' && firebaseConfig.projectId) ? firebaseConfig.projectId : 'abhisfarmfresh-3e7d3';
-    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm';
-    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Firestore Live: ${projectId}</span>`;
+    if (this.isReady()) {
+      const projectId = (typeof firebaseConfig !== 'undefined' && firebaseConfig.projectId) ? firebaseConfig.projectId : 'abhisfarmfresh-3e7d3';
+      badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm';
+      badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Firestore Live: ${projectId}</span>`;
+    } else {
+      badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-sm';
+      badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>Persistent Local Mode</span>`;
+    }
   },
 
   // ─── PRODUCTS ──────────────────────────────────────────
 
   /**
-   * Fetch all active products (robust query without requiring composite index)
+   * Fetch all active products (guaranteed persistence)
    */
   async getProducts() {
-    if (!this.isReady()) return [];
-    try {
-      const snap = await this.db.collection('products').get();
-      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      return list
-        .filter(p => p.isActive !== false && p.status !== 'inactive')
-        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      return [];
+    if (this.isReady()) {
+      try {
+        const snap = await this.db.collection('products').get();
+        if (!snap.empty) {
+          const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          if (window.ProductStorage) window.ProductStorage.saveAll(list);
+          return list
+            .filter(p => p.isActive !== false && p.status !== 'inactive')
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        }
+      } catch (err) {
+        console.warn('Firestore fetch failed, reading from local persistence:', err.message);
+      }
     }
+
+    const fallback = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
+    return fallback
+      .filter(p => p.isActive !== false && p.status !== 'inactive')
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   },
 
   /**
    * Fetch all products (including inactive) — for admin
    */
   async getAllProducts() {
-    if (!this.isReady()) return [];
-    try {
-      const snap = await this.db.collection('products').get();
-      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      return list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    } catch (err) {
-      console.error('Error fetching all products:', err);
-      return [];
+    if (this.isReady()) {
+      try {
+        const snap = await this.db.collection('products').get();
+        if (!snap.empty) {
+          const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          if (window.ProductStorage) window.ProductStorage.saveAll(list);
+          return list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        }
+      } catch (err) {
+        console.warn('Firestore fetch failed, reading from local persistence:', err.message);
+      }
     }
+
+    const fallback = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
+    return fallback.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   },
 
   /**
    * Get a single product by ID
    */
   async getProduct(productId) {
-    if (!this.isReady()) return null;
-    try {
-      const doc = await this.db.collection('products').doc(productId).get();
-      return doc.exists ? { id: doc.id, ...doc.data() } : null;
-    } catch (err) {
-      console.error('Error fetching product:', err);
-      return null;
+    if (this.isReady()) {
+      try {
+        const doc = await this.db.collection('products').doc(productId).get();
+        if (doc.exists) return { id: doc.id, ...doc.data() };
+      } catch (err) {
+        console.warn('Firestore getProduct failed:', err.message);
+      }
     }
+
+    const list = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
+    return list.find(p => String(p.id) === String(productId)) || null;
   },
 
   /**
-   * Add a new product — admin only
+   * Add a new product — guaranteed persistence
    */
   async addProduct(productData) {
-    if (!this.isReady()) return null;
-    try {
-      productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      productData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-      const docRef = await this.db.collection('products').add(productData);
-      console.log('✅ Product added:', docRef.id);
-      return docRef.id;
-    } catch (err) {
-      console.error('Error adding product:', err);
-      return null;
+    const docId = productData.id || `prod_${Date.now()}`;
+    productData.id = docId;
+
+    // 1. Immediately save to persistent storage
+    if (window.ProductStorage) {
+      window.ProductStorage.upsert(productData);
     }
+
+    // 2. Sync to Firestore if live
+    if (this.isReady()) {
+      try {
+        productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        productData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+        await this.db.collection('products').doc(docId).set(productData, { merge: true });
+        console.log('✅ Product saved to Firestore:', docId);
+      } catch (err) {
+        console.warn('Firestore addProduct sync error (saved locally):', err.message);
+      }
+    }
+
+    return docId;
   },
 
   /**
-   * Update or upsert a product — admin only
+   * Update or upsert a product — guaranteed persistence
    */
   async updateProduct(productId, updates) {
-    if (!this.isReady()) return false;
-    try {
-      updates.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-      await this.db.collection('products').doc(productId).set(updates, { merge: true });
-      console.log('✅ Product updated/saved:', productId);
-      return true;
-    } catch (err) {
-      console.error('Error updating product in Firestore:', err);
-      return false;
+    // 1. Immediately save to persistent storage
+    if (window.ProductStorage) {
+      window.ProductStorage.upsert({ id: productId, ...updates });
     }
+
+    // 2. Sync to Firestore if live
+    if (this.isReady()) {
+      try {
+        updates.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+        await this.db.collection('products').doc(productId).set(updates, { merge: true });
+        console.log('✅ Product updated in Firestore:', productId);
+      } catch (err) {
+        console.warn('Firestore updateProduct sync error (saved locally):', err.message);
+      }
+    }
+
+    return true;
   },
 
   /**
-   * Delete a product — admin only
+   * Delete a product — guaranteed persistence
    */
   async deleteProduct(productId) {
-    if (!this.isReady()) return false;
-    try {
-      await this.db.collection('products').doc(productId).delete();
-      console.log('✅ Product deleted:', productId);
-      return true;
-    } catch (err) {
-      console.error('Error deleting product:', err);
-      return false;
+    // 1. Immediately delete from persistent storage
+    if (window.ProductStorage) {
+      window.ProductStorage.delete(productId);
     }
+
+    // 2. Sync to Firestore if live
+    if (this.isReady()) {
+      try {
+        await this.db.collection('products').doc(productId).delete();
+        console.log('✅ Product deleted from Firestore:', productId);
+      } catch (err) {
+        console.warn('Firestore deleteProduct sync error:', err.message);
+      }
+    }
+
+    return true;
   },
 
   /**
