@@ -22,8 +22,25 @@ const FirebaseApp = {
       return;
     }
 
-    if (typeof firebaseConfig === 'undefined' || firebaseConfig.apiKey === 'YOUR_FIREBASE_API_KEY_HERE') {
-      console.warn('⚠️ Firebase config not found or using placeholder keys. Running in offline mode.');
+    // Check if dynamic runtime API key is saved in localStorage
+    let effectiveApiKey = '';
+    try {
+      const storedKey = localStorage.getItem('aff_firebase_api_key');
+      if (storedKey && storedKey.trim().startsWith('AIza')) {
+        effectiveApiKey = storedKey.trim();
+      }
+    } catch (e) {}
+
+    if (typeof firebaseConfig !== 'undefined') {
+      if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_FIREBASE_API_KEY_HERE') {
+        effectiveApiKey = firebaseConfig.apiKey;
+      } else if (effectiveApiKey) {
+        firebaseConfig.apiKey = effectiveApiKey;
+      }
+    }
+
+    if (!effectiveApiKey || effectiveApiKey === 'YOUR_FIREBASE_API_KEY_HERE') {
+      console.warn('⚠️ Firebase API key missing or using placeholder. Running in offline mode.');
       return;
     }
 
@@ -37,9 +54,32 @@ const FirebaseApp = {
       this.auth = firebase.auth();
       this._initialized = true;
       
-      console.log('🔥 Firebase initialized for project:', firebaseConfig.projectId);
+      console.log('🔥 Live Firebase initialized for project:', firebaseConfig.projectId);
     } catch (err) {
       console.error('Firebase Init Error:', err);
+    }
+  },
+
+  /**
+   * Save runtime API key to localStorage and connect immediately
+   */
+  setApiKey(key) {
+    if (!key || typeof key !== 'string') return false;
+    const cleanKey = key.trim();
+    if (!cleanKey.startsWith('AIza')) {
+      return false;
+    }
+    try {
+      localStorage.setItem('aff_firebase_api_key', cleanKey);
+      if (typeof firebaseConfig !== 'undefined') {
+        firebaseConfig.apiKey = cleanKey;
+      }
+      this._initialized = false;
+      this.init();
+      return this.isReady();
+    } catch (e) {
+      console.warn('Error saving Firebase API Key:', e);
+      return false;
     }
   },
 

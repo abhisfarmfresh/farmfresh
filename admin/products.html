@@ -90,8 +90,11 @@
         <!-- Page Header -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Vegetables & Daily Prices</h1>
-                <p class="text-xs sm:text-sm text-slate-500 mt-1">Update daily vegetable rates, manage cold storage inventory, and add new produce.</p>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Vegetables & Daily Prices</h1>
+                    <div id="firebase-connection-badge"></div>
+                </div>
+                <p class="text-xs sm:text-sm text-slate-500 mt-1">Update daily vegetable rates, manage cold storage inventory, and sync live to all devices.</p>
             </div>
 
             <div class="flex items-center gap-3">
@@ -172,6 +175,44 @@
         </div>
 
     </main>
+
+    <!-- Firebase Cloud Sync Key Modal -->
+    <div id="firebase-key-modal" class="admin-modal-overlay hidden" style="display: none;">
+        <div class="admin-modal p-6 sm:p-8 space-y-5 max-w-md">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-emerald-700">cloud_sync</span>
+                    <h3 class="font-extrabold text-base text-slate-900">Firebase Cloud Sync Setup</h3>
+                </div>
+                <button type="button" onclick="closeFirebaseKeyModal()" class="text-slate-400 hover:text-slate-700 p-1">
+                    <span class="material-symbols-outlined text-xl">close</span>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs text-slate-600">
+                <p>To synchronize product prices and orders across <strong>all computers, mobile devices, and Cloudflare Pages</strong>, enter your Firebase Web API Key below:</p>
+                
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1 text-[11px]">
+                    <div class="font-bold text-slate-800">Project: <span class="text-emerald-800">abhisfarmfresh-3e7d3</span></div>
+                    <p class="text-slate-500">Firebase Console → Project Settings ⚙️ → General → Web App API Key (starts with <code>AIza...</code>)</p>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block font-bold text-slate-700" for="input-firebase-key">Firebase Web API Key</label>
+                    <input type="text" id="input-firebase-key" placeholder="AIzaSy..." class="admin-input font-mono text-xs">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onclick="closeFirebaseKeyModal()" class="admin-btn admin-btn-secondary py-2 px-4 rounded-xl text-xs">
+                    Cancel
+                </button>
+                <button type="button" onclick="saveFirebaseApiKeyFromModal()" class="admin-btn admin-btn-primary py-2 px-5 rounded-xl text-xs shadow-md">
+                    <span>Connect Live Firestore</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Add / Edit Product Modal -->
     <div id="product-form-modal" class="admin-modal-overlay hidden" style="display: none;">

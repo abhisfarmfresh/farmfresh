@@ -10,8 +10,80 @@ let currentProductSearch = '';
 document.addEventListener('DOMContentLoaded', async () => {
   setupProductSearch();
   setupImagePreviewListeners();
+  updateConnectionStatus();
   await loadAdminProducts();
 });
+
+/**
+ * Update the live Firebase Connection indicator
+ */
+function updateConnectionStatus() {
+  const badge = document.getElementById('firebase-connection-badge');
+  if (!badge) return;
+
+  const isReady = window.FirebaseApp && window.FirebaseApp.isReady();
+
+  if (isReady) {
+    const projectId = (typeof firebaseConfig !== 'undefined') ? firebaseConfig.projectId : 'abhisfarmfresh-3e7d3';
+    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm cursor-pointer hover:bg-emerald-200 transition-colors';
+    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Firestore Live: ${projectId}</span>`;
+    badge.onclick = openFirebaseKeyModal;
+  } else {
+    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-sm cursor-pointer hover:bg-amber-200 transition-colors';
+    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>⚠️ Offline Mode (Click to Connect Cloud)</span>`;
+    badge.onclick = openFirebaseKeyModal;
+  }
+}
+
+function openFirebaseKeyModal() {
+  const modal = document.getElementById('firebase-key-modal');
+  const input = document.getElementById('input-firebase-key');
+  if (input) {
+    input.value = localStorage.getItem('aff_firebase_api_key') || '';
+  }
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+}
+
+function closeFirebaseKeyModal() {
+  const modal = document.getElementById('firebase-key-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
+}
+
+async function saveFirebaseApiKeyFromModal() {
+  const input = document.getElementById('input-firebase-key');
+  if (!input) return;
+
+  const key = input.value.trim();
+  if (!key) {
+    Utils.showToast('Please enter your Firebase API Key', 'warning');
+    return;
+  }
+
+  if (!key.startsWith('AIza')) {
+    Utils.showToast('Invalid key. Firebase Web API keys start with "AIza..."', 'error');
+    return;
+  }
+
+  if (window.FirebaseApp) {
+    const success = window.FirebaseApp.setApiKey(key);
+    if (success) {
+      Utils.showToast('🔥 Connected to Live Google Cloud Firestore! ✓', 'success');
+      closeFirebaseKeyModal();
+      updateConnectionStatus();
+      await loadAdminProducts();
+    } else {
+      Utils.showToast('Connected key saved. Initializing...', 'info');
+      closeFirebaseKeyModal();
+      window.location.reload();
+    }
+  }
+}
 
 function setupProductSearch() {
   const searchInput = document.getElementById('product-admin-search');
@@ -534,6 +606,10 @@ window.openEditProductModal = openProductModal;
 window.closeProductModal = closeProductModal;
 window.handleProductFormSubmit = handleProductFormSubmit;
 window.deleteProductPrompt = deleteProductPrompt;
+window.openFirebaseKeyModal = openFirebaseKeyModal;
+window.closeFirebaseKeyModal = closeFirebaseKeyModal;
+window.saveFirebaseApiKeyFromModal = saveFirebaseApiKeyFromModal;
+window.updateConnectionStatus = updateConnectionStatus;
 window.clearImagePreview = clearImagePreview;
 window.seedDefaultProduceToDatabase = seedDefaultProduceToDatabase;
 window.updateImagePreview = updateImagePreview;
