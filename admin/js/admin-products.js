@@ -201,7 +201,17 @@ async function loadAdminProducts() {
 
   try {
     if (window.FirebaseApp && window.FirebaseApp.isReady()) {
-      const live = await window.FirebaseApp.getAllProducts();
+      let live = await window.FirebaseApp.getAllProducts();
+      
+      // If Firestore products collection is empty on first cloud connection, auto-seed it!
+      if (!live || live.length === 0) {
+        console.log('🌱 Firestore products collection is empty. Auto-seeding default catalogue...');
+        const defaults = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
+        await window.FirebaseApp.seedDefaultProducts(defaults);
+        live = await window.FirebaseApp.getAllProducts();
+        Utils.showToast('🌱 Initialized products collection in Firestore!', 'success');
+      }
+
       if (live && live.length > 0) {
         allAdminProducts = live;
         if (window.ProductStorage) window.ProductStorage.saveAll(live);
@@ -501,13 +511,31 @@ async function handleProductFormSubmit(e) {
   let imageUrl = document.getElementById('prod-image-url').value.trim();
   const status = document.getElementById('prod-status').value;
 
-  // Handle Cloudinary Image File Upload if selected
+  // Handle Image File Upload or compression
   const fileInput = document.getElementById('prod-image-file');
-  if (fileInput && fileInput.files.length > 0 && window.CloudinaryService) {
-    Utils.showToast('Uploading image to Cloudinary...', 'info');
-    const uploadedUrl = await window.CloudinaryService.uploadImage(fileInput.files[0]);
+  if (fileInput && fileInput.files.length > 0) {
+    const file = fileInput.files[0];
+    let uploadedUrl = null;
+
+    // 1. Try Cloudinary if available
+    if (window.CloudinaryService) {
+      try {
+        Utils.showToast('Uploading image to Cloudinary...', 'info');
+        uploadedUrl = await window.CloudinaryService.uploadImage(file);
+      } catch (err) {
+        console.warn('Cloudinary upload warning:', err);
+      }
+    }
+
+    // 2. Fallback to client-side compressed Data URL
     if (uploadedUrl) {
       imageUrl = uploadedUrl;
+    } else if (window.Utils && window.Utils.compressImageFile) {
+      Utils.showToast('Compressing and preparing photo...', 'info');
+      const compressed = await Utils.compressImageFile(file, 800, 0.85);
+      if (compressed) {
+        imageUrl = compressed;
+      }
     }
   }
 
@@ -520,7 +548,7 @@ async function handleProductFormSubmit(e) {
 
   const payload = {
     name,
-    slug: Utils.slugify(name),
+    slug: Utils.slugify(name) || 'veg',
     category,
     price,
     unit: 'KG',
@@ -533,7 +561,7 @@ async function handleProductFormSubmit(e) {
   };
 
   if (editId) {
-    // Update
+    // Update existing product
     payload.id = editId;
 
     if (window.ProductStorage) {
@@ -551,17 +579,18 @@ async function handleProductFormSubmit(e) {
       allAdminProducts.unshift(payload);
     }
 
-    Utils.showToast(`Updated ${name} successfully! ✓`, 'success');
+    Utils.showToast(`Updated "${name}" in Firestore and local store! ✓`, 'success');
   } else {
-    // Create
-    const newDocId = `prod_${Date.now()}`;
+    // Create new product (e.g. Potato)
+    const slug = Utils.slugify(name) || 'veg';
+    const newDocId = `prod_${slug}_${Date.now()}`;
     payload.id = newDocId;
 
     if (window.FirebaseApp && window.FirebaseApp.isReady()) {
-      const firestoreId = await window.FirebaseApp.addProduct(payload);
-      if (firestoreId) {
-        payload.id = firestoreId;
-      }
+      await window.FirebaseApp.updateProduct(newDocId, payload);
+      Utils.showToast(`Saved "${name}" to Google Cloud Firestore! ✓`, 'success');
+    } else {
+      Utils.showToast(`Saved "${name}" locally (Connect Firestore for cloud sync)`, 'info');
     }
 
     if (window.ProductStorage) {
@@ -569,7 +598,6 @@ async function handleProductFormSubmit(e) {
     }
 
     allAdminProducts.unshift(payload);
-    Utils.showToast(`Added ${name} to catalogue! ✓`, 'success');
   }
 
   closeProductModal();

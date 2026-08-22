@@ -220,6 +220,55 @@ const Utils = {
   },
 
   /**
+   * Compress and resize an uploaded image file into an optimized Data URL
+   */
+  compressImageFile(file, maxDimension = 800, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+      if (!file || !file.type.startsWith('image/')) {
+        return resolve(null);
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          try {
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            console.log(`📸 Image compressed: ${file.name} (${Math.round(dataUrl.length / 1024)} KB)`);
+            resolve(dataUrl);
+          } catch (err) {
+            console.warn('Canvas toDataURL fallback:', err);
+            resolve(e.target.result);
+          }
+        };
+        img.onerror = () => resolve(e.target.result);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  },
+
+  /**
    * Escape HTML for safe display
    */
   escapeHtml(text) {
