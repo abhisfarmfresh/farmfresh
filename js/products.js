@@ -31,9 +31,9 @@ function initCategoryPills() {
     <button type="button"
             onclick="setProductCategory('${cat.id}')"
             id="cat-pill-${cat.id}"
-            class="cat-pill px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${cat.id === 'all' ? 'bg-emerald-800 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'}">
-      <span class="material-symbols-outlined text-sm">${cat.icon}</span>
-      ${cat.name}
+            class="cat-pill ${cat.id === 'all' ? 'active' : ''}">
+      <span class="material-symbols-outlined text-base">${cat.icon}</span>
+      <span>${cat.name}</span>
     </button>
   `).join('');
 }
@@ -45,12 +45,12 @@ function setProductCategory(catId) {
   activeCategory = catId;
 
   document.querySelectorAll('.cat-pill').forEach(btn => {
-    btn.className = "cat-pill px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all bg-white text-slate-700 hover:bg-slate-100 border border-slate-200";
+    btn.classList.remove('active');
   });
 
   const selectedBtn = document.getElementById(`cat-pill-${catId}`);
   if (selectedBtn) {
-    selectedBtn.className = "cat-pill px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all bg-emerald-800 text-white shadow-sm";
+    selectedBtn.classList.add('active');
   }
 
   renderProductsGrid();
@@ -167,52 +167,57 @@ function renderProductsGrid() {
     const displayImage = Utils.resolveImageUrl(product.imageUrl, false);
 
     return `
-      <div class="card product-card group bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between" id="card-${product.id}">
+      <div class="product-card group bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-emerald-950/5 transition-all duration-300 flex flex-col justify-between" id="card-${product.id}">
         <div>
-          <!-- Image & Badges -->
-          <div class="product-image-wrap relative h-48 w-full bg-slate-100 overflow-hidden">
+          <!-- Image & Badges Wrap -->
+          <div class="product-card-img-wrap relative h-52 w-full bg-slate-50 overflow-hidden">
             <img src="${displayImage}" 
                  alt="${Utils.escapeHtml(product.name)}"
                  loading="lazy"
                  onerror="this.src='images/farm_fresh_media_01.jpeg'"
-                 class="product-image w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out">
             
+            <!-- Category & Harvest Badge -->
             <div class="absolute top-3 left-3 flex flex-col gap-1 z-10">
+              <span class="chip bg-slate-950/80 text-white text-[10px] font-bold backdrop-blur-md capitalize px-2.5 py-0.5 rounded-full shadow-sm">
+                ${product.category || 'everyday'}
+              </span>
               ${isOutOfStock 
-                ? '<span class="chip chip-danger">Out of Stock</span>' 
-                : '<span class="chip chip-success">Fresh Daily Harvest</span>'}
-              <span class="chip bg-slate-900/80 text-white backdrop-blur-md capitalize">${product.category}</span>
+                ? '<span class="chip chip-danger text-[10px] shadow-sm">Out of Stock</span>' 
+                : '<span class="chip chip-success text-[10px] shadow-sm flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>5 AM Dispatch</span>'}
             </div>
 
             <!-- WhatsApp Direct Inquiry -->
             <button type="button"
                     onclick="WhatsAppService.openInquiryWhatsApp('${Utils.escapeHtml(product.name)}', ${product.price}, '${product.unit || 'KG'}')"
-                    class="absolute top-3 right-3 w-8 h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-md transition-transform active:scale-95 z-10"
+                    class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-emerald-600 text-slate-700 hover:text-white backdrop-blur-md flex items-center justify-center shadow-md transition-all active:scale-90 z-10 group/btn"
                     title="Inquire about ${Utils.escapeHtml(product.name)} on WhatsApp">
               <span class="material-symbols-outlined text-sm">chat</span>
             </button>
           </div>
 
           <!-- Product Details -->
-          <div class="p-4">
-            <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-800 mb-0.5">
-              Grade A • Min. 1 KG
+          <div class="p-5">
+            <div class="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 mb-1">
+              <span>Grade A Quality</span>
+              <span class="text-slate-400 font-semibold lowercase">min. 1 ${product.unit || 'KG'}</span>
             </div>
-            <h3 class="font-bold text-slate-900 text-base group-hover:text-emerald-800 transition-colors leading-snug">
+
+            <h3 class="font-extrabold text-slate-900 text-base group-hover:text-emerald-800 transition-colors leading-snug">
               ${Utils.escapeHtml(product.name)}
             </h3>
             
-            <p class="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+            <p class="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed h-8">
               ${Utils.escapeHtml(product.description || 'Farm-fresh premium produce delivered directly to your doorstep.')}
             </p>
 
-            <div class="mt-3 flex items-baseline justify-between pt-2 border-t border-slate-100">
-              <div>
-                <span class="text-xl font-extrabold text-slate-900">${Utils.formatCurrency(product.price)}</span>
-                <span class="text-xs text-slate-500 font-medium">/ ${product.unit || 'KG'}</span>
+            <div class="mt-4 flex items-baseline justify-between pt-3 border-t border-slate-100">
+              <div class="flex items-baseline gap-1">
+                <span class="text-2xl font-extrabold text-slate-950 tracking-tight">${Utils.formatCurrency(product.price)}</span>
+                <span class="text-xs text-slate-400 font-medium">/ ${product.unit || 'KG'}</span>
               </div>
               <div class="text-right">
-                <span class="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                <span class="text-[10px] font-bold text-emerald-900 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100/80">
                   Daily Fresh
                 </span>
               </div>
@@ -220,12 +225,12 @@ function renderProductsGrid() {
           </div>
         </div>
 
-        <!-- Direct One-Tap Add / Interactive Stepper Action -->
-        <div class="p-4 pt-0 bg-white">
+        <!-- Add to Cart / Quantity Stepper Action -->
+        <div class="p-5 pt-0 bg-white">
           <div class="pt-2 border-t border-slate-100">
             ${isOutOfStock ? `
-              <button type="button" disabled class="btn w-full opacity-50 cursor-not-allowed bg-slate-100 text-slate-400 text-xs font-bold py-2.5 px-3 rounded-xl border border-slate-200">
-                Out of Stock
+              <button type="button" disabled class="btn w-full opacity-60 cursor-not-allowed bg-slate-100 text-slate-400 text-xs font-bold py-2.5 px-3 rounded-xl border border-slate-200">
+                Unavailable
               </button>
             ` : inCart ? `
               <div class="card-stepper">
@@ -233,22 +238,22 @@ function renderProductsGrid() {
                         class="card-stepper-btn" 
                         onclick="Cart.updateQuantity('${product.id}', -1)" 
                         aria-label="Decrease quantity of ${Utils.escapeHtml(product.name)}">
-                  <span class="material-symbols-outlined text-lg">remove</span>
+                  <span class="material-symbols-outlined text-base">remove</span>
                 </button>
-                <span class="card-stepper-qty">${currentQty} KG</span>
+                <span class="card-stepper-val">${currentQty} KG</span>
                 <button type="button" 
                         class="card-stepper-btn" 
                         onclick="Cart.updateQuantity('${product.id}', 1)" 
                         aria-label="Increase quantity of ${Utils.escapeHtml(product.name)}">
-                  <span class="material-symbols-outlined text-lg">add</span>
+                  <span class="material-symbols-outlined text-base">add</span>
                 </button>
               </div>
             ` : `
               <button type="button"
                       onclick="handleDirectAdd('${product.id}')"
-                      class="btn btn-primary w-full py-2.5 px-4 text-xs font-extrabold rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-98">
-                <span class="material-symbols-outlined text-base">add</span>
-                <span>ADD</span>
+                      class="btn btn-primary w-full py-2.5 px-4 text-xs font-extrabold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-emerald-900/10 hover:shadow-lg hover:shadow-emerald-900/20 active:scale-95 transition-all">
+                <span class="material-symbols-outlined text-base">add_shopping_cart</span>
+                <span>Add to Cart</span>
               </button>
             `}
           </div>

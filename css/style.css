@@ -1,76 +1,187 @@
 /* 
   Abhis Farm Fresh Master Stylesheet
-  Senior UI/UX B2B Design System & Mobile UX
+  Senior UI/UX Design System — Organic Modern Botanical Theme
 */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap');
 
 :root {
-  --color-emerald-dark: #064e3b;
-  --color-emerald-primary: #047857;
-  --color-emerald-light: #10b981;
-  --color-mint-bg: #ecfdf5;
-  --color-canvas: #f6f9f6;
+  /* Botanical Emerald & Forest Palette */
+  --color-forest-950: #022c22;
+  --color-emerald-900: #064e3b;
+  --color-emerald-800: #065f46;
+  --color-emerald-700: #047857;
+  --color-emerald-600: #059669;
+  --color-emerald-500: #10b981;
+  --color-mint-400: #34d399;
+  --color-mint-100: #d1fae5;
+  --color-mint-50: #ecfdf5;
+
+  /* Organic Warm Canvas & Surfaces */
+  --color-canvas: #f8faf7;
   --color-card-bg: #ffffff;
+  --color-surface-soft: #f1f5f1;
   --color-text-main: #0f172a;
-  --color-text-sub: #475569;
+  --color-text-muted: #475569;
+  --color-text-subtle: #64748b;
+  --color-border: rgba(226, 232, 240, 0.85);
+
+  /* Subtle Organic Shadows */
+  --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+  --shadow-card: 0 4px 20px -2px rgba(6, 78, 59, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+  --shadow-card-hover: 0 20px 35px -8px rgba(6, 78, 59, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+  --shadow-glow: 0 8px 24px -4px rgba(4, 120, 87, 0.35);
+  --shadow-modal: 0 25px 50px -12px rgba(2, 44, 34, 0.25);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--color-canvas);
   color: var(--color-text-main);
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
-/* Glassmorphism & Custom Surfaces */
+/* ─── Ultra-Refined Glassmorphism & Header Surfaces ─── */
 .glass-nav {
   background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.03);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
-/* Hide scrollbar utility for mobile slider */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.glass-dark {
+  background: rgba(2, 44, 34, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Chip Badges */
+/* ─── Gradient Text & Accents ─── */
+.gradient-text-emerald {
+  background: linear-gradient(135deg, #065f46 0%, #047857 50%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-glow {
+  background: linear-gradient(135deg, #ecfdf5 0%, #a7f3d0 50%, #6ee7b7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ─── Card & Surface Polish ─── */
+.product-card {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  will-change: transform, box-shadow;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.product-card-img-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.product-card-img-wrap img {
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card:hover .product-card-img-wrap img {
+  transform: scale(1.06);
+}
+
+/* ─── Interactive Quantity Steppers ─── */
+.card-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 3px;
+  border: 1px solid #e2e8f0;
+}
+
+.card-stepper-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  transition: all 0.15s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.card-stepper-btn:hover {
+  background: #047857;
+  color: #ffffff;
+}
+
+.card-stepper-btn:active {
+  transform: scale(0.92);
+}
+
+.card-stepper-val {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  color: #0f172a;
+  min-width: 44px;
+  text-align: center;
+}
+
+/* ─── Chips & Tags ─── */
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 9999px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1;
+  letter-spacing: 0.01em;
 }
 
 .chip-success {
-  background-color: #d1fae5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+  background-color: #dcfce7;
+  color: #14532d;
+  border: 1px solid #bbf7d0;
 }
 
 .chip-warning {
   background-color: #fef3c7;
-  color: #92400e;
+  color: #854d0e;
   border: 1px solid #fde68a;
 }
 
@@ -80,36 +191,101 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid #fca5a5;
 }
 
-.chip-tier {
-  background-color: #eff6ff;
-  color: #1e40af;
-  border: 1px solid #bfdbfe;
+.chip-info {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
 }
 
-/* Stepper Input */
-.stepper-btn {
-  width: 32px;
-  height: 32px;
+/* ─── Modern Category Segmented Pills ─── */
+.cat-pill {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  font-weight: bold;
-  background-color: #f1f5f9;
-  color: #334155;
-  transition: all 0.15s ease;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
   user-select: none;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
 }
 
-.stepper-btn:active {
-  transform: scale(0.92);
-  background-color: #cbd5e1;
+.cat-pill:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
 }
 
-/* Animations */
+.cat-pill.active {
+  background: #064e3b;
+  color: #ffffff;
+  border-color: #064e3b;
+  box-shadow: 0 4px 14px 0 rgba(6, 78, 59, 0.25);
+}
+
+/* ─── Mobile Bottom Navigation ─── */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  z-index: 45;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  transition: all 0.15s ease;
+  padding: 6px 12px;
+}
+
+.mobile-nav-item.active {
+  color: #047857;
+}
+
+.mobile-nav-item.active .material-symbols-outlined {
+  color: #047857;
+  transform: scale(1.1);
+}
+
+/* ─── Scrollbars & Utilities ─── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ─── Keyframe Animations ─── */
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.05); }
+}
+
+.animate-pulse-subtle {
+  animation: pulseSubtle 2.5s infinite ease-in-out;
+}
+
 @keyframes slideUp {
   from {
-    transform: translateY(100%);
+    transform: translateY(20px);
     opacity: 0;
   }
   to {
@@ -119,14 +295,5 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .animate-slide-up {
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.2s ease-in forwards;
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
