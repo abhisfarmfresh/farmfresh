@@ -14,24 +14,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadAdminProducts();
 });
 
-/**
- * Update the live Firebase Connection indicator
- */
 function updateConnectionStatus() {
-  const badge = document.getElementById('firebase-connection-badge');
-  if (!badge) return;
-
-  const isReady = window.FirebaseApp && window.FirebaseApp.isReady();
-
-  if (isReady) {
-    const projectId = (typeof firebaseConfig !== 'undefined') ? firebaseConfig.projectId : 'abhisfarmfresh-3e7d3';
-    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm cursor-pointer hover:bg-emerald-200 transition-colors';
-    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Firestore Live: ${projectId}</span>`;
-    badge.onclick = openFirebaseKeyModal;
-  } else {
-    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-sm cursor-pointer hover:bg-amber-200 transition-colors';
-    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>⚠️ Offline Mode (Click to Connect Cloud)</span>`;
-    badge.onclick = openFirebaseKeyModal;
+  if (window.FirebaseApp) {
+    window.FirebaseApp.updateConnectionBadge();
   }
 }
 

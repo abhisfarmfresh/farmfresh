@@ -18,19 +18,8 @@ document.addEventListener('DOMContentLoaded', async () => {
  * Update the live Firebase Connection indicator
  */
 function updateConnectionStatus() {
-  const badge = document.getElementById('firebase-connection-badge');
-  if (!badge) return;
-
-  const isConfigured = typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey !== 'YOUR_FIREBASE_API_KEY_HERE';
-  const isReady = window.FirebaseApp && window.FirebaseApp.isReady();
-
-  if (isReady || (isConfigured && typeof firebase !== 'undefined')) {
-    const projectId = (typeof firebaseConfig !== 'undefined') ? firebaseConfig.projectId : 'abhisfarmfresh-3e7d3';
-    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm';
-    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Firestore Live: ${projectId}</span>`;
-  } else {
-    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300';
-    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>Connecting to Firestore...</span>`;
+  if (window.FirebaseApp) {
+    window.FirebaseApp.updateConnectionBadge();
   }
 }
 

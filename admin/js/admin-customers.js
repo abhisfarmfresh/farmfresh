@@ -8,6 +8,9 @@ let currentCustomerSearch = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
   setupCustomerSearch();
+  if (window.FirebaseApp) {
+    window.FirebaseApp.updateConnectionBadge();
+  }
   await loadAdminCustomers();
 });
 
