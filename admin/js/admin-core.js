@@ -20,9 +20,25 @@ const AdminCore = {
     this.renderCurrentTab();
   },
 
+  // ─── URL & PATH RESOLUTION HELPERS ──────────────────────
+  resolveImageUrl(url) {
+    if (!url) return '../images/farm_fresh_media_01.jpeg';
+    const trimmed = String(url).trim();
+    if (!trimmed) return '../images/farm_fresh_media_01.jpeg';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('../')) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('/')) {
+      return trimmed;
+    }
+    return '../' + trimmed;
+  },
+
   // ─── TAB ROUTING ────────────────────────────────────────
   setupTabRouting() {
-    // Check URL hash (#orders, #products, #categories, #inquiries, #banner, #settings)
     const hash = window.location.hash.replace('#', '') || 'orders';
     this.switchTab(hash);
 
@@ -270,7 +286,7 @@ const AdminCore = {
         await window.FirebaseApp.updateOrderStatus(orderId, newStatus);
       }
       
-      const order = this.orders.find(o => o.id === orderId);
+      const order = this.orders.find(o => String(o.id) === String(orderId));
       if (order) order.status = newStatus;
 
       this.showToast(`Order status updated to "${newStatus.replace('_', ' ')}"`, 'success');
@@ -281,7 +297,7 @@ const AdminCore = {
   },
 
   viewOrderDetails(orderId) {
-    const order = this.orders.find(o => o.id === orderId);
+    const order = this.orders.find(o => String(o.id) === String(orderId));
     if (!order) return;
 
     const modal = document.getElementById('order-details-modal');
@@ -355,7 +371,7 @@ const AdminCore = {
   },
 
   printInvoice(orderId) {
-    const order = this.orders.find(o => o.id === orderId);
+    const order = this.orders.find(o => String(o.id) === String(orderId));
     if (!order) return;
 
     const printArea = document.getElementById('invoice-print-area');
@@ -508,16 +524,16 @@ const AdminCore = {
     grid.innerHTML = filtered.map(product => {
       const isOutOfStock = Number(product.stock) === 0 || product.status === 'out_of_stock';
       const isLowStock = !isOutOfStock && Number(product.stock) <= 50;
-      const imgUrl = product.imageUrl || 'images/farm_fresh_media_01.jpeg';
-
+      const imgUrl = this.resolveImageUrl(product.imageUrl);
       const badges = Array.isArray(product.badges) ? product.badges : [];
+      const safeId = this.escapeHtml(String(product.id || ''));
 
       return `
         <div class="admin-card p-4 flex flex-col justify-between group hover:border-emerald-500/50 transition-all">
           <div>
             <!-- Image & Stock Badge -->
             <div class="relative h-44 rounded-xl overflow-hidden bg-slate-100 mb-3">
-              <img src="${imgUrl}" alt="${this.escapeHtml(product.name)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              <img src="${imgUrl}" alt="${this.escapeHtml(product.name)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.onerror=null; this.src='../images/farm_fresh_media_01.jpeg';">
               
               <div class="absolute top-2 left-2 flex flex-col gap-1">
                 ${isOutOfStock ? `<span class="status-pill status-cancelled">Out of Stock</span>` : ''}
@@ -553,16 +569,16 @@ const AdminCore = {
 
           <!-- Actions -->
           <div class="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100">
-            <button onclick="AdminCore.editProduct('${product.id}')" class="admin-btn admin-btn-secondary flex-1 text-xs py-2">
+            <button type="button" onclick="AdminCore.editProduct('${safeId}')" class="admin-btn admin-btn-secondary flex-1 text-xs py-2">
               <span class="material-symbols-outlined text-sm">edit</span>
               <span>Edit</span>
             </button>
-            <button onclick="AdminCore.toggleProductStock('${product.id}')" 
+            <button type="button" onclick="AdminCore.toggleProductStock('${safeId}')" 
                     class="admin-btn ${isOutOfStock ? 'admin-btn-primary' : 'admin-btn-secondary'} text-xs p-2"
                     title="${isOutOfStock ? 'Mark In Stock' : 'Mark Out of Stock'}">
               <span class="material-symbols-outlined text-sm">${isOutOfStock ? 'check_circle' : 'block'}</span>
             </button>
-            <button onclick="AdminCore.deleteProduct('${product.id}')" class="admin-btn admin-btn-danger text-xs p-2" title="Delete Product">
+            <button type="button" onclick="AdminCore.deleteProduct('${safeId}')" class="admin-btn admin-btn-danger text-xs p-2" title="Delete Product">
               <span class="material-symbols-outlined text-sm">delete</span>
             </button>
           </div>
@@ -573,29 +589,52 @@ const AdminCore = {
 
   openAddProductModal() {
     document.getElementById('product-form')?.reset();
-    document.getElementById('product-form-id').value = '';
-    document.getElementById('product-modal-title').textContent = 'Add New Fresh Produce';
-    document.getElementById('product-image-preview').src = 'images/farm_fresh_media_01.jpeg';
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    };
+    setVal('product-form-id', '');
+    setVal('product-modal-title', 'Add New Fresh Produce');
+    setVal('product-form-image-url', '');
+    const titleEl = document.getElementById('product-modal-title');
+    if (titleEl) titleEl.textContent = 'Add New Fresh Produce';
+    
+    const previewEl = document.getElementById('product-image-preview');
+    if (previewEl) previewEl.src = '../images/farm_fresh_media_01.jpeg';
+
+    document.querySelectorAll('.product-badge-checkbox').forEach(cb => cb.checked = false);
+
     this.openModal('product-modal');
   },
 
   editProduct(productId) {
-    const p = this.products.find(item => item.id === productId);
-    if (!p) return;
+    const p = this.products.find(item => String(item.id) === String(productId) || String(item.slug) === String(productId));
+    if (!p) {
+      console.warn('Product not found for edit ID:', productId);
+      this.showToast('Product not found.', 'error');
+      return;
+    }
 
-    document.getElementById('product-modal-title').textContent = 'Edit Produce Details';
-    document.getElementById('product-form-id').value = p.id;
-    document.getElementById('product-form-name').value = p.name || '';
-    document.getElementById('product-form-category').value = p.category || 'everyday';
-    document.getElementById('product-form-price').value = p.price || '';
-    document.getElementById('product-form-discount').value = p.discountPrice || '';
-    document.getElementById('product-form-unit').value = p.unit || 'KG';
-    document.getElementById('product-form-stock').value = p.stock || 500;
-    document.getElementById('product-form-sku').value = p.sku || p.id || '';
-    document.getElementById('product-form-desc').value = p.description || '';
-    document.getElementById('product-form-image-url').value = p.imageUrl || '';
-    document.getElementById('product-form-origin').value = p.origin || '';
-    document.getElementById('product-form-shelflife').value = p.shelfLife || '';
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = (val !== undefined && val !== null) ? val : '';
+    };
+
+    const titleEl = document.getElementById('product-modal-title');
+    if (titleEl) titleEl.textContent = 'Edit Produce Details';
+
+    setVal('product-form-id', p.id);
+    setVal('product-form-name', p.name);
+    setVal('product-form-category', p.category || 'everyday');
+    setVal('product-form-price', p.price);
+    setVal('product-form-discount', p.discountPrice);
+    setVal('product-form-unit', p.unit || 'KG');
+    setVal('product-form-stock', p.stock !== undefined ? p.stock : 500);
+    setVal('product-form-sku', p.sku || p.id);
+    setVal('product-form-desc', p.description);
+    setVal('product-form-image-url', p.imageUrl);
+    setVal('product-form-origin', p.origin);
+    setVal('product-form-shelflife', p.shelfLife);
 
     // Badges checkboxes
     const badges = Array.isArray(p.badges) ? p.badges : [];
@@ -603,24 +642,30 @@ const AdminCore = {
       cb.checked = badges.includes(cb.value);
     });
 
-    document.getElementById('product-image-preview').src = p.imageUrl || 'images/farm_fresh_media_01.jpeg';
+    const previewEl = document.getElementById('product-image-preview');
+    if (previewEl) {
+      previewEl.src = this.resolveImageUrl(p.imageUrl);
+    }
+
     this.openModal('product-modal');
   },
 
   async handleProductFormSubmit(e) {
     e.preventDefault();
-    const id = document.getElementById('product-form-id').value.trim();
-    const name = document.getElementById('product-form-name').value.trim();
-    const category = document.getElementById('product-form-category').value;
-    const price = Number(document.getElementById('product-form-price').value) || 0;
-    const discountPrice = Number(document.getElementById('product-form-discount').value) || null;
-    const unit = document.getElementById('product-form-unit').value;
-    const stock = Number(document.getElementById('product-form-stock').value) || 0;
-    const sku = document.getElementById('product-form-sku').value.trim() || `AFF-${Date.now().toString().slice(-4)}`;
-    const description = document.getElementById('product-form-desc').value.trim();
-    const imageUrl = document.getElementById('product-form-image-url').value.trim() || 'images/farm_fresh_media_01.jpeg';
-    const origin = document.getElementById('product-form-origin').value.trim();
-    const shelfLife = document.getElementById('product-form-shelflife').value.trim();
+    const getVal = (id) => document.getElementById(id)?.value?.trim() || '';
+
+    const id = getVal('product-form-id');
+    const name = getVal('product-form-name');
+    const category = document.getElementById('product-form-category')?.value || 'everyday';
+    const price = Number(document.getElementById('product-form-price')?.value) || 0;
+    const discountPrice = Number(document.getElementById('product-form-discount')?.value) || null;
+    const unit = document.getElementById('product-form-unit')?.value || 'KG';
+    const stock = Number(document.getElementById('product-form-stock')?.value) || 0;
+    const sku = getVal('product-form-sku') || `AFF-${Date.now().toString().slice(-4)}`;
+    const description = getVal('product-form-desc');
+    const imageUrl = getVal('product-form-image-url') || 'images/farm_fresh_media_01.jpeg';
+    const origin = getVal('product-form-origin');
+    const shelfLife = getVal('product-form-shelflife');
 
     const badges = [];
     document.querySelectorAll('.product-badge-checkbox:checked').forEach(cb => {
@@ -651,7 +696,7 @@ const AdminCore = {
         if (window.FirebaseApp && window.FirebaseApp.isReady()) {
           await window.FirebaseApp.updateProduct(id, productData);
         }
-        const index = this.products.findIndex(p => p.id === id);
+        const index = this.products.findIndex(p => String(p.id) === String(id));
         if (index !== -1) {
           this.products[index] = { ...this.products[index], ...productData };
         }
@@ -674,7 +719,7 @@ const AdminCore = {
   },
 
   async toggleProductStock(productId) {
-    const p = this.products.find(item => item.id === productId);
+    const p = this.products.find(item => String(item.id) === String(productId));
     if (!p) return;
 
     const isCurrentlyOut = Number(p.stock) === 0 || p.status === 'out_of_stock';
@@ -699,7 +744,7 @@ const AdminCore = {
       await window.FirebaseApp.deleteProduct(productId);
     }
 
-    this.products = this.products.filter(p => p.id !== productId);
+    this.products = this.products.filter(p => String(p.id) !== String(productId));
     this.showToast('Product removed from catalogue', 'info');
     this.renderProductsTab();
   },
@@ -738,32 +783,41 @@ const AdminCore = {
 
   openAddCategoryModal() {
     document.getElementById('category-form')?.reset();
-    document.getElementById('category-form-id').value = '';
-    document.getElementById('category-modal-title').textContent = 'Add Product Category';
+    const idEl = document.getElementById('category-form-id');
+    if (idEl) idEl.value = '';
+    const titleEl = document.getElementById('category-modal-title');
+    if (titleEl) titleEl.textContent = 'Add Product Category';
     this.openModal('category-modal');
   },
 
   editCategory(catId) {
-    const cat = this.categories.find(c => c.id === catId);
+    const cat = this.categories.find(c => String(c.id) === String(catId));
     if (!cat) return;
 
-    document.getElementById('category-modal-title').textContent = 'Edit Category';
-    document.getElementById('category-form-id').value = cat.id;
-    document.getElementById('category-form-name').value = cat.name || '';
-    document.getElementById('category-form-icon').value = cat.icon || 'eco';
-    document.getElementById('category-form-subtitle').value = cat.subtitle || '';
-    document.getElementById('category-form-order').value = cat.order || 1;
+    const titleEl = document.getElementById('category-modal-title');
+    if (titleEl) titleEl.textContent = 'Edit Category';
+
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = (val !== undefined && val !== null) ? val : '';
+    };
+
+    setVal('category-form-id', cat.id);
+    setVal('category-form-name', cat.name);
+    setVal('category-form-icon', cat.icon || 'eco');
+    setVal('category-form-subtitle', cat.subtitle);
+    setVal('category-form-order', cat.order || 1);
 
     this.openModal('category-modal');
   },
 
   async handleCategoryFormSubmit(e) {
     e.preventDefault();
-    const id = document.getElementById('category-form-id').value.trim() || `cat_${Date.now()}`;
-    const name = document.getElementById('category-form-name').value.trim();
-    const icon = document.getElementById('category-form-icon').value.trim() || 'eco';
-    const subtitle = document.getElementById('category-form-subtitle').value.trim();
-    const order = Number(document.getElementById('category-form-order').value) || 1;
+    const id = document.getElementById('category-form-id')?.value?.trim() || `cat_${Date.now()}`;
+    const name = document.getElementById('category-form-name')?.value?.trim() || '';
+    const icon = document.getElementById('category-form-icon')?.value?.trim() || 'eco';
+    const subtitle = document.getElementById('category-form-subtitle')?.value?.trim() || '';
+    const order = Number(document.getElementById('category-form-order')?.value) || 1;
 
     const catData = { id, name, icon, subtitle, order };
 
@@ -771,7 +825,7 @@ const AdminCore = {
       await window.FirebaseApp.addCategory(catData);
     }
 
-    const index = this.categories.findIndex(c => c.id === id);
+    const index = this.categories.findIndex(c => String(c.id) === String(id));
     if (index !== -1) {
       this.categories[index] = catData;
     } else {
@@ -792,7 +846,7 @@ const AdminCore = {
       await window.FirebaseApp.deleteCategory(catId);
     }
 
-    this.categories = this.categories.filter(c => c.id !== catId);
+    this.categories = this.categories.filter(c => String(c.id) !== String(catId));
     this.showToast('Category deleted', 'info');
     this.renderCategoriesTab();
     this.populateCategorySelects();
@@ -896,7 +950,7 @@ const AdminCore = {
     if (window.FirebaseApp && window.FirebaseApp.isReady()) {
       await window.FirebaseApp.updateInquiryStatus(inquiryId, status);
     }
-    const inq = this.inquiries.find(i => i.id === inquiryId);
+    const inq = this.inquiries.find(i => String(i.id) === String(inquiryId));
     if (inq) inq.status = status;
 
     this.showToast(`Inquiry marked as ${status}`, 'success');
@@ -908,7 +962,7 @@ const AdminCore = {
     if (window.FirebaseApp && window.FirebaseApp.isReady()) {
       await window.FirebaseApp.deleteInquiry(inquiryId);
     }
-    this.inquiries = this.inquiries.filter(i => i.id !== inquiryId);
+    this.inquiries = this.inquiries.filter(i => String(i.id) !== String(inquiryId));
     this.showToast('Lead deleted', 'info');
     this.renderInquiriesTab();
   },
@@ -971,12 +1025,12 @@ const AdminCore = {
 
   async handleBannerFormSubmit(e) {
     e.preventDefault();
-    const enabled = document.getElementById('banner-form-enabled').checked;
-    const text = document.getElementById('banner-form-text').value.trim();
-    const code = document.getElementById('banner-form-code').value.trim();
-    const linkText = document.getElementById('banner-form-link-text').value.trim();
-    const linkUrl = document.getElementById('banner-form-link-url').value.trim();
-    const theme = document.getElementById('banner-form-theme').value;
+    const enabled = document.getElementById('banner-form-enabled')?.checked ?? true;
+    const text = document.getElementById('banner-form-text')?.value?.trim() || '';
+    const code = document.getElementById('banner-form-code')?.value?.trim() || '';
+    const linkText = document.getElementById('banner-form-link-text')?.value?.trim() || '';
+    const linkUrl = document.getElementById('banner-form-link-url')?.value?.trim() || '';
+    const theme = document.getElementById('banner-form-theme')?.value || 'emerald';
 
     const bannerData = { enabled, text, code, linkText, linkUrl, theme };
 
@@ -1010,7 +1064,7 @@ const AdminCore = {
       statsContainer.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></span> Checking database status...`;
       const stats = await window.FirebaseApp.getDatabaseStats();
       
-      if (stats.connected) {
+      if (stats && stats.connected) {
         statsContainer.innerHTML = `
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
             <div class="p-3 bg-slate-50 rounded-xl">
@@ -1044,9 +1098,9 @@ const AdminCore = {
 
   async handleSettingsFormSubmit(e) {
     e.preventDefault();
-    const cloudName = document.getElementById('settings-cloudinary-name').value.trim();
-    const uploadPreset = document.getElementById('settings-cloudinary-preset').value.trim();
-    const folder = document.getElementById('settings-cloudinary-folder').value.trim();
+    const cloudName = document.getElementById('settings-cloudinary-name')?.value?.trim() || 'abhisfarmfresh';
+    const uploadPreset = document.getElementById('settings-cloudinary-preset')?.value?.trim() || 'jpnbyoak';
+    const folder = document.getElementById('settings-cloudinary-folder')?.value?.trim() || 'abhis/farmfresh';
 
     const config = { cloudName, uploadPreset, folder };
 
@@ -1188,12 +1242,18 @@ const AdminCore = {
   // ─── MODAL CONTROLLERS ──────────────────────────────────
   openModal(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) modal.classList.add('active');
+    if (modal) {
+      modal.classList.add('active');
+      modal.style.display = 'flex';
+    }
   },
 
   closeModal(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) modal.classList.remove('active');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+    }
   },
 
   // ─── TOAST NOTIFICATIONS ────────────────────────────────
