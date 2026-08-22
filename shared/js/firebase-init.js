@@ -22,65 +22,20 @@ const FirebaseApp = {
       return;
     }
 
-    // Check if dynamic runtime API key is saved in localStorage
-    let effectiveApiKey = '';
     try {
-      const storedKey = localStorage.getItem('aff_firebase_api_key');
-      if (storedKey && storedKey.trim().startsWith('AIza')) {
-        effectiveApiKey = storedKey.trim();
+      if (typeof firebaseConfig !== 'undefined') {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        
+        this.db = firebase.firestore();
+        this.auth = firebase.auth();
+        this._initialized = true;
+        
+        console.log('🔥 Live Firebase initialized for project:', firebaseConfig.projectId);
       }
-    } catch (e) {}
-
-    if (typeof firebaseConfig !== 'undefined') {
-      if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_FIREBASE_API_KEY_HERE') {
-        effectiveApiKey = firebaseConfig.apiKey;
-      } else if (effectiveApiKey) {
-        firebaseConfig.apiKey = effectiveApiKey;
-      }
-    }
-
-    if (!effectiveApiKey || effectiveApiKey === 'YOUR_FIREBASE_API_KEY_HERE') {
-      console.warn('⚠️ Firebase API key missing or using placeholder. Running in offline mode.');
-      return;
-    }
-
-    try {
-      // Prevent duplicate initialization
-      if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-      }
-      
-      this.db = firebase.firestore();
-      this.auth = firebase.auth();
-      this._initialized = true;
-      
-      console.log('🔥 Live Firebase initialized for project:', firebaseConfig.projectId);
     } catch (err) {
       console.error('Firebase Init Error:', err);
-    }
-  },
-
-  /**
-   * Save runtime API key to localStorage and connect immediately
-   */
-  setApiKey(key) {
-    if (!key || typeof key !== 'string') return false;
-    const cleanKey = key.trim();
-    if (!cleanKey.startsWith('AIza')) {
-      return false;
-    }
-    try {
-      localStorage.setItem('aff_firebase_api_key', cleanKey);
-      if (typeof firebaseConfig !== 'undefined') {
-        firebaseConfig.apiKey = cleanKey;
-      }
-      this._initialized = false;
-      this.init();
-      this.updateConnectionBadge();
-      return this.isReady();
-    } catch (e) {
-      console.warn('Error saving Firebase API Key:', e);
-      return false;
     }
   },
 
@@ -98,120 +53,9 @@ const FirebaseApp = {
     const badge = document.getElementById('firebase-connection-badge');
     if (!badge) return;
 
-    const isReady = this.isReady();
-    const projectId = (typeof firebaseConfig !== 'undefined') ? firebaseConfig.projectId : 'abhisfarmfresh-3e7d3';
-
-    if (isReady) {
-      badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm cursor-pointer hover:bg-emerald-200 transition-colors';
-      badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Firestore Live: ${projectId}</span>`;
-      badge.onclick = () => this.openSetupModal();
-    } else {
-      badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-sm cursor-pointer hover:bg-amber-200 transition-colors';
-      badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>⚠️ Offline Mode (Click to Connect Live Firestore)</span>`;
-      badge.onclick = () => this.openSetupModal();
-    }
-  },
-
-  /**
-   * Open the unified Firebase Key / Cloud Sync Setup Modal
-   */
-  openSetupModal() {
-    let modal = document.getElementById('firebase-key-modal');
-    if (!modal) {
-      const modalHtml = `
-        <div id="firebase-key-modal" class="admin-modal-overlay" style="display: flex; position: fixed; inset: 0; z-index: 9999; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(6px); align-items: center; justify-content: center; padding: 16px;">
-          <div class="admin-modal p-6 sm:p-8 space-y-5 max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-emerald-700 text-2xl">cloud_sync</span>
-                <h3 class="font-extrabold text-base text-slate-900">Connect Google Cloud Firestore</h3>
-              </div>
-              <button type="button" onclick="FirebaseApp.closeSetupModal()" class="text-slate-400 hover:text-slate-700 p-1">
-                <span class="material-symbols-outlined text-xl">close</span>
-              </button>
-            </div>
-            <div class="space-y-3 text-xs text-slate-600">
-              <p>To enable real-time cloud data sync across <strong>all computers, mobile devices, and Cloudflare</strong>, enter your Firebase Web API Key below:</p>
-              <div class="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-200/80 space-y-1 text-[11px]">
-                <div class="font-bold text-emerald-950">Project: <span class="text-emerald-800 font-mono">abhisfarmfresh-3e7d3</span></div>
-                <p class="text-slate-600">Firebase Console &rarr; Project Settings ⚙️ &rarr; General &rarr; Web app API key (<code>AIza...</code>)</p>
-              </div>
-              <div class="space-y-1">
-                <label class="block font-bold text-slate-700" for="input-firebase-key">Firebase Web API Key</label>
-                <input type="text" id="input-firebase-key" placeholder="AIzaSy..." class="admin-input font-mono text-xs w-full p-2.5 border rounded-xl">
-              </div>
-            </div>
-            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button type="button" onclick="FirebaseApp.closeSetupModal()" class="admin-btn admin-btn-secondary py-2 px-4 rounded-xl text-xs">
-                Cancel
-              </button>
-              <button type="button" onclick="FirebaseApp.saveApiKeyFromModal()" class="admin-btn admin-btn-primary py-2 px-5 rounded-xl text-xs shadow-md bg-emerald-800 text-white font-bold">
-                <span>Connect Live Firestore</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-      document.body.insertAdjacentHTML('beforeend', modalHtml);
-      modal = document.getElementById('firebase-key-modal');
-    } else {
-      modal.classList.remove('hidden');
-      modal.style.display = 'flex';
-    }
-
-    const input = document.getElementById('input-firebase-key');
-    if (input) {
-      input.value = localStorage.getItem('aff_firebase_api_key') || '';
-      input.focus();
-    }
-  },
-
-  /**
-   * Close setup modal
-   */
-  closeSetupModal() {
-    const modal = document.getElementById('firebase-key-modal');
-    if (modal) {
-      modal.classList.add('hidden');
-      modal.style.display = 'none';
-    }
-  },
-
-  /**
-   * Save API Key from modal and connect
-   */
-  async saveApiKeyFromModal() {
-    const input = document.getElementById('input-firebase-key');
-    if (!input) return;
-    const key = input.value.trim();
-    if (!key) {
-      if (window.Utils) Utils.showToast('Please enter your Firebase API Key', 'warning');
-      return;
-    }
-    if (!key.startsWith('AIza')) {
-      if (window.Utils) Utils.showToast('Invalid key. Firebase Web API keys start with "AIza..."', 'error');
-      return;
-    }
-
-    const ready = this.setApiKey(key);
-    if (ready) {
-      if (window.Utils) Utils.showToast('🔥 Connected to Live Google Cloud Firestore! ✓', 'success');
-      this.closeSetupModal();
-      this.updateConnectionBadge();
-      
-      // Auto-seed produce if collection is empty
-      const products = await this.getAllProducts();
-      if (!products || products.length === 0) {
-        const defaults = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
-        await this.seedDefaultProducts(defaults);
-      }
-
-      setTimeout(() => window.location.reload(), 600);
-    } else {
-      if (window.Utils) Utils.showToast('Key saved. Reloading...', 'info');
-      this.closeSetupModal();
-      window.location.reload();
-    }
+    const projectId = (typeof firebaseConfig !== 'undefined' && firebaseConfig.projectId) ? firebaseConfig.projectId : 'abhisfarmfresh-3e7d3';
+    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm';
+    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Firestore Live: ${projectId}</span>`;
   },
 
   // ─── PRODUCTS ──────────────────────────────────────────

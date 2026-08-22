@@ -20,56 +20,6 @@ function updateConnectionStatus() {
   }
 }
 
-function openFirebaseKeyModal() {
-  const modal = document.getElementById('firebase-key-modal');
-  const input = document.getElementById('input-firebase-key');
-  if (input) {
-    input.value = localStorage.getItem('aff_firebase_api_key') || '';
-  }
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
-  }
-}
-
-function closeFirebaseKeyModal() {
-  const modal = document.getElementById('firebase-key-modal');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.style.display = 'none';
-  }
-}
-
-async function saveFirebaseApiKeyFromModal() {
-  const input = document.getElementById('input-firebase-key');
-  if (!input) return;
-
-  const key = input.value.trim();
-  if (!key) {
-    Utils.showToast('Please enter your Firebase API Key', 'warning');
-    return;
-  }
-
-  if (!key.startsWith('AIza')) {
-    Utils.showToast('Invalid key. Firebase Web API keys start with "AIza..."', 'error');
-    return;
-  }
-
-  if (window.FirebaseApp) {
-    const success = window.FirebaseApp.setApiKey(key);
-    if (success) {
-      Utils.showToast('🔥 Connected to Live Google Cloud Firestore! ✓', 'success');
-      closeFirebaseKeyModal();
-      updateConnectionStatus();
-      await loadAdminProducts();
-    } else {
-      Utils.showToast('Connected key saved. Initializing...', 'info');
-      closeFirebaseKeyModal();
-      window.location.reload();
-    }
-  }
-}
-
 function setupProductSearch() {
   const searchInput = document.getElementById('product-admin-search');
   if (searchInput) {
@@ -618,10 +568,6 @@ window.openProductModal = openProductModal;
 window.openEditProductModal = openProductModal;
 window.closeProductModal = closeProductModal;
 window.handleProductFormSubmit = handleProductFormSubmit;
-window.deleteProductPrompt = deleteProductPrompt;
-window.openFirebaseKeyModal = openFirebaseKeyModal;
-window.closeFirebaseKeyModal = closeFirebaseKeyModal;
-window.saveFirebaseApiKeyFromModal = saveFirebaseApiKeyFromModal;
 window.updateConnectionStatus = updateConnectionStatus;
 window.clearImagePreview = clearImagePreview;
 window.seedDefaultProduceToDatabase = seedDefaultProduceToDatabase;
