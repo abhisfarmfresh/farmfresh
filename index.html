@@ -199,17 +199,24 @@
         <section class="container space-y-6">
             <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-3">
                 <div>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 mb-2 shadow-xs">
+                        <span class="material-symbols-outlined text-sm">agriculture</span>
+                        <span>Farm-Fresh Variety</span>
+                    </div>
                     <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Explore Produce Categories</h2>
-                    <p class="text-xs text-slate-500 mt-1">Browse our full selection of Grade A fresh vegetables.</p>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Browse daily harvested Grade A produce curated for kitchens, hotels, and households.</p>
                 </div>
-                <a href="products.html" class="text-xs font-bold text-emerald-800 hover:underline flex items-center gap-1">
+                <a href="products.html" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-extrabold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 hover:text-emerald-950 transition-all self-start sm:self-auto border border-emerald-200/60 shadow-xs">
                     <span>View All Vegetables</span>
-                    <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                    <span class="material-symbols-outlined text-base">arrow_forward</span>
                 </a>
             </div>
 
-            <!-- Category Pills -->
-            <div id="category-filter-container" class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2"></div>
+            <!-- Visual Category Showcase Cards Grid -->
+            <div id="homepage-category-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4"></div>
+
+            <!-- Horizontal Category Filter Pills -->
+            <div id="category-filter-container" class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 pb-2"></div>
         </section>
 
         <!-- Featured Products Grid -->

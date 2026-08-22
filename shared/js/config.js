@@ -37,12 +37,12 @@ const AFF_CONFIG = {
   },
 
   categories: [
-    { id: 'all', name: 'All Vegetables', icon: 'grid_view' },
-    { id: 'leafy', name: 'Leafy Vegetables', icon: 'eco' },
-    { id: 'root', name: 'Root Vegetables', icon: 'yard' },
-    { id: 'everyday', name: 'Everyday Vegetables', icon: 'nutrition' },
-    { id: 'exotic', name: 'Exotic Vegetables', icon: 'spa' },
-    { id: 'seasonal', name: 'Seasonal Vegetables', icon: 'wb_sunny' }
+    { id: 'all', name: 'All Produce', icon: 'grid_view', subtitle: 'Full Daily Harvest', tag: 'Complete Fresh Selection', iconBg: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+    { id: 'leafy', name: 'Leafy Greens', icon: 'eco', subtitle: 'Spinach, Coriander & Mint', tag: 'Crisp & Farm-Fresh', iconBg: 'bg-green-100 text-green-800 border-green-200' },
+    { id: 'root', name: 'Root Veggies', icon: 'yard', subtitle: 'Potatoes, Onions, Carrots', tag: 'Direct From Earth', iconBg: 'bg-amber-100 text-amber-800 border-amber-200' },
+    { id: 'everyday', name: 'Daily Essentials', icon: 'nutrition', subtitle: 'Tomatoes, Beans, Chillies', tag: 'Kitchen Staples', iconBg: 'bg-teal-100 text-teal-800 border-teal-200' },
+    { id: 'exotic', name: 'Exotic & Gourmet', icon: 'spa', subtitle: 'Broccoli, Zucchini, Peppers', tag: 'Hotel Grade Premium', iconBg: 'bg-purple-100 text-purple-800 border-purple-200' },
+    { id: 'seasonal', name: 'Seasonal Specials', icon: 'wb_sunny', subtitle: 'Cauliflower, Drumsticks', tag: 'Peak Harvest Fresh', iconBg: 'bg-yellow-100 text-yellow-800 border-yellow-200' }
   ],
 
   /**

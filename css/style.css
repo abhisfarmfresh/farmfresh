@@ -201,31 +201,62 @@ h1, h2, h3, h4, h5, h6 {
 .cat-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 8px;
+  padding: 10px 20px;
   border-radius: 9999px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
   user-select: none;
   cursor: pointer;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(226, 232, 240, 0.9);
   background: #ffffff;
   color: #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .cat-pill:hover {
   background: #f8fafc;
-  border-color: #cbd5e1;
-  transform: translateY(-1px);
+  border-color: #94a3b8;
+  color: #0f172a;
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .cat-pill.active {
-  background: #064e3b;
+  background: linear-gradient(135deg, #022c22 0%, #064e3b 100%);
   color: #ffffff;
   border-color: #064e3b;
-  box-shadow: 0 4px 14px 0 rgba(6, 78, 59, 0.25);
+  box-shadow: 0 6px 18px rgba(6, 78, 59, 0.3);
+  transform: scale(1.02);
+}
+
+.cat-pill.active span {
+  color: #ffffff !important;
+}
+
+/* Category Showcase Cards */
+.category-showcase-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 20px;
+  padding: 18px 20px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.category-showcase-card:hover {
+  border-color: #059669;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px -6px rgba(6, 78, 59, 0.12);
+}
+
+.category-showcase-card.active {
+  border-color: #047857;
+  background: #f0fdf4;
+  box-shadow: 0 8px 24px -4px rgba(4, 120, 87, 0.2);
 }
 
 /* ─── Mobile Bottom Navigation ─── */

@@ -20,21 +20,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Initialize category filter pills
+ * Initialize category filter pills and showcase cards
  */
 function initCategoryPills() {
   const container = document.getElementById('category-filter-container');
-  if (!container || !window.AFF_CONFIG) return;
+  const showcaseGrid = document.getElementById('homepage-category-grid');
 
-  container.innerHTML = window.AFF_CONFIG.categories.map(cat => `
-    <button type="button"
-            onclick="setProductCategory('${cat.id}')"
-            id="cat-pill-${cat.id}"
-            class="cat-pill ${cat.id === 'all' ? 'active' : ''}">
-      <span class="material-symbols-outlined text-base">${cat.icon}</span>
-      <span>${cat.name}</span>
-    </button>
-  `).join('');
+  if (showcaseGrid && window.AFF_CONFIG) {
+    showcaseGrid.innerHTML = window.AFF_CONFIG.categories.map(cat => `
+      <div onclick="setProductCategory('${cat.id}')"
+           id="cat-card-${cat.id}"
+           class="category-showcase-card cursor-pointer group p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-emerald-500/50 transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between ${cat.id === activeCategory ? 'active' : ''}">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl ${cat.iconBg} border flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined text-xl sm:text-2xl">${cat.icon}</span>
+          </div>
+          <span class="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 group-hover:bg-emerald-100 group-hover:text-emerald-800 transition-colors">
+            ${cat.tag}
+          </span>
+        </div>
+        <div>
+          <h3 class="font-extrabold text-xs sm:text-sm text-slate-900 group-hover:text-emerald-900 transition-colors">${cat.name}</h3>
+          <p class="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 line-clamp-1">${cat.subtitle}</p>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  if (container && window.AFF_CONFIG) {
+    container.innerHTML = window.AFF_CONFIG.categories.map(cat => `
+      <button type="button"
+              onclick="setProductCategory('${cat.id}')"
+              id="cat-pill-${cat.id}"
+              class="cat-pill ${cat.id === activeCategory ? 'active' : ''}">
+        <span class="material-symbols-outlined text-base">${cat.icon}</span>
+        <span>${cat.name}</span>
+      </button>
+    `).join('');
+  }
 }
 
 /**
@@ -50,6 +73,18 @@ function setProductCategory(catId) {
   const selectedBtn = document.getElementById(`cat-pill-${catId}`);
   if (selectedBtn) {
     selectedBtn.classList.add('active');
+    try {
+      selectedBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    } catch (e) {}
+  }
+
+  document.querySelectorAll('.category-showcase-card').forEach(card => {
+    card.classList.remove('active');
+  });
+
+  const selectedCard = document.getElementById(`cat-card-${catId}`);
+  if (selectedCard) {
+    selectedCard.classList.add('active');
   }
 
   renderProductsGrid();
