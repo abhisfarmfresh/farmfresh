@@ -149,7 +149,7 @@ const Cart = {
   },
 
   /**
-   * Get grand total (offline payment, no extra fees)
+   * Get grand total (online payment, no extra fees)
    */
   getGrandTotal() {
     return this.getSubtotal();

@@ -159,6 +159,10 @@ async function loadDashboardData() {
     allDashboardProducts = [];
   }
 
+  if (allDashboardProducts.length === 0 && window.DEFAULT_PRODUCTS) {
+    allDashboardProducts = window.DEFAULT_PRODUCTS;
+  }
+
   updateConnectionStatus();
   recalculateAndRenderDashboard();
 }

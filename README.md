@@ -24,7 +24,7 @@ Farm Fresh/
 ├── cart.html                     # Persistent Shopping Cart with subtotal & grand total calculation
 ├── checkout.html                 # Customer & business info collection + Firestore order creation
 ├── order-success.html            # Order confirmation summary + WhatsApp order dispatcher
-├── about.html                    # Farm sourcing standards & 5 AM morning delivery slots
+├── about.html                    # Farm sourcing standards & 5 AM morning picking & shipping
 ├── contact.html                  # Phone (6380710362), WhatsApp & Instagram (@abhisfarmfresh)
 ├── css/
 │   ├── global.css                # Design tokens & color system

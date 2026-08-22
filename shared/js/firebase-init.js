@@ -53,16 +53,16 @@ const FirebaseApp = {
   // ─── PRODUCTS ──────────────────────────────────────────
 
   /**
-   * Fetch all active products
+   * Fetch all active products (robust query without requiring composite index)
    */
   async getProducts() {
     if (!this.isReady()) return [];
     try {
-      const snap = await this.db.collection('products')
-        .where('isActive', '==', true)
-        .orderBy('name')
-        .get();
-      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const snap = await this.db.collection('products').get();
+      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return list
+        .filter(p => p.isActive !== false && p.status !== 'inactive')
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     } catch (err) {
       console.error('Error fetching products:', err);
       return [];
@@ -75,10 +75,9 @@ const FirebaseApp = {
   async getAllProducts() {
     if (!this.isReady()) return [];
     try {
-      const snap = await this.db.collection('products')
-        .orderBy('name')
-        .get();
-      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const snap = await this.db.collection('products').get();
+      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     } catch (err) {
       console.error('Error fetching all products:', err);
       return [];
@@ -117,17 +116,17 @@ const FirebaseApp = {
   },
 
   /**
-   * Update a product — admin only
+   * Update or upsert a product — admin only
    */
   async updateProduct(productId, updates) {
     if (!this.isReady()) return false;
     try {
       updates.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-      await this.db.collection('products').doc(productId).update(updates);
-      console.log('✅ Product updated:', productId);
+      await this.db.collection('products').doc(productId).set(updates, { merge: true });
+      console.log('✅ Product updated/saved:', productId);
       return true;
     } catch (err) {
-      console.error('Error updating product:', err);
+      console.error('Error updating product in Firestore:', err);
       return false;
     }
   },
@@ -144,6 +143,45 @@ const FirebaseApp = {
     } catch (err) {
       console.error('Error deleting product:', err);
       return false;
+    }
+  },
+
+  /**
+   * Seed / Import default products into Firestore in batch
+   */
+  async seedDefaultProducts(products) {
+    if (!this.isReady() || !Array.isArray(products) || products.length === 0) return 0;
+    try {
+      const batch = this.db.batch();
+      const now = firebase.firestore.FieldValue.serverTimestamp();
+
+      for (const p of products) {
+        const docId = p.id || `prod_${p.slug || Date.now()}`;
+        const docRef = this.db.collection('products').doc(docId);
+        const data = {
+          name: p.name,
+          slug: p.slug || p.id,
+          category: p.category || 'everyday',
+          price: Number(p.price) || 0,
+          unit: p.unit || 'KG',
+          minQty: Number(p.minQty) || 1,
+          stock: Number(p.stock) || 500,
+          description: p.description || '',
+          imageUrl: p.imageUrl || 'images/farm_fresh_media_01.jpeg',
+          status: p.status || 'available',
+          isActive: p.isActive !== false,
+          createdAt: now,
+          updatedAt: now
+        };
+        batch.set(docRef, data, { merge: true });
+      }
+
+      await batch.commit();
+      console.log(`✅ Successfully seeded ${products.length} products to Firestore`);
+      return products.length;
+    } catch (err) {
+      console.error('Error batch seeding products:', err);
+      return 0;
     }
   },
 

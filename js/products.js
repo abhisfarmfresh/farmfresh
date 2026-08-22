@@ -78,7 +78,7 @@ function setupSearchAndSort() {
 }
 
 /**
- * Load products from Firestore (or fallback)
+ * Load products from Firestore (or local persistent storage fallback)
  */
 async function loadProducts() {
   const grid = document.getElementById('products-grid') || document.getElementById('featured-products-grid');
@@ -94,14 +94,17 @@ async function loadProducts() {
 
     if (fetched && fetched.length > 0) {
       allProducts = fetched;
+      if (window.ProductStorage) window.ProductStorage.saveAll(fetched);
     } else {
-      console.log('Using default fresh produce dataset');
-      allProducts = window.DEFAULT_PRODUCTS || [];
+      allProducts = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
     }
   } catch (err) {
-    console.warn('Could not fetch from Firestore, using local defaults:', err);
-    allProducts = window.DEFAULT_PRODUCTS || [];
+    console.warn('Could not fetch from Firestore, using local persistent storage:', err);
+    allProducts = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
   }
+
+  // Filter only active items for customer
+  allProducts = allProducts.filter(p => p.isActive !== false && p.status !== 'inactive');
 
   renderProductsGrid();
 }
@@ -161,12 +164,14 @@ function renderProductsGrid() {
     const inCart = Boolean(cartItem && cartItem.quantity > 0);
     const currentQty = cartItem ? cartItem.quantity : 0;
 
+    const displayImage = Utils.resolveImageUrl(product.imageUrl, false);
+
     return `
       <div class="card product-card group bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between" id="card-${product.id}">
         <div>
           <!-- Image & Badges -->
           <div class="product-image-wrap relative h-48 w-full bg-slate-100 overflow-hidden">
-            <img src="${product.imageUrl}" 
+            <img src="${displayImage}" 
                  alt="${Utils.escapeHtml(product.name)}"
                  loading="lazy"
                  onerror="this.src='images/farm_fresh_media_01.jpeg'"

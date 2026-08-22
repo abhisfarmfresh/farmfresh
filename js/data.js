@@ -8,7 +8,6 @@ const APP_DATA = {
         tagline: "Premium veggies at your doorstep.",
         domain: "www.abhisfarmfresh.com",
         gst: "36AAACA1234F1Z5",
-        fssai: "11522001000456",
         phone: "+91 6380710362",
         whatsapp: "916380710362",
         email: "orders@abhisfarmfresh.com",
@@ -78,7 +77,7 @@ const APP_DATA = {
             fallbackImage: "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=500&auto=format&fit=crop&q=60",
             origin: "Hyderabad Urban Hydroponics",
             harvestDate: "Today (Morning Harvest)",
-            grade: "Pesticide-Free Hydroponic",
+            grade: "Grade A Hydroponic",
             shelfLife: "4-6 Days",
             tierPrice: "₹105.00/kg for 30kg+"
         },
@@ -141,7 +140,7 @@ const APP_DATA = {
         },
         {
             id: "PROD-007",
-            name: "Baby Spinach (Pesticide Free)",
+            name: "Fresh Baby Spinach",
             category: "vegetables",
             price: 60.00,
             unit: "kg",

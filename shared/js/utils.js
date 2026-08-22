@@ -208,6 +208,18 @@ const Utils = {
   },
 
   /**
+   * Resolve display image URL across root, /customer/, and /admin/ pages
+   */
+  resolveImageUrl(url, isSubfolder = false) {
+    if (!url) return isSubfolder ? '../images/farm_fresh_media_01.jpeg' : 'images/farm_fresh_media_01.jpeg';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('/')) {
+      return url;
+    }
+    const cleanPath = url.replace(/^(\.\.\/)+/, '');
+    return isSubfolder ? `../${cleanPath}` : cleanPath;
+  },
+
+  /**
    * Escape HTML for safe display
    */
   escapeHtml(text) {

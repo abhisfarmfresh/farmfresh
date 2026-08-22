@@ -98,6 +98,12 @@
                 <div id="products-count-label" class="text-xs font-bold text-slate-600 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm hidden sm:inline-block">
                     Loading...
                 </div>
+                <button type="button" onclick="seedDefaultProduceToDatabase()" id="btn-seed-produce" 
+                        class="admin-btn admin-btn-secondary text-xs py-2.5 px-3.5 rounded-xl shadow-sm text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-200 flex items-center gap-1.5"
+                        title="Import all default frontend vegetables into the database">
+                    <span class="material-symbols-outlined text-base">sync</span>
+                    <span>Sync Produce</span>
+                </button>
                 <button type="button" onclick="openProductModal()" 
                         class="admin-btn admin-btn-primary text-xs py-2.5 px-4 rounded-xl shadow-md">
                     <span class="material-symbols-outlined text-base">add</span>
@@ -225,15 +231,38 @@
                     <textarea id="prod-description" rows="2" placeholder="Grade A quality, morning harvest details..." class="admin-input"></textarea>
                 </div>
 
-                <!-- Cloudinary Image Upload / URL -->
-                <div class="space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-                    <label class="block font-bold text-slate-700">Produce Image</label>
-                    <div>
-                        <input type="file" id="prod-image-file" accept="image/*" class="text-[11px] text-slate-500">
-                        <p class="text-[10px] text-slate-400 mt-1">Uploads directly to Cloudinary (folder: <code>abhis/farmfresh</code>)</p>
+                <!-- Produce Image & Live Preview -->
+                <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div class="flex items-center justify-between">
+                        <label class="block font-bold text-slate-700">Produce Image & Preview</label>
+                        <span id="preview-status-badge" class="text-[10px] font-semibold text-slate-400">Ready</span>
                     </div>
-                    <div class="text-[10px] text-slate-400 font-bold text-center">── OR Enter Image URL ──</div>
-                    <input type="text" id="prod-image-url" placeholder="https://... or ../images/farm_fresh_media_01.jpeg" class="admin-input text-[11px]">
+
+                    <!-- Live Image Preview Box -->
+                    <div class="flex items-center gap-4 bg-white p-3 rounded-xl border border-slate-200">
+                        <div class="w-20 h-20 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 relative group">
+                            <img id="modal-image-preview" 
+                                 src="../images/farm_fresh_media_01.jpeg" 
+                                 alt="Product Preview" 
+                                 class="w-full h-full object-cover"
+                                 onerror="this.src='../images/farm_fresh_media_01.jpeg'">
+                        </div>
+                        <div class="text-[11px] space-y-1 flex-1">
+                            <div class="font-bold text-slate-800" id="preview-img-title">Selected Image Preview</div>
+                            <div class="text-[10px] text-slate-400 truncate" id="preview-img-subtitle">Live preview from file or URL</div>
+                            <button type="button" onclick="clearImagePreview()" id="btn-clear-preview" class="text-[10px] text-red-600 hover:text-red-700 font-bold hover:underline">
+                                Reset to Default Image
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <input type="file" id="prod-image-file" accept="image/*" class="text-[11px] text-slate-500 w-full file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-800 hover:file:bg-emerald-100 cursor-pointer">
+                        <p class="text-[10px] text-slate-400 mt-1">Upload directly from device or Cloudinary (<code>abhis/farmfresh</code>)</p>
+                    </div>
+
+                    <div class="text-[10px] text-slate-400 font-bold text-center">── OR Enter Image URL / Path ──</div>
+                    <input type="text" id="prod-image-url" placeholder="https://... or images/farm_fresh_media_01.jpeg" class="admin-input text-[11px]">
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
@@ -251,6 +280,7 @@
 
     <!-- Scripts -->
     <script src="../shared/js/config.js"></script>
+    <script src="../shared/js/default-products.js"></script>
     <script src="../shared/js/firebase-init.js"></script>
     <script src="../shared/js/utils.js"></script>
     <script src="js/admin-auth.js"></script>

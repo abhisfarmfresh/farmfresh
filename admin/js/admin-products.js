@@ -9,6 +9,7 @@ let currentProductSearch = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
   setupProductSearch();
+  setupImagePreviewListeners();
   await loadAdminProducts();
 });
 
@@ -20,6 +21,86 @@ function setupProductSearch() {
       renderAdminProductsTable();
     }, 200));
   }
+}
+
+/**
+ * Setup Real-time Image Preview Listeners
+ */
+function setupImagePreviewListeners() {
+  const fileInput = document.getElementById('prod-image-file');
+  const urlInput = document.getElementById('prod-image-url');
+
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        if (!file.type.startsWith('image/')) {
+          Utils.showToast('Please select a valid image file', 'warning');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          updateImagePreview(event.target.result, file.name, 'File selected for upload');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  if (urlInput) {
+    urlInput.addEventListener('input', Utils.debounce((e) => {
+      const val = e.target.value.trim();
+      if (val) {
+        let previewSrc = val;
+        if (!val.startsWith('http') && !val.startsWith('data:') && !val.startsWith('../') && !val.startsWith('/')) {
+          previewSrc = `../${val}`;
+        }
+        updateImagePreview(previewSrc, 'Custom URL', 'URL entered');
+      } else {
+        const file = fileInput?.files?.[0];
+        if (!file) {
+          updateImagePreview('../images/farm_fresh_media_01.jpeg', 'Default Harvest', 'Ready');
+        }
+      }
+    }, 250));
+  }
+}
+
+/**
+ * Update Image Preview Box in Modal
+ */
+function updateImagePreview(src, title = 'Selected Image Preview', statusText = 'Ready') {
+  const previewImg = document.getElementById('modal-image-preview');
+  const titleEl = document.getElementById('preview-img-title');
+  const subtitleEl = document.getElementById('preview-img-subtitle');
+  const statusBadge = document.getElementById('preview-status-badge');
+
+  if (previewImg) {
+    previewImg.src = src;
+  }
+  if (titleEl) {
+    titleEl.textContent = title;
+  }
+  if (subtitleEl) {
+    subtitleEl.textContent = typeof src === 'string' && src.startsWith('data:') ? 'Local preview loaded' : (src || 'No image URL');
+  }
+  if (statusBadge) {
+    statusBadge.textContent = statusText;
+    statusBadge.className = 'text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200';
+  }
+}
+
+/**
+ * Reset / Clear Image Preview
+ */
+function clearImagePreview() {
+  const fileInput = document.getElementById('prod-image-file');
+  const urlInput = document.getElementById('prod-image-url');
+
+  if (fileInput) fileInput.value = '';
+  if (urlInput) urlInput.value = '';
+
+  updateImagePreview('../images/farm_fresh_media_01.jpeg', 'Default Produce Image', 'Reset to default');
 }
 
 function filterAdminCategory(cat) {
@@ -37,25 +118,87 @@ function filterAdminCategory(cat) {
   renderAdminProductsTable();
 }
 
+/**
+ * Load all products for admin
+ */
 async function loadAdminProducts() {
   const tbody = document.getElementById('admin-products-tbody');
   if (!tbody) return;
 
-  tbody.innerHTML = `<tr><td colspan="7" class="admin-loading">Fetching vegetable products...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="7" class="admin-loading py-8 text-center text-slate-500 font-semibold">Fetching vegetable products...</td></tr>`;
 
   try {
     if (window.FirebaseApp && window.FirebaseApp.isReady()) {
-      allAdminProducts = await window.FirebaseApp.getAllProducts();
+      const live = await window.FirebaseApp.getAllProducts();
+      if (live && live.length > 0) {
+        allAdminProducts = live;
+        if (window.ProductStorage) window.ProductStorage.saveAll(live);
+      } else {
+        allAdminProducts = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
+      }
+    } else {
+      allAdminProducts = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
     }
   } catch (err) {
     console.warn('Error fetching products from Firestore:', err);
+    allAdminProducts = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
   }
 
   if (!allAdminProducts || allAdminProducts.length === 0) {
-    allAdminProducts = window.DEFAULT_PRODUCTS ? [...window.DEFAULT_PRODUCTS] : [];
+    allAdminProducts = window.ProductStorage ? window.ProductStorage.resetToDefaults() : [];
   }
 
   renderAdminProductsTable();
+}
+
+/**
+ * Seed / Import default produce into database
+ */
+async function seedDefaultProduceToDatabase() {
+  const defaults = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
+  if (!defaults || defaults.length === 0) {
+    Utils.showToast('No default produce items available to import.', 'warning');
+    return;
+  }
+
+  if (window.ProductStorage) {
+    window.ProductStorage.saveAll(defaults);
+  }
+
+  if (!window.FirebaseApp || !window.FirebaseApp.isReady()) {
+    Utils.showToast('Produce synced to local storage (Offline Mode)! ✓', 'success');
+    allAdminProducts = defaults;
+    renderAdminProductsTable();
+    return;
+  }
+
+  const btn = document.getElementById('btn-seed-produce');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="material-symbols-outlined text-base animate-spin">sync</span><span>Syncing...</span>`;
+  }
+
+  Utils.showToast(`Syncing ${defaults.length} vegetables to Firestore...`, 'info');
+  const count = await window.FirebaseApp.seedDefaultProducts(defaults);
+
+  if (count > 0) {
+    Utils.showToast(`Successfully synced ${count} fresh vegetables to database! ✓`, 'success');
+    await loadAdminProducts();
+  } else {
+    Utils.showToast('Synced to local storage. (Firestore offline)', 'info');
+  }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = `<span class="material-symbols-outlined text-base">sync</span><span>Sync Produce</span>`;
+  }
+}
+
+/**
+ * Resolve display image URL in Admin (relative to /admin/)
+ */
+function getAdminDisplayImageUrl(url) {
+  return Utils.resolveImageUrl(url, true);
 }
 
 function renderAdminProductsTable() {
@@ -71,7 +214,7 @@ function renderAdminProductsTable() {
 
   if (currentProductSearch) {
     filtered = filtered.filter(p => 
-      p.name.toLowerCase().includes(currentProductSearch) ||
+      (p.name && p.name.toLowerCase().includes(currentProductSearch)) ||
       (p.category && p.category.toLowerCase().includes(currentProductSearch))
     );
   }
@@ -84,7 +227,11 @@ function renderAdminProductsTable() {
         <td colspan="7" class="text-center py-12 text-slate-400">
           <span class="material-symbols-outlined text-4xl mb-2 text-slate-300">inventory_2</span>
           <div class="font-bold text-slate-700 text-sm">No vegetable products found</div>
-          <div class="text-xs text-slate-400 mt-0.5">Click "+ Add Vegetable" to create your first product.</div>
+          <div class="text-xs text-slate-400 mt-1 mb-3">Click "+ Add Vegetable" or sync the default catalogue.</div>
+          <button type="button" onclick="seedDefaultProduceToDatabase()" class="admin-btn admin-btn-secondary text-xs inline-flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-sm">sync</span>
+            <span>Import Default Vegetables</span>
+          </button>
         </td>
       </tr>
     `;
@@ -93,16 +240,17 @@ function renderAdminProductsTable() {
 
   tbody.innerHTML = filtered.map(p => {
     const isAvailable = p.status === 'available';
+    const displayImg = getAdminDisplayImageUrl(p.imageUrl);
 
     return `
       <tr class="border-b border-slate-100 hover:bg-slate-50/80 transition-colors" id="row-${p.id}">
         <!-- Thumbnail & Name -->
         <td class="py-3 px-4">
           <div class="flex items-center gap-3">
-            <img src="${p.imageUrl}" 
+            <img src="${displayImg}" 
                  alt="${Utils.escapeHtml(p.name)}" 
                  onerror="this.src='../images/farm_fresh_media_01.jpeg'"
-                 class="w-10 h-10 rounded-lg object-cover bg-slate-100 border border-slate-200">
+                 class="w-10 h-10 rounded-lg object-cover bg-slate-100 border border-slate-200 shrink-0">
             <div>
               <div class="font-bold text-xs text-slate-900">${Utils.escapeHtml(p.name)}</div>
               <div class="text-[11px] text-slate-400 capitalize">${p.category || 'everyday'}</div>
@@ -130,7 +278,7 @@ function renderAdminProductsTable() {
 
         <!-- Minimum Quantity Standard -->
         <td class="py-3 px-4 text-xs font-bold text-slate-700">
-          1 ${p.unit || 'KG'} (Standard)
+          ${p.minQty || 1} ${p.unit || 'KG'} (Standard)
         </td>
 
         <!-- Stock Count -->
@@ -181,15 +329,19 @@ async function saveDailyPrice(productId) {
   }
 
   const prod = allAdminProducts.find(p => p.id === productId);
-  if (prod) {
-    prod.price = newPrice;
+  if (!prod) return;
+
+  prod.price = newPrice;
+
+  if (window.ProductStorage) {
+    window.ProductStorage.upsert(prod);
   }
 
   if (window.FirebaseApp && window.FirebaseApp.isReady()) {
-    await window.FirebaseApp.updateProduct(productId, { price: newPrice });
+    await window.FirebaseApp.updateProduct(productId, { ...prod, price: newPrice });
   }
 
-  Utils.showToast(`Updated price for ${prod?.name || 'product'} to ₹${newPrice}/KG ✓`, 'success');
+  Utils.showToast(`Updated price for ${prod.name} to ₹${newPrice}/KG ✓`, 'success');
 }
 
 /**
@@ -201,9 +353,14 @@ async function toggleProductStock(productId) {
 
   const nextStatus = prod.status === 'available' ? 'out_of_stock' : 'available';
   prod.status = nextStatus;
+  prod.isActive = nextStatus !== 'inactive';
+
+  if (window.ProductStorage) {
+    window.ProductStorage.upsert(prod);
+  }
 
   if (window.FirebaseApp && window.FirebaseApp.isReady()) {
-    await window.FirebaseApp.updateProduct(productId, { status: nextStatus });
+    await window.FirebaseApp.updateProduct(productId, { ...prod, status: nextStatus, isActive: prod.isActive });
   }
 
   Utils.showToast(`${prod.name} marked as ${nextStatus === 'available' ? 'Available' : 'Out of Stock'}`, 'info');
@@ -233,11 +390,16 @@ function openProductModal(productId = null) {
       document.getElementById('prod-description').value = prod.description || '';
       document.getElementById('prod-image-url').value = prod.imageUrl || '';
       document.getElementById('prod-status').value = prod.status || 'available';
+
+      const displayImg = getAdminDisplayImageUrl(prod.imageUrl);
+      updateImagePreview(displayImg, prod.name, 'Existing Image');
     }
   } else {
     modalTitle.textContent = 'Add New Fresh Vegetable';
     document.getElementById('prod-category').value = 'everyday';
     document.getElementById('prod-status').value = 'available';
+    document.getElementById('prod-stock').value = '500';
+    updateImagePreview('../images/farm_fresh_media_01.jpeg', 'Default Produce Harvest', 'Ready');
   }
 
   modal.classList.remove('hidden');
@@ -277,8 +439,11 @@ async function handleProductFormSubmit(e) {
     }
   }
 
+  // Normalize image URL for multi-page compatibility
   if (!imageUrl) {
-    imageUrl = '../images/farm_fresh_media_01.jpeg';
+    imageUrl = 'images/farm_fresh_media_01.jpeg';
+  } else if (imageUrl.startsWith('../images/')) {
+    imageUrl = imageUrl.replace('../', '');
   }
 
   const payload = {
@@ -297,20 +462,42 @@ async function handleProductFormSubmit(e) {
 
   if (editId) {
     // Update
+    payload.id = editId;
+
+    if (window.ProductStorage) {
+      window.ProductStorage.upsert(payload);
+    }
+
     if (window.FirebaseApp && window.FirebaseApp.isReady()) {
       await window.FirebaseApp.updateProduct(editId, payload);
     }
+
     const idx = allAdminProducts.findIndex(p => p.id === editId);
-    if (idx > -1) allAdminProducts[idx] = { id: editId, ...payload };
-    Utils.showToast(`Updated ${name} successfully!`, 'success');
+    if (idx > -1) {
+      allAdminProducts[idx] = { ...allAdminProducts[idx], ...payload };
+    } else {
+      allAdminProducts.unshift(payload);
+    }
+
+    Utils.showToast(`Updated ${name} successfully! ✓`, 'success');
   } else {
     // Create
-    let newDocId = `prod_${Date.now()}`;
+    const newDocId = `prod_${Date.now()}`;
+    payload.id = newDocId;
+
     if (window.FirebaseApp && window.FirebaseApp.isReady()) {
-      newDocId = await window.FirebaseApp.addProduct(payload);
+      const firestoreId = await window.FirebaseApp.addProduct(payload);
+      if (firestoreId) {
+        payload.id = firestoreId;
+      }
     }
-    allAdminProducts.unshift({ id: newDocId, ...payload });
-    Utils.showToast(`Added ${name} to catalogue!`, 'success');
+
+    if (window.ProductStorage) {
+      window.ProductStorage.upsert(payload);
+    }
+
+    allAdminProducts.unshift(payload);
+    Utils.showToast(`Added ${name} to catalogue! ✓`, 'success');
   }
 
   closeProductModal();
@@ -325,6 +512,10 @@ async function deleteProductPrompt(productId) {
   if (!prod) return;
 
   if (!confirm(`Are you sure you want to delete "${prod.name}" from the catalogue?`)) return;
+
+  if (window.ProductStorage) {
+    window.ProductStorage.delete(productId);
+  }
 
   if (window.FirebaseApp && window.FirebaseApp.isReady()) {
     await window.FirebaseApp.deleteProduct(productId);
@@ -343,3 +534,6 @@ window.openEditProductModal = openProductModal;
 window.closeProductModal = closeProductModal;
 window.handleProductFormSubmit = handleProductFormSubmit;
 window.deleteProductPrompt = deleteProductPrompt;
+window.clearImagePreview = clearImagePreview;
+window.seedDefaultProduceToDatabase = seedDefaultProduceToDatabase;
+window.updateImagePreview = updateImagePreview;

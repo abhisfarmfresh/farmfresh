@@ -4,7 +4,8 @@
  */
 
 // Fallback products in case Firestore is not populated yet or offline
-window.DEFAULT_PRODUCTS = [
+if (!window.DEFAULT_PRODUCTS || window.DEFAULT_PRODUCTS.length === 0) {
+  window.DEFAULT_PRODUCTS = [
   {
     id: "prod_tomato",
     name: "Fresh Tomato",
@@ -24,7 +25,7 @@ window.DEFAULT_PRODUCTS = [
     name: "Green Capsicum",
     slug: "green-capsicum",
     category: "everyday",
-    description: "Crisp, fresh bell peppers with thick walls. Ideal for stir-fries, stuffings, and continental gravies. Pesticide-tested.",
+    description: "Crisp, fresh bell peppers with thick walls. Ideal for stir-fries, stuffings, and continental gravies. Grade A quality.",
     imageUrl: "images/farm_fresh_media_02.jpeg",
     price: 45,
     unit: "KG",
@@ -38,7 +39,7 @@ window.DEFAULT_PRODUCTS = [
     name: "Butterhead Lettuce",
     slug: "butterhead-lettuce",
     category: "leafy",
-    description: "Tender, buttery leaves with delicate crunch. Hydroponically grown, 100% pesticide-free. Chef-grade salad base.",
+    description: "Tender, buttery leaves with delicate crunch. Hydroponically grown fresh produce. Chef-grade salad base.",
     imageUrl: "images/farm_fresh_media_03.jpeg",
     price: 120,
     unit: "KG",
@@ -66,7 +67,7 @@ window.DEFAULT_PRODUCTS = [
     name: "Baby Spinach",
     slug: "baby-spinach",
     category: "leafy",
-    description: "Tender, pesticide-free baby spinach leaves. Rich in iron, crisp texture, washed and sorted for instant use.",
+    description: "Tender, farm-fresh baby spinach leaves. Rich in iron, crisp texture, washed and sorted for instant use.",
     imageUrl: "images/farm_fresh_media_07.jpeg",
     price: 60,
     unit: "KG",
@@ -174,6 +175,7 @@ window.DEFAULT_PRODUCTS = [
     isActive: true
   }
 ];
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   highlightActiveNav();
