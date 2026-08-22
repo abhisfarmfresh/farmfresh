@@ -204,7 +204,7 @@ function renderProductsGrid() {
     return `
       <div class="product-card group bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-emerald-950/5 transition-all duration-300 flex flex-col justify-between" id="card-${product.id}">
         <div>
-          <!-- Image & Badges Wrap -->
+          <!-- Clean Product Image Wrap (No text overlay) -->
           <div class="product-card-img-wrap relative h-52 w-full bg-slate-50 overflow-hidden">
             <img src="${displayImage}" 
                  alt="${Utils.escapeHtml(product.name)}"
@@ -212,15 +212,11 @@ function renderProductsGrid() {
                  onerror="this.src='images/farm_fresh_media_01.jpeg'"
                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out">
             
-            <!-- Category & Harvest Badge -->
-            <div class="absolute top-3 left-3 flex flex-col gap-1 z-10">
-              <span class="chip bg-slate-950/80 text-white text-[10px] font-bold backdrop-blur-md capitalize px-2.5 py-0.5 rounded-full shadow-sm">
-                ${product.category || 'everyday'}
-              </span>
-              ${isOutOfStock 
-                ? '<span class="chip chip-danger text-[10px] shadow-sm">Out of Stock</span>' 
-                : '<span class="chip chip-success text-[10px] shadow-sm flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>5 AM Dispatch</span>'}
-            </div>
+            ${isOutOfStock ? `
+              <div class="absolute top-3 left-3 z-10">
+                <span class="chip chip-danger text-[10px] shadow-sm">Out of Stock</span>
+              </div>
+            ` : ''}
 
             <!-- WhatsApp Direct Inquiry -->
             <button type="button"
@@ -234,7 +230,7 @@ function renderProductsGrid() {
           <!-- Product Details -->
           <div class="p-5">
             <div class="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 mb-1">
-              <span>Grade A Quality</span>
+              <span class="capitalize bg-emerald-50 text-emerald-900 px-2 py-0.5 rounded-md">${product.category || 'everyday'} • Grade A</span>
               <span class="text-slate-400 font-semibold lowercase">min. 1 ${product.unit || 'KG'}</span>
             </div>
 
