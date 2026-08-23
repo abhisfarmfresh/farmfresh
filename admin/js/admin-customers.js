@@ -31,39 +31,40 @@ async function loadAdminCustomers() {
   tbody.innerHTML = `<tr><td colspan="7" class="admin-loading">Fetching customer directory...</td></tr>`;
 
   try {
-    if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+    if (window.FirebaseApp) {
       allAdminCustomers = await window.FirebaseApp.getAllCustomers();
     }
   } catch (err) {
     console.warn('Error fetching customers from Firestore:', err);
   }
 
-  // Fallback demo customers if empty
+  // If no dedicated customer docs exist yet in Firestore, derive directory dynamically from real placed orders
   if (!allAdminCustomers || allAdminCustomers.length === 0) {
-    allAdminCustomers = [
-      {
-        id: '6380710362',
-        name: 'John Varma',
-        shopName: 'Sri Lakshmi Hotel & Suites',
-        phone: '6380710362',
-        email: 'customer@gmail.com',
-        address: '14/B Main Road, Thanjavur - 613001',
-        totalOrders: 3,
-        totalAmount: 14250,
-        lastOrderDate: new Date()
-      },
-      {
-        id: '9876543210',
-        name: 'Chef Arvind Swamy',
-        shopName: 'Green Leaf Fine Dining Chain',
-        phone: '9876543210',
-        email: 'arvind@greenleaf.com',
-        address: 'Plot 4, Madhapur, Hyderabad',
-        totalOrders: 8,
-        totalAmount: 48600,
-        lastOrderDate: new Date(Date.now() - 86400000)
+    const orders = window.OrderStorage ? window.OrderStorage.getAll() : [];
+    const customerMap = new Map();
+    orders.forEach(o => {
+      const cleanPhone = (o.phone || '').replace(/\D/g, '');
+      if (cleanPhone) {
+        if (customerMap.has(cleanPhone)) {
+          const existing = customerMap.get(cleanPhone);
+          existing.totalOrders += 1;
+          existing.totalAmount += (Number(o.grandTotal ?? o.total ?? o.subtotal ?? 0) || 0);
+        } else {
+          customerMap.set(cleanPhone, {
+            id: cleanPhone,
+            name: o.customerName || o.name || 'Customer',
+            shopName: o.shopName || '',
+            phone: o.phone || cleanPhone,
+            email: o.email || '',
+            address: o.deliveryAddress || o.businessAddress || o.address || '',
+            totalOrders: 1,
+            totalAmount: (Number(o.grandTotal ?? o.total ?? o.subtotal ?? 0) || 0),
+            lastOrderDate: o.createdAt || new Date()
+          });
+        }
       }
-    ];
+    });
+    allAdminCustomers = Array.from(customerMap.values());
   }
 
   renderCustomersTable();

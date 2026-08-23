@@ -13,6 +13,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateConnectionStatus();
   await loadAdminOrders();
   updateConnectionStatus();
+
+  // Attach live Firestore and cross-tab storage listener
+  if (window.FirebaseApp && typeof window.FirebaseApp.subscribeToOrders === 'function') {
+    window.FirebaseApp.subscribeToOrders((updatedOrders) => {
+      allAdminOrders = updatedOrders || [];
+      renderOrdersTable();
+    });
+  }
   
   const params = new URLSearchParams(window.location.search);
   const targetId = params.get('orderId');
@@ -62,19 +70,21 @@ function filterOrdersByStatus(status) {
 
 async function loadAdminOrders() {
   const tbody = document.getElementById('orders-table-tbody');
-  if (tbody) {
+  if (tbody && (!allAdminOrders || allAdminOrders.length === 0)) {
     tbody.innerHTML = `<tr><td colspan="8" class="admin-loading">Loading orders from database...</td></tr>`;
   }
 
   try {
-    if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+    if (window.FirebaseApp) {
       allAdminOrders = await window.FirebaseApp.getAllOrders();
+    } else if (window.OrderStorage) {
+      allAdminOrders = window.OrderStorage.getAll();
     } else {
       allAdminOrders = [];
     }
   } catch (err) {
-    console.warn('Error loading orders from Firestore:', err);
-    allAdminOrders = [];
+    console.warn('Error loading orders:', err);
+    allAdminOrders = window.OrderStorage ? window.OrderStorage.getAll() : [];
   }
 
   renderOrdersTable();

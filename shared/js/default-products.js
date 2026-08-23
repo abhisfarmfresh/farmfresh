@@ -236,4 +236,119 @@ const ProductStorage = {
   }
 };
 
+/**
+ * Client-side dual-layer persistence for Orders
+ */
+const OrderStorage = {
+  STORAGE_KEY: 'aff_orders_store',
+
+  getAll() {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('Error reading from OrderStorage:', e);
+    }
+    return [];
+  },
+
+  saveAll(orders) {
+    try {
+      if (Array.isArray(orders)) {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(orders));
+      }
+    } catch (e) {
+      console.warn('Error saving to OrderStorage:', e);
+    }
+  },
+
+  upsert(order) {
+    if (!order) return;
+    const key = order.orderNumber || order.id;
+    if (!key) return;
+    const list = this.getAll();
+    const idx = list.findIndex(o => (o.orderNumber && o.orderNumber === key) || (o.id && o.id === key));
+    if (idx > -1) {
+      list[idx] = { ...list[idx], ...order };
+    } else {
+      list.unshift(order);
+    }
+    this.saveAll(list);
+    return list;
+  },
+
+  delete(orderId) {
+    if (!orderId) return;
+    const list = this.getAll();
+    const filtered = list.filter(o => o.id !== orderId && o.orderNumber !== orderId);
+    this.saveAll(filtered);
+    return filtered;
+  },
+
+  clear() {
+    localStorage.removeItem(this.STORAGE_KEY);
+  }
+};
+
+/**
+ * Client-side dual-layer persistence for Customer Inquiries & Leads
+ */
+const InquiryStorage = {
+  STORAGE_KEY: 'aff_inquiries_store',
+
+  getAll() {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('Error reading from InquiryStorage:', e);
+    }
+    return [];
+  },
+
+  saveAll(inquiries) {
+    try {
+      if (Array.isArray(inquiries)) {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(inquiries));
+      }
+    } catch (e) {
+      console.warn('Error saving to InquiryStorage:', e);
+    }
+  },
+
+  upsert(inquiry) {
+    if (!inquiry || !inquiry.id) return;
+    const list = this.getAll();
+    const idx = list.findIndex(i => i.id === inquiry.id);
+    if (idx > -1) {
+      list[idx] = { ...list[idx], ...inquiry };
+    } else {
+      list.unshift(inquiry);
+    }
+    this.saveAll(list);
+    return list;
+  },
+
+  delete(inquiryId) {
+    if (!inquiryId) return;
+    const list = this.getAll();
+    const filtered = list.filter(i => i.id !== inquiryId);
+    this.saveAll(filtered);
+    return filtered;
+  },
+
+  clear() {
+    localStorage.removeItem(this.STORAGE_KEY);
+  }
+};
+
 window.ProductStorage = ProductStorage;
+window.OrderStorage = OrderStorage;
+window.InquiryStorage = InquiryStorage;
+

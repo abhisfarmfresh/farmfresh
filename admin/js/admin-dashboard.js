@@ -12,6 +12,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   initDateFilter();
   updateConnectionStatus();
   await loadDashboardData();
+
+  if (window.FirebaseApp && typeof window.FirebaseApp.subscribeToOrders === 'function') {
+    window.FirebaseApp.subscribeToOrders((updatedOrders) => {
+      allDashboardOrders = updatedOrders || [];
+      recalculateAndRenderDashboard();
+    });
+  }
 });
 
 /**
@@ -131,7 +138,7 @@ async function loadDashboardData() {
   showDashboardSkeletons();
 
   try {
-    if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+    if (window.FirebaseApp) {
       const [orders, products] = await Promise.all([
         window.FirebaseApp.getAllOrders(),
         window.FirebaseApp.getAllProducts()
@@ -139,13 +146,13 @@ async function loadDashboardData() {
       allDashboardOrders = orders || [];
       allDashboardProducts = products || [];
     } else {
-      allDashboardOrders = [];
-      allDashboardProducts = [];
+      allDashboardOrders = window.OrderStorage ? window.OrderStorage.getAll() : [];
+      allDashboardProducts = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
     }
   } catch (e) {
-    console.warn('Error fetching live dashboard metrics from Firestore:', e);
-    allDashboardOrders = [];
-    allDashboardProducts = [];
+    console.warn('Error fetching dashboard data:', e);
+    allDashboardOrders = window.OrderStorage ? window.OrderStorage.getAll() : [];
+    allDashboardProducts = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
   }
 
   if (allDashboardProducts.length === 0 && window.DEFAULT_PRODUCTS) {

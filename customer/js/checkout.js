@@ -196,9 +196,16 @@ async function handleOrderSubmit(e) {
       rejectedAt: null
     };
 
-    // 3. Save to Firestore
+    // 3. Save to Dual-Layer Persistence (OrderStorage + Cloud Firestore)
     let orderDocId = null;
-    if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+    if (window.OrderStorage) {
+      window.OrderStorage.upsert({
+        id: `local_${Date.now()}`,
+        ...orderData
+      });
+    }
+
+    if (window.FirebaseApp) {
       orderDocId = await window.FirebaseApp.createOrder(orderData);
       
       // 4. Upsert Customer Record

@@ -19,6 +19,26 @@ const AdminCore = {
     this.setupEventListeners();
     await this.loadAllData();
     this.renderCurrentTab();
+
+    // Subscribe to live Firestore + cross-tab order updates
+    if (window.FirebaseApp && typeof window.FirebaseApp.subscribeToOrders === 'function') {
+      window.FirebaseApp.subscribeToOrders((latestOrders) => {
+        this.orders = latestOrders || [];
+        this.renderOrdersKPIs();
+        this.filterAndRenderOrders();
+      });
+    }
+
+    // Listen for customer inquiries/leads in real time across browser tabs
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'aff_inquiries_store') {
+        if (window.InquiryStorage) {
+          this.inquiries = window.InquiryStorage.getAll();
+          this.renderInquiriesKPIs();
+          this.filterAndRenderInquiries();
+        }
+      }
+    });
   },
 
   // ─── URL & PATH RESOLUTION HELPERS ──────────────────────
@@ -78,13 +98,13 @@ const AdminCore = {
       orders: 'Orders Management | Abhis Admin',
       products: 'Products & Inventory | Abhis Admin',
       categories: 'Categories CMS | Abhis Admin',
-      inquiries: 'Customer Inquiries & Leads | Abhis Admin',
-      banner: 'Top Promo Banner CMS | Abhis Admin',
-      settings: 'Firebase & Cloudinary Hub | Abhis Admin'
+      inquiries: 'Customer Leads | Abhis Admin',
+      banner: 'Promo Banner | Abhis Admin',
+      settings: 'Settings Hub | Abhis Admin'
     };
-    document.title = titles[tabId] || 'Admin CRM | Abhis Farm Fresh';
+    document.title = titles[tabId] || 'Executive Admin CRM | Abhis Farm Fresh';
 
-    // Render tab-specific view
+    // Render tab specific data
     this.renderCurrentTab();
   },
 
@@ -130,20 +150,22 @@ const AdminCore = {
         this.categories = (window.AFF_CONFIG && window.AFF_CONFIG.categories) ? [...window.AFF_CONFIG.categories] : [];
       }
 
-      // 3. Orders
-      if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+      // 3. Orders (Pure real Firestore + OrderStorage, NO dummy mock data)
+      if (window.FirebaseApp) {
         this.orders = await window.FirebaseApp.getAllOrders();
-      }
-      if (!this.orders || this.orders.length === 0) {
-        this.orders = this.getMockOrders();
+      } else if (window.OrderStorage) {
+        this.orders = window.OrderStorage.getAll();
+      } else {
+        this.orders = [];
       }
 
-      // 4. Inquiries
-      if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+      // 4. Inquiries (Pure real Firestore + InquiryStorage, NO dummy mock data)
+      if (window.FirebaseApp) {
         this.inquiries = await window.FirebaseApp.getInquiries();
-      }
-      if (!this.inquiries || this.inquiries.length === 0) {
-        this.inquiries = this.getMockInquiries();
+      } else if (window.InquiryStorage) {
+        this.inquiries = window.InquiryStorage.getAll();
+      } else {
+        this.inquiries = [];
       }
 
       // 5. Banner Settings
@@ -1389,85 +1411,6 @@ const AdminCore = {
     if (timestamp.toDate) return timestamp.toDate().toLocaleDateString('en-IN');
     if (timestamp.seconds) return new Date(timestamp.seconds * 1000).toLocaleDateString('en-IN');
     return new Date(timestamp).toLocaleDateString('en-IN');
-  },
-
-  getMockOrders() {
-    return [
-      {
-        id: "AFF-20260822-101",
-        orderNumber: "AFF-20260822-101",
-        name: "Suresh Kumar",
-        shopName: "Hotel Saravana Grand",
-        phone: "9876543210",
-        address: "12/4 North Main Road, Thanjavur",
-        paymentMethod: "UPI (Google Pay)",
-        status: "pending",
-        total: 1450,
-        createdAt: new Date(),
-        items: [
-          { name: "Fresh Tomato (Hybrid)", price: 35, quantity: 20, unit: "KG" },
-          { name: "Red Onion (Nasik)", price: 32, quantity: 20, unit: "KG" },
-          { name: "Green Capsicum", price: 45, quantity: 2, unit: "KG" }
-        ]
-      },
-      {
-        id: "AFF-20260822-102",
-        orderNumber: "AFF-20260822-102",
-        name: "Anand R.",
-        shopName: "Greenleaf Organic Kitchen",
-        phone: "6380710362",
-        address: "Plot 88, Near New Bus Stand, Thanjavur",
-        paymentMethod: "Bank NEFT Transfer",
-        status: "processing",
-        total: 2800,
-        createdAt: new Date(Date.now() - 3600000),
-        items: [
-          { name: "Baby Spinach", price: 60, quantity: 10, unit: "KG" },
-          { name: "Butterhead Lettuce", price: 120, quantity: 10, unit: "KG" },
-          { name: "Genovese Basil", price: 240, quantity: 4, unit: "KG" }
-        ]
-      },
-      {
-        id: "AFF-20260821-089",
-        orderNumber: "AFF-20260821-089",
-        name: "Priya V.",
-        shopName: "Home Kitchen",
-        phone: "9443210987",
-        address: "Flat 4B, Kaveri Apartments, Medical College Rd",
-        paymentMethod: "UPI (PhonePe)",
-        status: "delivered",
-        total: 580,
-        createdAt: new Date(Date.now() - 86400000),
-        items: [
-          { name: "Fresh Carrot", price: 55, quantity: 4, unit: "KG" },
-          { name: "Fresh Potato", price: 28, quantity: 5, unit: "KG" },
-          { name: "Green Chilli", price: 80, quantity: 2, unit: "KG" }
-        ]
-      }
-    ];
-  },
-
-  getMockInquiries() {
-    return [
-      {
-        id: "inq_001",
-        name: "Chef Rajesh Raman",
-        phone: "9840123456",
-        email: "rajesh@grandpalacerestaurant.in",
-        message: "We need 50kg Tomatoes, 40kg Onions, and 20kg Capsicum delivered daily by 5:30 AM for our hotel buffet prep. Please share bulk tier quotation.",
-        status: "unread",
-        createdAt: new Date()
-      },
-      {
-        id: "inq_002",
-        name: "Karthik Catering Services",
-        phone: "9789012345",
-        email: "karthik.catering@gmail.com",
-        message: "Looking for marriage catering vegetable supply for upcoming 500-guest event this weekend.",
-        status: "contacted",
-        createdAt: new Date(Date.now() - 172800000)
-      }
-    ];
   }
 };
 
@@ -1476,3 +1419,4 @@ window.AdminCore = AdminCore;
 document.addEventListener('DOMContentLoaded', () => {
   AdminCore.init();
 });
+

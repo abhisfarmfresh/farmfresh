@@ -381,85 +381,169 @@ const FirebaseApp = {
    * Create a new order — customer facing
    */
   async createOrder(orderData) {
-    if (!this.isReady()) return null;
-    try {
-      const normalized = this._normalizeOrder(null, orderData);
-      normalized.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      const docRef = await this.db.collection('orders').add(normalized);
-      console.log('✅ Order created in Firestore:', docRef.id);
-      return docRef.id;
-    } catch (err) {
-      console.error('Error creating order:', err);
-      return null;
+    const normalized = this._normalizeOrder(null, orderData);
+    
+    // 1. Immediately persist to OrderStorage
+    if (window.OrderStorage) {
+      window.OrderStorage.upsert(normalized);
     }
+
+    // 2. Push to Firestore if live
+    if (this.isReady()) {
+      try {
+        normalized.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        const docRef = await this.db.collection('orders').add(normalized);
+        console.log('✅ Order created in Firestore:', docRef.id);
+        if (window.OrderStorage) {
+          window.OrderStorage.upsert({ ...normalized, id: docRef.id });
+        }
+        return docRef.id;
+      } catch (err) {
+        console.warn('Firestore order sync error (saved to local persistence):', err.message);
+      }
+    }
+
+    return normalized.id || normalized.orderNumber;
   },
 
   /**
-   * Get a single order by Firestore doc ID
+   * Get a single order by Firestore doc ID or Order Number
    */
   async getOrder(orderId) {
-    if (!this.isReady()) return null;
-    try {
-      const doc = await this.db.collection('orders').doc(orderId).get();
-      return doc.exists ? this._normalizeOrder(doc.id, doc.data()) : null;
-    } catch (err) {
-      console.error('Error fetching order:', err);
-      return null;
+    if (this.isReady()) {
+      try {
+        const doc = await this.db.collection('orders').doc(orderId).get();
+        if (doc.exists) return this._normalizeOrder(doc.id, doc.data());
+      } catch (err) {
+        console.warn('Firestore getOrder error:', err.message);
+      }
     }
+
+    const list = window.OrderStorage ? window.OrderStorage.getAll() : [];
+    const found = list.find(o => String(o.id) === String(orderId) || String(o.orderNumber) === String(orderId));
+    return found ? this._normalizeOrder(found.id, found) : null;
   },
 
   /**
-   * Get all orders — admin only
+   * Get all orders — pure real data (Firestore + local OrderStorage)
    */
   async getAllOrders() {
-    if (!this.isReady()) return [];
-    try {
-      const snap = await this.db.collection('orders')
-        .orderBy('createdAt', 'desc')
-        .get();
-      return snap.docs.map(doc => this._normalizeOrder(doc.id, doc.data()));
-    } catch (err) {
-      console.error('Error fetching orders:', err);
-      return [];
+    let cloudOrders = [];
+    if (this.isReady()) {
+      try {
+        const snap = await this.db.collection('orders')
+          .orderBy('createdAt', 'desc')
+          .get();
+        cloudOrders = snap.docs.map(doc => this._normalizeOrder(doc.id, doc.data()));
+      } catch (err) {
+        console.warn('Firestore getAllOrders error (reading local persistence):', err.message);
+      }
     }
+
+    const localOrders = (window.OrderStorage ? window.OrderStorage.getAll() : [])
+      .map(o => this._normalizeOrder(o.id, o));
+
+    // Merge cloud and local orders by orderNumber or id (cloud takes precedence)
+    const map = new Map();
+    localOrders.forEach(o => {
+      const k = o.orderNumber || o.id;
+      if (k) map.set(k, o);
+    });
+    cloudOrders.forEach(o => {
+      const k = o.orderNumber || o.id;
+      if (k) map.set(k, o);
+    });
+
+    const merged = Array.from(map.values()).sort((a, b) => {
+      const ta = (a.createdAt && typeof a.createdAt.toDate === 'function') ? a.createdAt.toDate().getTime() : (new Date(a.createdAt || 0).getTime() || 0);
+      const tb = (b.createdAt && typeof b.createdAt.toDate === 'function') ? b.createdAt.toDate().getTime() : (new Date(b.createdAt || 0).getTime() || 0);
+      return tb - ta;
+    });
+
+    if (window.OrderStorage) {
+      window.OrderStorage.saveAll(merged);
+    }
+
+    return merged;
+  },
+
+  /**
+   * Subscribe to real-time order updates (Firestore onSnapshot + window storage event)
+   */
+  subscribeToOrders(callback) {
+    if (typeof callback !== 'function') return () => {};
+
+    let unsubscribeFirestore = () => {};
+
+    if (this.isReady()) {
+      try {
+        unsubscribeFirestore = this.db.collection('orders')
+          .orderBy('createdAt', 'desc')
+          .onSnapshot(snap => {
+            const list = snap.docs.map(doc => this._normalizeOrder(doc.id, doc.data()));
+            if (window.OrderStorage) window.OrderStorage.saveAll(list);
+            callback(list);
+          }, err => {
+            console.warn('Orders onSnapshot error:', err.message);
+          });
+      } catch (e) {
+        console.warn('Could not attach Firestore onSnapshot listener:', e.message);
+      }
+    }
+
+    const handleStorageChange = (e) => {
+      if (e.key === 'aff_orders_store') {
+        const local = window.OrderStorage ? window.OrderStorage.getAll() : [];
+        callback(local);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      try { unsubscribeFirestore(); } catch (e) {}
+      window.removeEventListener('storage', handleStorageChange);
+    };
   },
 
   /**
    * Get orders by status — admin only
    */
   async getOrdersByStatus(status) {
-    if (!this.isReady()) return [];
-    try {
-      const snap = await this.db.collection('orders')
-        .where('status', '==', status)
-        .orderBy('createdAt', 'desc')
-        .get();
-      return snap.docs.map(doc => this._normalizeOrder(doc.id, doc.data()));
-    } catch (err) {
-      console.error('Error fetching orders by status:', err);
-      return [];
-    }
+    const all = await this.getAllOrders();
+    return all.filter(o => (o.status || 'pending').toLowerCase() === (status || '').toLowerCase());
   },
 
   /**
    * Update order status — admin only
    */
   async updateOrderStatus(orderId, status, extras = {}) {
-    if (!this.isReady()) return false;
-    try {
-      const updates = { status, ...extras };
-      if (status === 'confirmed') {
-        updates.confirmedAt = firebase.firestore.FieldValue.serverTimestamp();
-      } else if (status === 'rejected') {
-        updates.rejectedAt = firebase.firestore.FieldValue.serverTimestamp();
+    // 1. Update in local storage
+    if (window.OrderStorage) {
+      const list = window.OrderStorage.getAll();
+      const idx = list.findIndex(o => String(o.id) === String(orderId) || String(o.orderNumber) === String(orderId));
+      if (idx > -1) {
+        list[idx] = { ...list[idx], status, ...extras };
+        window.OrderStorage.saveAll(list);
       }
-      await this.db.collection('orders').doc(orderId).update(updates);
-      console.log('✅ Order status updated:', orderId, '→', status);
-      return true;
-    } catch (err) {
-      console.error('Error updating order:', err);
-      return false;
     }
+
+    // 2. Update in Firestore if live
+    if (this.isReady()) {
+      try {
+        const updates = { status, ...extras };
+        if (status === 'confirmed') {
+          updates.confirmedAt = firebase.firestore.FieldValue.serverTimestamp();
+        } else if (status === 'rejected') {
+          updates.rejectedAt = firebase.firestore.FieldValue.serverTimestamp();
+        }
+        await this.db.collection('orders').doc(orderId).update(updates);
+        console.log('✅ Order status updated in Firestore:', orderId, '→', status);
+      } catch (err) {
+        console.warn('Firestore updateOrderStatus error (saved locally):', err.message);
+      }
+    }
+
+    return true;
   },
 
   // ─── CUSTOMERS ──────────────────────────────────────────
@@ -615,67 +699,109 @@ const FirebaseApp = {
   // ─── INQUIRIES & LEADS ────────────────────────────────
 
   /**
-   * Fetch all customer contact inquiries
+   * Fetch all customer contact inquiries (Firestore + local InquiryStorage)
    */
   async getInquiries() {
-    if (!this.isReady()) return [];
-    try {
-      const snap = await this.db.collection('inquiries').orderBy('createdAt', 'desc').get();
-      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (err) {
-      console.error('Error fetching inquiries:', err);
-      return [];
+    let cloudInquiries = [];
+    if (this.isReady()) {
+      try {
+        const snap = await this.db.collection('inquiries').orderBy('createdAt', 'desc').get();
+        cloudInquiries = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (err) {
+        console.warn('Firestore getInquiries error (reading local persistence):', err.message);
+      }
     }
+
+    const localInquiries = window.InquiryStorage ? window.InquiryStorage.getAll() : [];
+    const map = new Map();
+    localInquiries.forEach(i => { if (i.id) map.set(i.id, i); });
+    cloudInquiries.forEach(i => { if (i.id) map.set(i.id, i); });
+
+    const merged = Array.from(map.values()).sort((a, b) => {
+      const ta = (a.createdAt && typeof a.createdAt.toDate === 'function') ? a.createdAt.toDate().getTime() : (new Date(a.createdAt || 0).getTime() || 0);
+      const tb = (b.createdAt && typeof b.createdAt.toDate === 'function') ? b.createdAt.toDate().getTime() : (new Date(b.createdAt || 0).getTime() || 0);
+      return tb - ta;
+    });
+
+    if (window.InquiryStorage) {
+      window.InquiryStorage.saveAll(merged);
+    }
+    return merged;
   },
 
   /**
    * Add a new customer inquiry
    */
   async addInquiry(inquiryData) {
-    if (!this.isReady()) return null;
-    try {
-      inquiryData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      inquiryData.status = inquiryData.status || 'unread';
-      const docRef = await this.db.collection('inquiries').add(inquiryData);
-      console.log('✅ Inquiry saved:', docRef.id);
-      return docRef.id;
-    } catch (err) {
-      console.error('Error adding inquiry:', err);
-      return null;
+    const id = inquiryData.id || `inq_${Date.now()}`;
+    inquiryData.id = id;
+    inquiryData.status = inquiryData.status || 'unread';
+
+    if (window.InquiryStorage) {
+      window.InquiryStorage.upsert(inquiryData);
     }
+
+    if (this.isReady()) {
+      try {
+        inquiryData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await this.db.collection('inquiries').doc(id).set(inquiryData, { merge: true });
+        console.log('✅ Inquiry saved to Firestore:', id);
+      } catch (err) {
+        console.warn('Firestore addInquiry sync error (saved locally):', err.message);
+      }
+    }
+
+    return id;
   },
 
   /**
    * Update inquiry status ('unread', 'contacted', 'resolved')
    */
   async updateInquiryStatus(inquiryId, status) {
-    if (!this.isReady()) return false;
-    try {
-      await this.db.collection('inquiries').doc(inquiryId).update({
-        status,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      console.log('✅ Inquiry status updated:', inquiryId, '→', status);
-      return true;
-    } catch (err) {
-      console.error('Error updating inquiry:', err);
-      return false;
+    if (window.InquiryStorage) {
+      const list = window.InquiryStorage.getAll();
+      const item = list.find(i => String(i.id) === String(inquiryId));
+      if (item) {
+        item.status = status;
+        window.InquiryStorage.saveAll(list);
+      }
     }
+
+    if (this.isReady()) {
+      try {
+        await this.db.collection('inquiries').doc(inquiryId).update({
+          status,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('✅ Inquiry status updated in Firestore:', inquiryId, '→', status);
+        return true;
+      } catch (err) {
+        console.warn('Firestore updateInquiryStatus error:', err.message);
+        return false;
+      }
+    }
+    return true;
   },
 
   /**
    * Delete an inquiry
    */
   async deleteInquiry(inquiryId) {
-    if (!this.isReady()) return false;
-    try {
-      await this.db.collection('inquiries').doc(inquiryId).delete();
-      console.log('✅ Inquiry deleted:', inquiryId);
-      return true;
-    } catch (err) {
-      console.error('Error deleting inquiry:', err);
-      return false;
+    if (window.InquiryStorage) {
+      window.InquiryStorage.delete(inquiryId);
     }
+
+    if (this.isReady()) {
+      try {
+        await this.db.collection('inquiries').doc(inquiryId).delete();
+        console.log('✅ Inquiry deleted from Firestore:', inquiryId);
+        return true;
+      } catch (err) {
+        console.warn('Firestore deleteInquiry error:', err.message);
+        return false;
+      }
+    }
+    return true;
   },
 
   // ─── SETTINGS & PROMO BANNER ──────────────────────────
