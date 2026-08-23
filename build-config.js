@@ -7,12 +7,41 @@
 const fs = require('fs');
 const path = require('path');
 
+// Zero-dependency local .env and .env.local loader
+function loadLocalEnv() {
+  const envFiles = ['.env.local', '.env'];
+  for (const file of envFiles) {
+    const filePath = path.join(__dirname, file);
+    if (fs.existsSync(filePath)) {
+      try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        content.split('\n').forEach(line => {
+          const trimmed = line.trim();
+          if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+            const idx = trimmed.indexOf('=');
+            const key = trimmed.substring(0, idx).trim();
+            const val = trimmed.substring(idx + 1).trim().replace(/^["']|["']$/g, '');
+            if (!process.env[key]) {
+              process.env[key] = val;
+            }
+          }
+        });
+        console.log(`📄 Loaded local environment variables from ${file}`);
+      } catch (err) {
+        console.warn(`Could not read ${file}:`, err.message);
+      }
+    }
+  }
+}
+
+loadLocalEnv();
+
 const jsDir = path.join(__dirname, 'js');
 if (!fs.existsSync(jsDir)) {
   fs.mkdirSync(jsDir, { recursive: true });
 }
 
-// 1. Read Firebase Environment Variables (with automatic live connection defaults)
+// 1. Read Firebase Environment Variables (with fallback defaults)
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY || "AIzaSyD-AbhisFarmFreshWebProd3e7d3-Live",
   authDomain: process.env.FIREBASE_AUTH_DOMAIN || "abhisfarmfresh-3e7d3.firebaseapp.com",
@@ -28,7 +57,14 @@ const firebaseConfigFileContent = `/**
  * Generated automatically at build time from Cloudflare Environment Variables
  */
 
-const firebaseConfig = ${JSON.stringify(firebaseConfig, null, 2)};
+const baseFirebaseConfig = ${JSON.stringify(firebaseConfig, null, 2)};
+
+// Support dynamic override from localStorage for local dev without rebuilding
+const savedLocalApiKey = (typeof localStorage !== 'undefined') ? localStorage.getItem('aff_firebase_api_key') : null;
+const firebaseConfig = {
+  ...baseFirebaseConfig,
+  apiKey: savedLocalApiKey || baseFirebaseConfig.apiKey
+};
 
 window.FirebaseService = {
   isConfigured() {

@@ -23,7 +23,8 @@ const FirebaseApp = {
     }
 
     try {
-      const config = (typeof firebaseConfig !== 'undefined') ? firebaseConfig : {
+      const savedApiKey = (typeof localStorage !== 'undefined') ? localStorage.getItem('aff_firebase_api_key') : null;
+      const baseConfig = (typeof firebaseConfig !== 'undefined') ? firebaseConfig : {
         apiKey: "AIzaSyD-AbhisFarmFreshWebProd3e7d3-Live",
         authDomain: "abhisfarmfresh-3e7d3.firebaseapp.com",
         projectId: "abhisfarmfresh-3e7d3",
@@ -31,6 +32,11 @@ const FirebaseApp = {
         messagingSenderId: "763350925496",
         appId: "1:763350925496:web:3750a3eee35a3d8085b44d",
         measurementId: "G-XEXNM98B50"
+      };
+
+      const config = {
+        ...baseConfig,
+        apiKey: savedApiKey || baseConfig.apiKey
       };
 
       if (!firebase.apps.length) {
@@ -57,6 +63,26 @@ const FirebaseApp = {
     }
 
     this.updateConnectionBadge();
+  },
+
+  /**
+   * Diagnostic method to test connection to Firebase servers with latency check
+   */
+  async testConnection(apiKeyOverride = null) {
+    const keyToTest = apiKeyOverride || (typeof localStorage !== 'undefined' ? localStorage.getItem('aff_firebase_api_key') : null) || (typeof firebaseConfig !== 'undefined' ? firebaseConfig.apiKey : '');
+    const startTime = performance.now();
+    try {
+      const restUrl = 'https://firestore.googleapis.com/v1/projects/abhisfarmfresh-3e7d3/databases/(default)/documents/products?pageSize=1';
+      const res = await fetch(restUrl);
+      const latency = Math.round(performance.now() - startTime);
+      if (res.ok) {
+        return { success: true, latency, message: 'Connected directly to Cloud Firestore' };
+      } else {
+        return { success: false, latency, message: `Firestore returned status ${res.status}` };
+      }
+    } catch (err) {
+      return { success: false, latency: 0, message: err.message };
+    }
   },
 
   /**
