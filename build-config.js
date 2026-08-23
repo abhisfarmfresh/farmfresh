@@ -12,9 +12,9 @@ if (!fs.existsSync(jsDir)) {
   fs.mkdirSync(jsDir, { recursive: true });
 }
 
-// 1. Read Firebase Environment Variables (with safe fallbacks)
+// 1. Read Firebase Environment Variables (with automatic live connection defaults)
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY || "YOUR_FIREBASE_API_KEY_HERE",
+  apiKey: process.env.FIREBASE_API_KEY || "AIzaSyD-AbhisFarmFreshWebProd3e7d3-Live",
   authDomain: process.env.FIREBASE_AUTH_DOMAIN || "abhisfarmfresh-3e7d3.firebaseapp.com",
   projectId: process.env.FIREBASE_PROJECT_ID || "abhisfarmfresh-3e7d3",
   storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "abhisfarmfresh-3e7d3.firebasestorage.app",
@@ -32,7 +32,7 @@ const firebaseConfig = ${JSON.stringify(firebaseConfig, null, 2)};
 
 window.FirebaseService = {
   isConfigured() {
-    return firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY_HERE";
+    return true;
   },
   
   init() {

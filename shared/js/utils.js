@@ -16,6 +16,64 @@ const Utils = {
   },
 
   /**
+   * Robust helper to get the total monetary amount of an order
+   */
+  getOrderTotal(order) {
+    if (!order) return 0;
+    const val = order.grandTotal ?? order.total ?? order.subtotal ?? order.totalAmount ?? 0;
+    const num = Number(val);
+    if (!isNaN(num) && num > 0) return num;
+
+    // If order has items array, calculate from items if root total is missing
+    if (Array.isArray(order.items) && order.items.length > 0) {
+      return order.items.reduce((sum, it) => sum + this.getItemTotal(it), 0);
+    }
+    return 0;
+  },
+
+  /**
+   * Robust helper to get item display name
+   */
+  getItemName(item) {
+    if (!item) return 'Fresh Produce';
+    return item.productName || item.name || 'Fresh Produce';
+  },
+
+  /**
+   * Robust helper to get unit price of an item
+   */
+  getItemPrice(item) {
+    if (!item) return 0;
+    const val = item.unitPrice ?? item.price ?? 0;
+    return Number(val) || 0;
+  },
+
+  /**
+   * Robust helper to get item quantity
+   */
+  getItemQuantity(item) {
+    if (!item) return 1;
+    const val = item.quantity ?? item.qty ?? 1;
+    return Number(val) || 1;
+  },
+
+  /**
+   * Robust helper to get total price of an item
+   */
+  getItemTotal(item) {
+    if (!item) return 0;
+    if (item.totalPrice !== undefined && item.totalPrice !== null) {
+      const num = Number(item.totalPrice);
+      if (!isNaN(num)) return num;
+    }
+    if (item.total !== undefined && item.total !== null) {
+      const num = Number(item.total);
+      if (!isNaN(num)) return num;
+    }
+    return this.getItemPrice(item) * this.getItemQuantity(item);
+  },
+
+  /**
    * Robust Date parser for Firestore Timestamp, ISO string, epoch number, or Date
    */
   parseDate(val) {

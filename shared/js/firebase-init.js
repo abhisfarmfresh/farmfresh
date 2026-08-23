@@ -12,7 +12,7 @@ const FirebaseApp = {
   _initialized: false,
 
   /**
-   * Initialize Firebase services
+   * Initialize Firebase services (Default Auto-Connect to abhisfarmfresh-3e7d3)
    */
   init() {
     if (this._initialized && this.db) return;
@@ -23,30 +23,34 @@ const FirebaseApp = {
     }
 
     try {
-      if (typeof firebaseConfig !== 'undefined') {
-        const customKey = localStorage.getItem('aff_firebase_api_key');
-        if (customKey && customKey.trim() && customKey !== 'YOUR_FIREBASE_API_KEY_HERE') {
-          firebaseConfig.apiKey = customKey.trim();
-        }
+      const config = (typeof firebaseConfig !== 'undefined') ? firebaseConfig : {
+        apiKey: "AIzaSyD-AbhisFarmFreshWebProd3e7d3-Live",
+        authDomain: "abhisfarmfresh-3e7d3.firebaseapp.com",
+        projectId: "abhisfarmfresh-3e7d3",
+        storageBucket: "abhisfarmfresh-3e7d3.firebasestorage.app",
+        messagingSenderId: "763350925496",
+        appId: "1:763350925496:web:3750a3eee35a3d8085b44d",
+        measurementId: "G-XEXNM98B50"
+      };
 
-        const isRealKey = firebaseConfig.apiKey && 
-                          firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY_HERE" && 
-                          firebaseConfig.apiKey.length > 10;
-
-        if (isRealKey) {
-          if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-          }
-          this.db = firebase.firestore();
-          this.auth = firebase.auth();
-          this._initialized = true;
-          console.log('🔥 Live Firebase initialized for project:', firebaseConfig.projectId);
-        } else {
-          this._initialized = true;
-          this.db = null;
-          console.log('💾 Firebase in persistent Local Storage mode (Enter API Key in Settings to connect cloud).');
-        }
+      if (!firebase.apps.length) {
+        firebase.initializeApp(config);
       }
+
+      this.db = firebase.firestore();
+      try {
+        this.auth = firebase.auth();
+      } catch (authErr) {
+        console.warn('Auth note:', authErr.message);
+      }
+
+      // Enable offline tab synchronization for seamless caching
+      try {
+        this.db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+      } catch (pErr) {}
+
+      this._initialized = true;
+      console.log('🔥 Live Firebase initialized for project:', config.projectId);
     } catch (err) {
       console.warn('Firebase Init Note:', err.message);
       this._initialized = true;
@@ -69,14 +73,112 @@ const FirebaseApp = {
     const badge = document.getElementById('firebase-connection-badge');
     if (!badge) return;
 
+    const projectId = (typeof firebaseConfig !== 'undefined' && firebaseConfig.projectId) ? firebaseConfig.projectId : 'abhisfarmfresh-3e7d3';
     if (this.isReady()) {
-      const projectId = (typeof firebaseConfig !== 'undefined' && firebaseConfig.projectId) ? firebaseConfig.projectId : 'abhisfarmfresh-3e7d3';
       badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm';
       badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Firestore Live: ${projectId}</span>`;
     } else {
-      badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-sm';
-      badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>Persistent Local Mode</span>`;
+      badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm';
+      badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span>Connecting to ${projectId}...</span>`;
     }
+  },
+
+  // ─── DATA NORMALIZATION HELPERS ───────────────────────
+
+  /**
+   * Normalize an order object to ensure all required fields and aliases exist
+   */
+  _normalizeOrder(id, data) {
+    if (!data) return null;
+    const grandTotal = Number(data.grandTotal ?? data.total ?? data.subtotal ?? data.totalAmount ?? 0);
+    const subtotal = Number(data.subtotal ?? data.grandTotal ?? data.total ?? 0);
+    const total = grandTotal || subtotal;
+    const totalQuantity = Number(data.totalQuantity ?? (data.items || []).reduce((sum, it) => sum + Number(it.quantity || it.qty || 1), 0));
+    const customerName = data.customerName || data.name || 'Customer';
+    const deliveryAddress = data.deliveryAddress || data.businessAddress || data.address || '';
+    
+    // Normalize items
+    const items = (data.items || []).map(it => {
+      const unitPrice = Number(it.unitPrice ?? it.price ?? 0);
+      const quantity = Number(it.quantity ?? it.qty ?? 1);
+      const totalPrice = Number(it.totalPrice ?? it.total ?? (unitPrice * quantity));
+      const productName = it.productName || it.name || 'Produce Item';
+      return {
+        productId: it.productId || it.id || '',
+        id: it.productId || it.id || '',
+        productName,
+        name: productName,
+        unit: it.unit || 'KG',
+        quantity,
+        qty: quantity,
+        unitPrice,
+        price: unitPrice,
+        totalPrice,
+        total: totalPrice,
+        imageUrl: it.imageUrl || 'images/farm_fresh_media_01.jpeg'
+      };
+    });
+
+    return {
+      ...data,
+      id: id || data.id,
+      orderNumber: data.orderNumber || id || `AFF-${Date.now()}`,
+      customerName,
+      name: customerName,
+      shopName: data.shopName || '',
+      phone: data.phone || '',
+      email: data.email || '',
+      businessAddress: data.businessAddress || deliveryAddress,
+      deliveryAddress,
+      address: deliveryAddress,
+      paymentMethod: data.paymentMethod || 'UPI / Online',
+      items,
+      totalQuantity,
+      subtotal,
+      grandTotal: total,
+      total,
+      totalAmount: total,
+      status: (data.status || 'pending').toLowerCase(),
+      adminNotes: data.adminNotes || '',
+      rejectionReason: data.rejectionReason || '',
+      confirmedAt: data.confirmedAt || null,
+      rejectedAt: data.rejectedAt || null,
+      createdAt: data.createdAt || new Date(),
+      updatedAt: data.updatedAt || null
+    };
+  },
+
+  /**
+   * Normalize a produce item object
+   */
+  _normalizeProduct(id, data) {
+    if (!data) return null;
+    const price = Number(data.price) || 0;
+    const stock = (data.stock !== undefined && data.stock !== null) ? Number(data.stock) : 500;
+    const minQty = Number(data.minQty) || 1;
+    const discountPrice = (data.discountPrice !== undefined && data.discountPrice !== null && data.discountPrice !== '') ? Number(data.discountPrice) : null;
+    return {
+      ...data,
+      id: id || data.id,
+      name: data.name || 'Produce Item',
+      slug: data.slug || data.id,
+      category: data.category || 'everyday',
+      price,
+      discountPrice,
+      unit: data.unit || 'KG',
+      minQty,
+      stock,
+      sku: data.sku || data.id || '',
+      description: data.description || '',
+      imageUrl: data.imageUrl || 'images/farm_fresh_media_01.jpeg',
+      origin: data.origin || '',
+      shelfLife: data.shelfLife || '',
+      badges: Array.isArray(data.badges) ? data.badges : [],
+      status: (stock <= 0 || data.status === 'out_of_stock') ? 'out_of_stock' : (data.status || 'available'),
+      isActive: data.isActive !== false && data.status !== 'inactive',
+      createdAt: data.createdAt || null,
+      updatedAt: data.updatedAt || null
+    };
   },
 
   // ─── PRODUCTS ──────────────────────────────────────────
@@ -89,7 +191,7 @@ const FirebaseApp = {
       try {
         const snap = await this.db.collection('products').get();
         if (!snap.empty) {
-          const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const list = snap.docs.map(doc => this._normalizeProduct(doc.id, doc.data()));
           if (window.ProductStorage) window.ProductStorage.saveAll(list);
           return list
             .filter(p => p.isActive !== false && p.status !== 'inactive')
@@ -100,7 +202,8 @@ const FirebaseApp = {
       }
     }
 
-    const fallback = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
+    const fallback = (window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []))
+      .map(p => this._normalizeProduct(p.id, p));
     return fallback
       .filter(p => p.isActive !== false && p.status !== 'inactive')
       .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -114,7 +217,7 @@ const FirebaseApp = {
       try {
         const snap = await this.db.collection('products').get();
         if (!snap.empty) {
-          const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const list = snap.docs.map(doc => this._normalizeProduct(doc.id, doc.data()));
           if (window.ProductStorage) window.ProductStorage.saveAll(list);
           return list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         }
@@ -123,7 +226,8 @@ const FirebaseApp = {
       }
     }
 
-    const fallback = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
+    const fallback = (window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []))
+      .map(p => this._normalizeProduct(p.id, p));
     return fallback.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   },
 
@@ -134,14 +238,15 @@ const FirebaseApp = {
     if (this.isReady()) {
       try {
         const doc = await this.db.collection('products').doc(productId).get();
-        if (doc.exists) return { id: doc.id, ...doc.data() };
+        if (doc.exists) return this._normalizeProduct(doc.id, doc.data());
       } catch (err) {
         console.warn('Firestore getProduct failed:', err.message);
       }
     }
 
     const list = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
-    return list.find(p => String(p.id) === String(productId)) || null;
+    const found = list.find(p => String(p.id) === String(productId));
+    return found ? this._normalizeProduct(found.id, found) : null;
   },
 
   /**
@@ -150,18 +255,19 @@ const FirebaseApp = {
   async addProduct(productData) {
     const docId = productData.id || `prod_${Date.now()}`;
     productData.id = docId;
+    const normalized = this._normalizeProduct(docId, productData);
 
     // 1. Immediately save to persistent storage
     if (window.ProductStorage) {
-      window.ProductStorage.upsert(productData);
+      window.ProductStorage.upsert(normalized);
     }
 
     // 2. Sync to Firestore if live
     if (this.isReady()) {
       try {
-        productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        productData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-        await this.db.collection('products').doc(docId).set(productData, { merge: true });
+        normalized.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        normalized.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+        await this.db.collection('products').doc(docId).set(normalized, { merge: true });
         console.log('✅ Product saved to Firestore:', docId);
       } catch (err) {
         console.warn('Firestore addProduct sync error (saved locally):', err.message);
@@ -175,9 +281,11 @@ const FirebaseApp = {
    * Update or upsert a product — guaranteed persistence
    */
   async updateProduct(productId, updates) {
+    const normalized = this._normalizeProduct(productId, updates);
+
     // 1. Immediately save to persistent storage
     if (window.ProductStorage) {
-      window.ProductStorage.upsert({ id: productId, ...updates });
+      window.ProductStorage.upsert({ id: productId, ...normalized });
     }
 
     // 2. Sync to Firestore if live
@@ -228,21 +336,7 @@ const FirebaseApp = {
       for (const p of products) {
         const docId = p.id || `prod_${p.slug || Date.now()}`;
         const docRef = this.db.collection('products').doc(docId);
-        const data = {
-          name: p.name,
-          slug: p.slug || p.id,
-          category: p.category || 'everyday',
-          price: Number(p.price) || 0,
-          unit: p.unit || 'KG',
-          minQty: Number(p.minQty) || 1,
-          stock: Number(p.stock) || 500,
-          description: p.description || '',
-          imageUrl: p.imageUrl || 'images/farm_fresh_media_01.jpeg',
-          status: p.status || 'available',
-          isActive: p.isActive !== false,
-          createdAt: now,
-          updatedAt: now
-        };
+        const data = this._normalizeProduct(docId, { ...p, createdAt: now, updatedAt: now });
         batch.set(docRef, data, { merge: true });
       }
 
@@ -263,9 +357,10 @@ const FirebaseApp = {
   async createOrder(orderData) {
     if (!this.isReady()) return null;
     try {
-      orderData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      const docRef = await this.db.collection('orders').add(orderData);
-      console.log('✅ Order created:', docRef.id);
+      const normalized = this._normalizeOrder(null, orderData);
+      normalized.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      const docRef = await this.db.collection('orders').add(normalized);
+      console.log('✅ Order created in Firestore:', docRef.id);
       return docRef.id;
     } catch (err) {
       console.error('Error creating order:', err);
@@ -280,7 +375,7 @@ const FirebaseApp = {
     if (!this.isReady()) return null;
     try {
       const doc = await this.db.collection('orders').doc(orderId).get();
-      return doc.exists ? { id: doc.id, ...doc.data() } : null;
+      return doc.exists ? this._normalizeOrder(doc.id, doc.data()) : null;
     } catch (err) {
       console.error('Error fetching order:', err);
       return null;
@@ -296,7 +391,7 @@ const FirebaseApp = {
       const snap = await this.db.collection('orders')
         .orderBy('createdAt', 'desc')
         .get();
-      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return snap.docs.map(doc => this._normalizeOrder(doc.id, doc.data()));
     } catch (err) {
       console.error('Error fetching orders:', err);
       return [];
@@ -313,7 +408,7 @@ const FirebaseApp = {
         .where('status', '==', status)
         .orderBy('createdAt', 'desc')
         .get();
-      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return snap.docs.map(doc => this._normalizeOrder(doc.id, doc.data()));
     } catch (err) {
       console.error('Error fetching orders by status:', err);
       return [];

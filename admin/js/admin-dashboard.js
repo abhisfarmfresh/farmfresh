@@ -191,7 +191,7 @@ function renderKPIs(orders) {
       const s = (o.status || '').toLowerCase();
       return s !== 'rejected' && s !== 'cancelled';
     })
-    .reduce((sum, o) => sum + (Number(o.grandTotal) || 0), 0);
+    .reduce((sum, o) => sum + Utils.getOrderTotal(o), 0);
 
   const salesEl = document.getElementById('kpi-total-sales');
   const totalOrdersEl = document.getElementById('kpi-total-orders');
@@ -249,7 +249,7 @@ function renderRecentOrders(orders) {
       </td>
       <td class="py-3 px-4 text-slate-600 font-mono text-xs">${o.phone || '—'}</td>
       <td class="py-3 px-4 text-slate-500 text-[11px]">${Utils.formatDateTime(o.createdAt)}</td>
-      <td class="py-3 px-4 font-extrabold text-slate-900 text-xs">${Utils.formatCurrency(o.grandTotal)}</td>
+      <td class="py-3 px-4 font-extrabold text-slate-900 text-xs">${Utils.formatCurrency(Utils.getOrderTotal(o))}</td>
       <td class="py-3 px-4">${Utils.getStatusBadge(o.status || 'pending')}</td>
       <td class="py-3 px-4 text-right">
         <div class="flex items-center justify-end gap-1">

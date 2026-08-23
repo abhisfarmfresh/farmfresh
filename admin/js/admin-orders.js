@@ -152,7 +152,7 @@ function renderOrdersTable() {
 
         <!-- Amount -->
         <td class="py-3.5 px-4 font-extrabold text-xs text-slate-900">
-          ${Utils.formatCurrency(order.grandTotal)}
+          ${Utils.formatCurrency(Utils.getOrderTotal(order))}
         </td>
 
         <!-- Order Date -->
@@ -263,9 +263,9 @@ async function openOrderModal(orderId) {
     }
   }
 
-  const subtotal = order.subtotal || order.grandTotal || 0;
+  const grandTotal = Utils.getOrderTotal(order);
+  const subtotal = order.subtotal ? Number(order.subtotal) : grandTotal;
   const totalQty = order.totalQuantity || (items.reduce((s, i) => s + (Number(i.quantity) || 0), 0));
-  const grandTotal = order.grandTotal || subtotal;
 
   const totalItemsEl = document.getElementById('modal-total-items');
   const totalQtyEl = document.getElementById('modal-total-qty');

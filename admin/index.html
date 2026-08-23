@@ -184,12 +184,14 @@
                     <div class="flex flex-wrap items-center gap-3">
                         <input type="text" id="orders-search-input" placeholder="Search order #, customer, phone..." 
                                class="admin-input text-xs py-1.5 px-3 w-56">
-                        <select id="orders-status-filter" class="admin-input text-xs py-1.5 px-3 w-40 font-semibold">
+                        <select id="orders-status-filter" class="admin-input text-xs py-1.5 px-3 w-40 font-semibold" onchange="AdminCore.filterAndRenderOrders()">
                             <option value="all">All Order Statuses</option>
                             <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
                             <option value="processing">Processing</option>
                             <option value="out_for_delivery">Out for Delivery</option>
                             <option value="delivered">Delivered</option>
+                            <option value="rejected">Rejected</option>
                             <option value="cancelled">Cancelled</option>
                         </select>
                     </div>
@@ -452,40 +454,40 @@
                     </div>
                 </form>
 
-                <!-- Firebase Configuration & Diagnostics -->
+                <!-- Firebase Live Cloud Connection & Diagnostics -->
                 <div class="admin-card p-6 space-y-4 flex flex-col justify-between">
                     <div>
-                        <div class="flex items-center gap-3 border-b pb-3 border-slate-100 mb-4">
-                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
-                                <span class="material-symbols-outlined text-xl">database</span>
+                        <div class="flex items-center justify-between border-b pb-3 border-slate-100 mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-xl">cloud_done</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-extrabold text-slate-900 text-sm">Cloud Firestore Database</h3>
+                                    <p class="text-xs text-slate-500">Live project <code>abhisfarmfresh-3e7d3</code></p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 class="font-extrabold text-slate-900 text-sm">Firebase Cloud Connection</h3>
-                                <p class="text-xs text-slate-500">Connect live Firestore database to project <code>abhisfarmfresh-3e7d3</code>.</p>
-                            </div>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span>Live Cloud Active</span>
+                            </span>
                         </div>
 
-                        <!-- Firebase API Key Input -->
-                        <form id="firebase-key-form" class="space-y-3 mb-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1">Firebase Web API Key</label>
-                                <input type="password" id="settings-firebase-api-key" class="admin-input font-mono text-xs" placeholder="AIzaSy...">
-                                <p class="text-[10px] text-slate-400 mt-1">Get this from Firebase Console &rarr; Project Settings &rarr; Web API Key.</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="submit" class="admin-btn admin-btn-primary flex-1 text-xs py-2">
-                                    <span class="material-symbols-outlined text-sm">link</span>
-                                    <span>Connect Live Firebase</span>
-                                </button>
-                                <button type="button" onclick="AdminCore.syncLocalToCloud()" class="admin-btn admin-btn-secondary text-xs py-2" title="Upload all local products to Cloud Firestore">
-                                    <span class="material-symbols-outlined text-sm">cloud_upload</span>
-                                    <span>Push to Cloud</span>
-                                </button>
-                            </div>
-                        </form>
-
+                        <!-- Live Cloud Status & Stats -->
                         <div id="settings-firebase-stats" class="py-2">
                             <!-- Populated dynamically -->
+                        </div>
+
+                        <!-- Cloud Sync Actions -->
+                        <div class="pt-3 grid grid-cols-2 gap-2">
+                            <button type="button" onclick="AdminCore.syncCloudData()" class="admin-btn admin-btn-primary text-xs py-2 justify-center" title="Fetch latest data from Cloud Firestore">
+                                <span class="material-symbols-outlined text-sm">sync</span>
+                                <span>Sync Cloud Data</span>
+                            </button>
+                            <button type="button" onclick="AdminCore.syncLocalToCloud()" class="admin-btn admin-btn-secondary text-xs py-2 justify-center" title="Upload local catalog to Cloud Firestore">
+                                <span class="material-symbols-outlined text-sm">cloud_upload</span>
+                                <span>Push to Cloud</span>
+                            </button>
                         </div>
                     </div>
 
