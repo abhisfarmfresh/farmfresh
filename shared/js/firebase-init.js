@@ -16,7 +16,7 @@ const FirebaseApp = {
    * Initialize Firebase SDK services with fallback support
    */
   init() {
-    if (this._initialized && this.db) return;
+    if (this._initialized && this.db && this.auth) return;
 
     if (typeof firebase === 'undefined') {
       console.warn('⚠️ Firebase SDK not loaded; operating in high-performance direct Firestore REST mode.');
@@ -38,38 +38,43 @@ const FirebaseApp = {
 
     const effectiveApiKey = (savedApiKey || baseConfig.apiKey || '').trim();
 
-    try {
-      const config = {
-        ...baseConfig,
-        apiKey: effectiveApiKey
-      };
+    if (effectiveApiKey && !effectiveApiKey.startsWith('AIzaSyD-AbhisFarmFreshWebProd') && effectiveApiKey !== 'YOUR_FIREBASE_API_KEY_HERE') {
+      try {
+        const config = {
+          ...baseConfig,
+          apiKey: effectiveApiKey
+        };
 
-      if (!firebase.apps.length) {
-        firebase.initializeApp(config);
+        if (!firebase.apps.length) {
+          firebase.initializeApp(config);
+        }
+
+        this.db = firebase.firestore();
+
+        // Enable Firestore settings for robustness against undefined fields
+        try {
+          this.db.settings({ ignoreUndefinedProperties: true });
+        } catch (sErr) {}
+
+        try {
+          this.auth = firebase.auth();
+        } catch (authErr) {
+          console.warn('Auth note:', authErr.message);
+        }
+
+        // Enable offline tab synchronization for seamless caching
+        try {
+          this.db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+        } catch (pErr) {}
+
+        this._initialized = true;
+        console.log('🔥 Live Firebase SDK initialized for project:', config.projectId);
+      } catch (err) {
+        console.warn('Firebase SDK init notice (operating in direct Firestore REST mode):', err.message);
+        this._initialized = true;
       }
-
-      this.db = firebase.firestore();
-
-      // Enable Firestore settings for robustness against undefined fields
-      try {
-        this.db.settings({ ignoreUndefinedProperties: true });
-      } catch (sErr) {}
-
-      try {
-        this.auth = firebase.auth();
-      } catch (authErr) {
-        console.warn('Auth note:', authErr.message);
-      }
-
-      // Enable offline tab synchronization for seamless caching
-      try {
-        this.db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
-      } catch (pErr) {}
-
-      this._initialized = true;
-      console.log('🔥 Live Firebase initialized for project:', config.projectId);
-    } catch (err) {
-      console.warn('Firebase SDK init warning (falling back to direct Firestore REST):', err.message);
+    } else {
+      console.log('⚡ Operating in Direct Firestore REST engine mode (Project: abhisfarmfresh-3e7d3)');
       this._initialized = true;
     }
 
@@ -1134,10 +1139,10 @@ const FirebaseApp = {
         const res = await this.auth.signInWithEmailAndPassword(email, password);
         return { success: true, user: res.user };
       } catch (err) {
-        return { success: false, error: err.message };
+        return { success: false, error: err.message, code: err.code };
       }
     }
-    return { success: false, error: 'Firebase Auth is not available' };
+    return { success: false, error: 'Firebase Auth is operating in Direct REST mode without active Auth SDK.', notConfigured: true };
   },
 
   async signOut() {

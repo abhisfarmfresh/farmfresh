@@ -59,7 +59,38 @@ const AdminAuth = {
   },
 
   /**
-   * Sign in admin using Firebase Auth with SESSION persistence
+   * Format Firebase Auth error codes into human-readable messages
+   */
+  formatFirebaseAuthError(err) {
+    if (!err) return 'Authentication failed. Please check your credentials.';
+    const code = typeof err === 'string' ? err : (err.code || err.message || '');
+    
+    if (code.includes('user-not-found')) {
+      return 'No administrator account found with this email in Firebase Authentication.';
+    }
+    if (code.includes('wrong-password') || code.includes('invalid-credential') || code.includes('INVALID_LOGIN_CREDENTIALS')) {
+      return 'Invalid password or email. Please check your Firebase credentials.';
+    }
+    if (code.includes('invalid-email')) {
+      return 'Please enter a valid email address format.';
+    }
+    if (code.includes('user-disabled')) {
+      return 'This administrator account has been disabled in Firebase Console.';
+    }
+    if (code.includes('too-many-requests')) {
+      return 'Access temporarily disabled due to many failed attempts. Please try again in a few minutes or reset your password in Firebase.';
+    }
+    if (code.includes('network-request-failed')) {
+      return 'Network connection error. Please check your internet connection.';
+    }
+    if (code.includes('api-key-not-valid') || code.includes('API_KEY_INVALID')) {
+      return 'The configured Firebase Web API Key is invalid. Please check your Firebase project configuration.';
+    }
+    return typeof err === 'string' ? err : (err.message || 'Firebase Authentication failed.');
+  },
+
+  /**
+   * Sign in admin strictly using Firebase Authentication
    */
   async login(email, password) {
     const cleanEmail = (email || '').trim();
@@ -70,34 +101,47 @@ const AdminAuth = {
     }
 
     try {
-      // Configure Firebase to only persist auth in current browser session
-      if (typeof firebase !== 'undefined' && firebase.auth) {
-        try {
-          await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
-        } catch (pErr) {
-          console.warn('Could not set SESSION persistence:', pErr.message);
-        }
+      // 1. Ensure Firebase SDK is initialized if API key is available
+      if (window.FirebaseApp && typeof window.FirebaseApp.init === 'function') {
+        window.FirebaseApp.init();
       }
 
-      if (window.FirebaseApp && window.FirebaseApp.isReady() && window.FirebaseApp.auth) {
-        const res = await window.FirebaseApp.signIn(cleanEmail, cleanPass);
-        if (res.success) {
-          const now = Date.now();
-          sessionStorage.setItem(this.SESSION_KEY, 'true');
-          sessionStorage.setItem(this.EXPIRY_KEY, String(now + this.SESSION_DURATION_MS));
-          sessionStorage.setItem(this.USER_KEY, JSON.stringify({
-            email: cleanEmail,
-            name: res.user?.displayName || 'Admin Officer'
-          }));
-          return { success: true };
-        }
-        return { success: false, error: res.error || 'Invalid email or password. Please try again.' };
+      const activeAuth = window.FirebaseApp?.auth || (typeof firebase !== 'undefined' && firebase.apps?.length ? firebase.auth() : null);
+
+      if (!activeAuth) {
+        return { 
+          success: false, 
+          error: 'Firebase Authentication service is currently unconfigured. Please configure your Firebase Web API Key.' 
+        };
       }
 
-      return { success: false, error: 'Database service is temporarily unavailable. Please try again.' };
+      // 2. Configure SESSION persistence so login is tied to the current browser session
+      try {
+        await activeAuth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+      } catch (pErr) {
+        console.warn('Session persistence notice:', pErr.message);
+      }
+
+      // 3. Authenticate with Firebase Authentication
+      const userCredential = await activeAuth.signInWithEmailAndPassword(cleanEmail, cleanPass);
+      const user = userCredential.user;
+
+      if (user) {
+        const now = Date.now();
+        sessionStorage.setItem(this.SESSION_KEY, 'true');
+        sessionStorage.setItem(this.EXPIRY_KEY, String(now + this.SESSION_DURATION_MS));
+        sessionStorage.setItem(this.USER_KEY, JSON.stringify({
+          email: user.email || cleanEmail,
+          name: user.displayName || 'Administrator',
+          uid: user.uid
+        }));
+        return { success: true, user };
+      }
+
+      return { success: false, error: 'Authentication failed. Please verify your Firebase credentials.' };
     } catch (err) {
-      console.error('Login error:', err);
-      return { success: false, error: err.message || 'Authentication failed.' };
+      console.error('Firebase Auth error:', err);
+      return { success: false, error: this.formatFirebaseAuthError(err) };
     }
   },
 

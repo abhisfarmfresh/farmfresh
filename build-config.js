@@ -85,7 +85,7 @@ window.FirebaseService = {
           console.error("Firebase Init Error:", err);
         }
       } else {
-        console.error("❌ Firebase Web API Key is missing. Configure FIREBASE_API_KEY in Cloudflare Pages environment variables or .env");
+        console.log("⚡ Firebase Web API Key is not set; operating in direct high-performance Firestore REST mode.");
       }
     }
   }

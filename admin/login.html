@@ -37,7 +37,7 @@
 
         <!-- Info / Expiry Banner -->
         <div id="login-notice-banner" class="hidden text-xs font-semibold bg-amber-50 text-amber-800 p-3 rounded-xl border border-amber-200 flex items-center gap-2">
-            <span class="material-symbols-outlined text-base text-amber-600">schedule</span>
+            <span class="material-symbols-outlined text-base text-amber-600 flex-shrink-0">schedule</span>
             <span id="login-notice-text">Your session expired. Please enter your password to continue.</span>
         </div>
 
@@ -45,19 +45,30 @@
         <form id="admin-login-form" class="space-y-4">
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1" for="login-email">Admin Email</label>
-                <input type="email" id="login-email" required 
-                       class="admin-input" placeholder="admin@abhisfarmfresh.com" autocomplete="username">
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none">mail</span>
+                    <input type="email" id="login-email" required 
+                           class="admin-input pl-9" placeholder="admin@abhisfarmfresh.com" autocomplete="username">
+                </div>
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1" for="login-password">Password</label>
-                <input type="password" id="login-password" required 
-                       class="admin-input" placeholder="••••••••" autocomplete="current-password" autofocus>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none">lock</span>
+                    <input type="password" id="login-password" required 
+                           class="admin-input pl-9 pr-10" placeholder="••••••••" autocomplete="current-password" autofocus>
+                    <button type="button" id="toggle-password-btn" 
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 focus:outline-none"
+                            title="Show/Hide Password">
+                        <span class="material-symbols-outlined text-base" id="toggle-password-icon">visibility</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Error Banner -->
             <div id="login-error-banner" class="hidden text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl border border-red-200 flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">error</span>
+                <span class="material-symbols-outlined text-base flex-shrink-0">error</span>
                 <span id="login-error-text">Invalid login credentials.</span>
             </div>
 
@@ -92,6 +103,8 @@
         const noticeText = document.getElementById('login-notice-text');
         const emailInput = document.getElementById('login-email');
         const passInput = document.getElementById('login-password');
+        const toggleBtn = document.getElementById('toggle-password-btn');
+        const toggleIcon = document.getElementById('toggle-password-icon');
 
         if (reason === 'expired') {
             noticeText.textContent = 'Your session expired due to inactivity. Please log in again.';
@@ -101,13 +114,29 @@
             noticeBanner.classList.remove('hidden');
         }
 
-        // Try pre-filling last email or default
-        const lastUser = localStorage.getItem('aff_last_admin_email') || 'abhisfarmfresh@gmail.com';
-        if (emailInput && !emailInput.value) {
-            emailInput.value = lastUser;
+        // Restore previously typed email if remembered by user's browser, otherwise keep empty
+        const savedEmail = localStorage.getItem('aff_last_admin_email');
+        if (emailInput && savedEmail && !emailInput.value) {
+            emailInput.value = savedEmail;
         }
 
-        if (passInput) passInput.focus();
+        if (toggleBtn && passInput && toggleIcon) {
+            toggleBtn.addEventListener('click', () => {
+                if (passInput.type === 'password') {
+                    passInput.type = 'text';
+                    toggleIcon.textContent = 'visibility_off';
+                } else {
+                    passInput.type = 'password';
+                    toggleIcon.textContent = 'visibility';
+                }
+            });
+        }
+
+        if (passInput && (!emailInput || emailInput.value)) {
+            passInput.focus();
+        } else if (emailInput) {
+            emailInput.focus();
+        }
     });
 
     document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
@@ -135,7 +164,7 @@
                 }
                 window.location.replace(target);
             } else {
-                errText.textContent = res.error || 'Invalid credentials. Please check your Firebase Auth account.';
+                errText.textContent = res.error || 'Invalid credentials. Please verify your email and password.';
                 errBanner.classList.remove('hidden');
                 btn.disabled = false;
                 btn.innerHTML = `<span class="material-symbols-outlined text-sm">lock_open</span><span>Sign In to Admin CRM</span>`;
