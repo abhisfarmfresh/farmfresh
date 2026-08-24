@@ -1431,14 +1431,16 @@ const AdminCore = {
 
       if (previewImg) previewImg.src = URL.createObjectURL(file);
 
-      // Upload via Cloudinary
+      // Upload via Cloudinary / Local Fast Compression Fallback
       if (window.CloudinaryService) {
-        this.showToast('Uploading produce image to Cloudinary...', 'info');
+        this.showToast('Uploading produce image...', 'info');
         const url = await window.CloudinaryService.uploadImage(file);
         if (url) {
           if (urlInput) urlInput.value = url;
           if (previewImg) previewImg.src = url;
-          this.showToast('Image uploaded successfully!', 'success');
+          this.showToast('Produce image uploaded & ready!', 'success');
+        } else {
+          this.showToast('Image processing failed. Please select another image.', 'error');
         }
       }
     });

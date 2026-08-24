@@ -371,6 +371,59 @@ const FirebaseApp = {
   // ─── PRODUCTS CRUD (PURE CLOUD FIRESTORE) ──────────────────────────
 
   /**
+   * Merge Firestore products with baseline default catalogue so original products are never hidden
+   */
+  _mergeProductsWithDefaults(rawFirestoreList) {
+    const map = new Map();
+
+    // 1. Load baseline default products
+    if (Array.isArray(window.DEFAULT_PRODUCTS)) {
+      for (const def of window.DEFAULT_PRODUCTS) {
+        if (def && def.id) {
+          map.set(String(def.id), { ...def });
+        }
+      }
+    }
+
+    // 2. Also check local ProductStorage
+    if (window.ProductStorage) {
+      try {
+        const localList = window.ProductStorage.getAll();
+        if (Array.isArray(localList)) {
+          for (const loc of localList) {
+            if (loc && loc.id) {
+              if (loc.isDeleted || loc.status === 'deleted') {
+                map.delete(String(loc.id));
+              } else {
+                const existing = map.get(String(loc.id)) || {};
+                map.set(String(loc.id), { ...existing, ...loc });
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 3. Overlay live Firestore products (highest authority)
+    if (Array.isArray(rawFirestoreList)) {
+      for (const item of rawFirestoreList) {
+        if (item && item.id) {
+          if (item.isDeleted === true || item.status === 'deleted' || item.isActive === 'deleted') {
+            map.delete(String(item.id));
+          } else {
+            const existing = map.get(String(item.id)) || {};
+            map.set(String(item.id), { ...existing, ...item });
+          }
+        }
+      }
+    }
+
+    return Array.from(map.values())
+      .map(p => this._normalizeProduct(p.id, p))
+      .filter(Boolean);
+  },
+
+  /**
    * Fetch all active products directly from Cloud Firestore
    */
   async getProducts() {
@@ -393,23 +446,16 @@ const FirebaseApp = {
       }
     }
 
-    // 3. Auto-seed if Firestore is empty so mobile never sees a blank catalog
-    if (rawList.length === 0 && Array.isArray(window.DEFAULT_PRODUCTS) && window.DEFAULT_PRODUCTS.length > 0) {
-      console.log('🌱 Firestore products empty. Auto-seeding default vegetables to Cloud Firestore...');
-      await this.seedDefaultProducts(window.DEFAULT_PRODUCTS);
-      rawList = window.DEFAULT_PRODUCTS;
-    }
-
-    const normalized = rawList
-      .map(p => this._normalizeProduct(p.id, p))
-      .filter(p => p.isActive !== false && p.status !== 'inactive')
+    const merged = this._mergeProductsWithDefaults(rawList);
+    const activeOnly = merged
+      .filter(p => p.isActive !== false && p.status !== 'inactive' && !p.isDeleted)
       .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     if (window.ProductStorage) {
-      window.ProductStorage.saveAll(normalized);
+      window.ProductStorage.saveAll(activeOnly);
     }
 
-    return normalized;
+    return activeOnly;
   },
 
   /**
@@ -428,19 +474,16 @@ const FirebaseApp = {
       } catch (e) {}
     }
 
-    if (rawList.length === 0 && Array.isArray(window.DEFAULT_PRODUCTS)) {
-      rawList = window.DEFAULT_PRODUCTS;
-    }
-
-    const normalized = rawList
-      .map(p => this._normalizeProduct(p.id, p))
+    const merged = this._mergeProductsWithDefaults(rawList);
+    const valid = merged
+      .filter(p => !p.isDeleted && p.status !== 'deleted')
       .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     if (window.ProductStorage) {
-      window.ProductStorage.saveAll(normalized);
+      window.ProductStorage.saveAll(valid);
     }
 
-    return normalized;
+    return valid;
   },
 
   /**
@@ -533,6 +576,11 @@ const FirebaseApp = {
    * Delete a product from Cloud Firestore
    */
   async deleteProduct(productId) {
+    if (!productId) return false;
+    const delDoc = { id: productId, isDeleted: true, status: 'deleted', isActive: false };
+    try {
+      await this._restSet('products', productId, delDoc);
+    } catch (e) {}
     await this._restDelete('products', productId);
     if (this.db) {
       try {
