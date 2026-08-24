@@ -40,15 +40,16 @@ const Cart = {
     if (!product || !product.id) return;
     
     const validQty = Math.max(1, parseInt(qty, 10) || 1);
+    const sId = String(product.id);
     const items = this.getItems();
-    const existingIndex = items.findIndex(item => item.id === product.id);
+    const existingIndex = items.findIndex(item => String(item.id) === sId);
 
     if (existingIndex > -1) {
       items[existingIndex].quantity += validQty;
       items[existingIndex].price = Number(product.price);
     } else {
       items.push({
-        id: product.id,
+        id: sId,
         name: product.name,
         slug: product.slug || Utils.slugify(product.name),
         price: Number(product.price),
@@ -70,8 +71,10 @@ const Cart = {
    * Set exact quantity for an item (enforces min 1 KG)
    */
   setQuantity(productId, qty) {
+    if (!productId) return;
+    const sId = String(productId);
     const items = this.getItems();
-    const item = items.find(i => i.id === productId);
+    const item = items.find(i => String(i.id) === sId);
     if (!item) return;
 
     const validQty = Math.max(1, parseInt(qty, 10) || 1);
@@ -83,13 +86,15 @@ const Cart = {
    * Increment or decrement item quantity
    */
   updateQuantity(productId, delta) {
+    if (!productId) return;
+    const sId = String(productId);
     const items = this.getItems();
-    const item = items.find(i => i.id === productId);
+    const item = items.find(i => String(i.id) === sId);
     if (!item) return;
 
     const newQty = item.quantity + delta;
     if (newQty < 1) {
-      this.removeItem(productId);
+      this.removeItem(sId);
     } else {
       item.quantity = newQty;
       this.save(items);
@@ -100,9 +105,11 @@ const Cart = {
    * Remove an item from the cart
    */
   removeItem(productId) {
+    if (!productId) return;
+    const sId = String(productId);
     let items = this.getItems();
-    const removedItem = items.find(i => i.id === productId);
-    items = items.filter(i => i.id !== productId);
+    const removedItem = items.find(i => String(i.id) === sId);
+    items = items.filter(i => String(i.id) !== sId);
     this.save(items);
 
     if (removedItem && window.Utils) {
@@ -144,17 +151,32 @@ const Cart = {
     const totalQty = this.getTotalQuantity();
     const grandTotal = this.getGrandTotal();
 
+    // Desktop Header Badge
     const headerBadge = document.getElementById('header-cart-badge');
     if (headerBadge) {
       headerBadge.textContent = totalItems;
       headerBadge.style.display = totalItems > 0 ? 'inline-flex' : 'none';
     }
 
+    // Mobile Top Header Badge
+    const mobileHeaderBadge = document.getElementById('mobile-header-cart-badge');
+    if (mobileHeaderBadge) {
+      mobileHeaderBadge.textContent = totalItems;
+      mobileHeaderBadge.style.display = totalItems > 0 ? 'flex' : 'none';
+    }
+
+    // Mobile Bottom Nav Badge
     const mobileBadge = document.getElementById('mobile-cart-badge');
     if (mobileBadge) {
       mobileBadge.textContent = totalItems;
       mobileBadge.style.display = totalItems > 0 ? 'flex' : 'none';
     }
+
+    // Generic badges
+    document.querySelectorAll('.cart-badge-count').forEach(el => {
+      el.textContent = totalItems;
+      el.style.display = totalItems > 0 ? 'inline-flex' : 'none';
+    });
 
     const stickyBar = document.getElementById('sticky-cart-bar');
     const stickyQtyEl = document.getElementById('sticky-cart-qty');
@@ -165,7 +187,7 @@ const Cart = {
         stickyBar.classList.remove('hidden');
         stickyBar.style.display = 'flex';
         if (stickyQtyEl) stickyQtyEl.textContent = `${totalItems} Item${totalItems > 1 ? 's' : ''} (${totalQty} KG)`;
-        if (stickyTotalEl) stickyTotalEl.textContent = Utils.formatCurrency(grandTotal);
+        if (stickyTotalEl && window.Utils) stickyTotalEl.textContent = Utils.formatCurrency(grandTotal);
       } else {
         stickyBar.classList.add('hidden');
         stickyBar.style.display = 'none';

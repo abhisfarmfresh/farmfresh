@@ -159,7 +159,7 @@ async function loadProducts() {
   }
 
   // Filter only active items for customer
-  allProducts = allProducts.filter(p => p.isActive !== false && p.status !== 'inactive');
+  allProducts = allProducts.filter(p => p.isActive !== false && p.status !== 'inactive' && !p.isDeleted && p.status !== 'deleted');
 
   renderProductsGrid();
 }
@@ -219,7 +219,7 @@ function renderProductsGrid() {
 
   grid.innerHTML = filtered.map(product => {
     const isOutOfStock = product.status === 'out_of_stock' || product.stock <= 0;
-    const cartItem = cartItems.find(c => c.id === product.id);
+    const cartItem = cartItems.find(c => String(c.id) === String(product.id));
     const inCart = Boolean(cartItem && cartItem.quantity > 0);
     const currentQty = cartItem ? cartItem.quantity : 0;
 
@@ -295,7 +295,7 @@ function renderProductsGrid() {
                         aria-label="Decrease quantity">
                   <span class="material-symbols-outlined text-base">remove</span>
                 </button>
-                <span class="card-stepper-val">${currentQty} KG</span>
+                <span class="card-stepper-val font-extrabold text-xs text-emerald-950">${currentQty} KG</span>
                 <button type="button" 
                         class="card-stepper-btn btn-qty-increase" 
                         data-product-id="${product.id}"
@@ -321,27 +321,27 @@ function renderProductsGrid() {
     grid._hasClickListener = true;
     grid.addEventListener('click', (e) => {
       const waBtn = e.target.closest('.product-wa-inquiry-btn');
-      if (waBtn) {
-        const pid = waBtn.dataset.productId;
-        const p = allProducts.find(x => x.id === pid);
+      if (waBtn && waBtn.dataset.productId) {
+        const pid = String(waBtn.dataset.productId);
+        const p = allProducts.find(x => String(x.id) === pid);
         if (p) WhatsAppService.openInquiryWhatsApp(p.name, p.price, p.unit || 'KG');
         return;
       }
       const decBtn = e.target.closest('.btn-qty-decrease');
-      if (decBtn) {
-        const pid = decBtn.dataset.productId;
+      if (decBtn && decBtn.dataset.productId) {
+        const pid = String(decBtn.dataset.productId);
         Cart.updateQuantity(pid, -1);
         return;
       }
       const incBtn = e.target.closest('.btn-qty-increase');
-      if (incBtn) {
-        const pid = incBtn.dataset.productId;
+      if (incBtn && incBtn.dataset.productId) {
+        const pid = String(incBtn.dataset.productId);
         Cart.updateQuantity(pid, 1);
         return;
       }
       const addBtn = e.target.closest('.btn-add-product');
-      if (addBtn) {
-        const pid = addBtn.dataset.productId;
+      if (addBtn && addBtn.dataset.productId) {
+        const pid = String(addBtn.dataset.productId);
         handleDirectAdd(pid);
         return;
       }
@@ -353,8 +353,13 @@ function renderProductsGrid() {
  * Directly add 1 KG of product to cart
  */
 function handleDirectAdd(productId) {
-  const product = allProducts.find(p => p.id === productId);
-  if (!product) return;
+  if (!productId) return;
+  const sId = String(productId);
+  const product = allProducts.find(p => String(p.id) === sId);
+  if (!product) {
+    console.warn('Product not found for direct add:', sId);
+    return;
+  }
   Cart.addItem(product, 1);
 }
 

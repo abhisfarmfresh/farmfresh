@@ -246,14 +246,17 @@ function renderOrdersTable() {
 }
 
 async function deleteAdminOrder(orderId) {
-  const order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
+  if (!orderId) return;
+  const sId = String(orderId);
+  const order = allAdminOrders.find(o => String(o.id) === sId || String(o.orderNumber) === sId);
   const orderNum = order ? (order.orderNumber || order.id) : orderId;
 
-  if (!confirm(`Are you sure you want to permanently delete order "${orderNum}"?\n\nThis will remove the order completely from Cloud Firestore database and cannot be undone.`)) {
+  if (!confirm(`Are you sure you want to permanently delete order "${orderNum}"?\n\nThis will remove the order completely from Cloud Firestore database and local storage.`)) {
     return;
   }
 
   try {
+    closeOrderModal();
     if (window.FirebaseApp) {
       await window.FirebaseApp.deleteOrder(orderId);
     }
@@ -264,9 +267,8 @@ async function deleteAdminOrder(orderId) {
       }
     }
 
-    allAdminOrders = allAdminOrders.filter(o => o.id !== orderId && o.orderNumber !== orderId);
-    closeOrderModal();
-    Utils.showToast(`Order ${orderNum} permanently deleted.`, 'info');
+    allAdminOrders = allAdminOrders.filter(o => String(o.id) !== sId && String(o.orderNumber) !== sId);
+    Utils.showToast(`Order ${orderNum} deleted successfully ✓`, 'info');
     renderOrdersTable();
   } catch (err) {
     console.error('Error deleting order:', err);

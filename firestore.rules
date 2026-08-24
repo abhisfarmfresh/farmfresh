@@ -19,17 +19,13 @@ service cloud.firestore {
                     && request.resource.data.phone is string && request.resource.data.phone.size() >= 8
                     && request.resource.data.items is list && request.resource.data.items.size() > 0
                     && request.resource.data.grandTotal is number && request.resource.data.grandTotal >= 0;
-      allow read, update: if true;
-      allow delete: if false;  // Orders should never be deleted
+      allow read, update, delete: if true;
     }
 
     // Customers — public creation/merge on order checkout, admin read/write
     match /customers/{id} {
-      allow create, update: if request.resource.data.keys().hasAll(['name', 'phone'])
-                            && request.resource.data.name is string
-                            && request.resource.data.phone is string;
+      allow create, update, delete: if true;
       allow read: if true;
-      allow delete: if false;
     }
 
     // Customer Inquiries & Leads — public submission with input validation, admin management

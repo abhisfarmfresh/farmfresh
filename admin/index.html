@@ -221,6 +221,10 @@
                             <option value="rejected">Rejected</option>
                             <option value="cancelled">Cancelled</option>
                         </select>
+                        <button type="button" onclick="AdminCore.clearAllTestOrders()" class="admin-btn text-xs py-1.5 px-3 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors" title="Clear all orders for testing reset">
+                            <span class="material-symbols-outlined text-sm">delete_sweep</span>
+                            <span>Clear Test Orders</span>
+                        </button>
                     </div>
                 </div>
 
@@ -278,6 +282,10 @@
                         <select id="products-category-filter" class="admin-input text-xs py-1.5 px-3 w-40 font-semibold">
                             <option value="all">All Categories</option>
                         </select>
+                        <button onclick="AdminCore.resetProduceDefaults()" class="admin-btn admin-btn-secondary text-xs py-2 px-3" title="Restore factory vegetable defaults">
+                            <span class="material-symbols-outlined text-sm">restart_alt</span>
+                            <span>Reset Defaults</span>
+                        </button>
                         <button onclick="AdminCore.openAddProductModal()" class="admin-btn admin-btn-primary text-xs py-2 px-4 shadow-sm">
                             <span class="material-symbols-outlined text-sm">add_circle</span>
                             <span>Add New Product</span>
@@ -301,10 +309,16 @@
                         <h2 class="font-extrabold text-slate-900 text-base">Produce Categories CMS</h2>
                         <p class="text-xs text-slate-500">Configure storefront categories, icons, and display ordering.</p>
                     </div>
-                    <button onclick="AdminCore.openAddCategoryModal()" class="admin-btn admin-btn-primary text-xs py-2 px-4">
-                        <span class="material-symbols-outlined text-sm">add</span>
-                        <span>Add Category</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button onclick="AdminCore.resetCategoriesDefaults()" class="admin-btn admin-btn-secondary text-xs py-2 px-3" title="Restore default categories">
+                            <span class="material-symbols-outlined text-sm">restart_alt</span>
+                            <span>Reset Defaults</span>
+                        </button>
+                        <button onclick="AdminCore.openAddCategoryModal()" class="admin-btn admin-btn-primary text-xs py-2 px-4">
+                            <span class="material-symbols-outlined text-sm">add</span>
+                            <span>Add Category</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div id="categories-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
@@ -519,13 +533,21 @@
                     </div>
 
                     <div class="pt-4 border-t border-slate-100 space-y-2">
-                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Database Tools</h4>
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Database & Testing Tools</h4>
                         <div class="flex flex-wrap gap-2">
-                            <button type="button" onclick="AdminCore.seedSampleProducts()" class="admin-btn admin-btn-secondary text-xs py-2">
-                                <span class="material-symbols-outlined text-sm">spa</span>
-                                <span>Reset / Seed Defaults</span>
+                            <button type="button" onclick="AdminCore.clearAllTestOrders()" class="admin-btn text-xs py-2 px-3 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200" title="Delete all test orders from Cloud Firestore & local storage">
+                                <span class="material-symbols-outlined text-sm">delete_sweep</span>
+                                <span>Clear Test Orders</span>
                             </button>
-                            <button type="button" onclick="localStorage.removeItem('aff_products_store'); AdminCore.showToast('Product cache reset.', 'info'); AdminCore.loadAllData().then(() => AdminCore.renderCurrentTab());" 
+                            <button type="button" onclick="AdminCore.resetProduceDefaults()" class="admin-btn admin-btn-secondary text-xs py-2" title="Restore default vegetable catalogue">
+                                <span class="material-symbols-outlined text-sm">spa</span>
+                                <span>Reset Produce Defaults</span>
+                            </button>
+                            <button type="button" onclick="AdminCore.resetCategoriesDefaults()" class="admin-btn admin-btn-secondary text-xs py-2" title="Restore default produce categories">
+                                <span class="material-symbols-outlined text-sm">category</span>
+                                <span>Reset Categories</span>
+                            </button>
+                            <button type="button" onclick="localStorage.removeItem('aff_products_store'); localStorage.removeItem('aff_deleted_product_ids'); localStorage.removeItem('aff_deleted_orders'); AdminCore.showToast('Product & order cache cleared.', 'info'); AdminCore.loadAllData().then(() => AdminCore.renderCurrentTab());" 
                                     class="admin-btn admin-btn-secondary text-xs py-2">
                                 <span class="material-symbols-outlined text-sm">cleaning_services</span>
                                 <span>Clear Local Cache</span>

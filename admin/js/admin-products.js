@@ -573,21 +573,23 @@ async function handleProductFormSubmit(e) {
  * Delete product with confirmation
  */
 async function deleteProductPrompt(productId) {
-  const prod = allAdminProducts.find(p => p.id === productId);
-  if (!prod) return;
+  if (!productId) return;
+  const sId = String(productId);
+  const prod = allAdminProducts.find(p => String(p.id) === sId);
+  const name = prod ? prod.name : 'Produce item';
 
-  if (!confirm(`Are you sure you want to delete "${prod.name}" from the catalogue?`)) return;
+  if (!confirm(`Are you sure you want to delete "${name}" from the catalogue?`)) return;
 
   if (window.ProductStorage) {
-    window.ProductStorage.delete(productId);
+    window.ProductStorage.delete(sId);
   }
 
-  if (window.FirebaseApp && window.FirebaseApp.isReady()) {
-    await window.FirebaseApp.deleteProduct(productId);
+  if (window.FirebaseApp) {
+    await window.FirebaseApp.deleteProduct(sId);
   }
 
-  allAdminProducts = allAdminProducts.filter(p => p.id !== productId);
-  Utils.showToast(`Deleted ${prod.name}`, 'info');
+  allAdminProducts = allAdminProducts.filter(p => String(p.id) !== sId);
+  Utils.showToast(`Deleted ${name} ✓`, 'info');
   renderAdminProductsTable();
 }
 

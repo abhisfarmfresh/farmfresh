@@ -346,14 +346,17 @@ const AdminCore = {
   },
 
   async deleteOrder(orderId) {
+    if (!orderId) return;
     const order = this.orders.find(o => String(o.id) === String(orderId) || String(o.orderNumber) === String(orderId));
     const orderNum = order ? (order.orderNumber || order.id) : orderId;
 
-    if (!confirm(`Are you sure you want to permanently delete order "${orderNum}"?\n\nThis will remove the order completely from Cloud Firestore database and cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to permanently delete order "${orderNum}"?\n\nThis will remove the order completely from Cloud Firestore database and local storage.`)) {
       return;
     }
 
     try {
+      this.closeModal('order-details-modal');
+
       if (window.FirebaseApp) {
         await window.FirebaseApp.deleteOrder(orderId);
       }
@@ -365,13 +368,40 @@ const AdminCore = {
       }
 
       this.orders = this.orders.filter(o => String(o.id) !== String(orderId) && String(o.orderNumber) !== String(orderId));
-      this.closeModal('order-details-modal');
-      this.showToast(`Order "${orderNum}" deleted successfully`, 'info');
+      this.showToast(`Order "${orderNum}" deleted successfully ✓`, 'info');
       this.renderOrdersKPIs();
       this.filterAndRenderOrders();
     } catch (err) {
       console.error('Failed to delete order:', err);
       this.showToast('Failed to delete order: ' + err.message, 'error');
+    }
+  },
+
+  async clearAllTestOrders() {
+    if (this.orders.length === 0) {
+      this.showToast('No orders to clear.', 'info');
+      return;
+    }
+
+    if (!confirm(`⚠️ Are you sure you want to clear ALL (${this.orders.length}) test orders?\n\nThis will delete all orders from Cloud Firestore and local storage. This is recommended for resetting test data.`)) {
+      return;
+    }
+
+    try {
+      if (window.FirebaseApp && typeof window.FirebaseApp.clearAllOrders === 'function') {
+        await window.FirebaseApp.clearAllOrders();
+      } else if (window.OrderStorage) {
+        window.OrderStorage.clearAll();
+      }
+
+      this.orders = [];
+      this.closeModal('order-details-modal');
+      this.showToast('All test orders cleared successfully ✓', 'success');
+      this.renderOrdersKPIs();
+      this.filterAndRenderOrders();
+    } catch (err) {
+      console.error('Failed to clear orders:', err);
+      this.showToast('Failed to clear orders: ' + err.message, 'error');
     }
   },
 
@@ -902,18 +932,43 @@ const AdminCore = {
   },
 
   async deleteProduct(productId) {
-    if (!confirm('Are you sure you want to delete this produce item from the catalogue?')) return;
+    if (!productId) return;
+    const p = this.products.find(x => String(x.id) === String(productId));
+    const name = p ? p.name : 'Produce Item';
+    if (!confirm(`Are you sure you want to delete "${name}" from the catalogue?`)) return;
 
-    if (window.FirebaseApp) {
-      await window.FirebaseApp.deleteProduct(productId);
-    }
-    if (window.ProductStorage) {
-      window.ProductStorage.delete(productId);
-    }
+    try {
+      if (window.FirebaseApp) {
+        await window.FirebaseApp.deleteProduct(productId);
+      }
+      if (window.ProductStorage) {
+        window.ProductStorage.delete(productId);
+      }
 
-    this.products = this.products.filter(p => String(p.id) !== String(productId));
-    this.showToast('Product removed from catalogue', 'info');
-    this.renderProductsTab();
+      this.products = this.products.filter(item => String(item.id) !== String(productId));
+      this.showToast(`"${name}" removed from catalogue ✓`, 'info');
+      this.renderProductsTab();
+    } catch (err) {
+      console.error('Error deleting product:', err);
+      this.showToast('Failed to delete product: ' + err.message, 'error');
+    }
+  },
+
+  async resetProduceDefaults() {
+    if (!confirm('🌱 Reset vegetable produce catalogue to factory defaults? This will restore all default vegetables.')) return;
+    try {
+      if (window.FirebaseApp && typeof window.FirebaseApp.resetProduceToDefaults === 'function') {
+        await window.FirebaseApp.resetProduceToDefaults();
+      } else if (window.ProductStorage) {
+        window.ProductStorage.resetToDefaults();
+      }
+      await this.loadAllData();
+      this.renderProductsTab();
+      this.showToast('Vegetable catalogue reset to factory defaults ✓', 'success');
+    } catch (err) {
+      console.error('Error resetting produce:', err);
+      this.showToast('Failed to reset produce: ' + err.message, 'error');
+    }
   },
 
   // ─── TAB 3: CATEGORY CMS ────────────────────────────────
@@ -947,9 +1002,9 @@ const AdminCore = {
       `;
     }).join('');
 
-    if (!container._hasCategoryEventDelegation) {
-      container._hasCategoryEventDelegation = true;
-      container.addEventListener('click', (e) => {
+    if (!list._hasCategoryEventDelegation) {
+      list._hasCategoryEventDelegation = true;
+      list.addEventListener('click', (e) => {
         const editBtn = e.target.closest('.btn-admin-edit-category');
         if (editBtn && editBtn.dataset.categoryId) {
           AdminCore.editCategory(editBtn.dataset.categoryId);
@@ -1006,6 +1061,8 @@ const AdminCore = {
 
     if (window.FirebaseApp && window.FirebaseApp.isReady()) {
       await window.FirebaseApp.addCategory(catData);
+    } else if (window.CategoryStorage) {
+      window.CategoryStorage.upsert(catData);
     }
 
     const index = this.categories.findIndex(c => String(c.id) === String(id));
@@ -1023,16 +1080,44 @@ const AdminCore = {
   },
 
   async deleteCategory(catId) {
-    if (!confirm('Are you sure you want to delete this category?')) return;
+    if (!catId) return;
+    const cat = this.categories.find(c => String(c.id) === String(catId));
+    const name = cat ? cat.name : 'Category';
+    if (!confirm(`Are you sure you want to delete category "${name}"?`)) return;
 
-    if (window.FirebaseApp && window.FirebaseApp.isReady()) {
-      await window.FirebaseApp.deleteCategory(catId);
+    try {
+      if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+        await window.FirebaseApp.deleteCategory(catId);
+      } else if (window.CategoryStorage) {
+        window.CategoryStorage.delete(catId);
+      }
+
+      this.categories = this.categories.filter(c => String(c.id) !== String(catId));
+      this.showToast(`Category "${name}" deleted ✓`, 'info');
+      this.renderCategoriesTab();
+      this.populateCategorySelects();
+    } catch (err) {
+      console.error('Error deleting category:', err);
+      this.showToast('Failed to delete category: ' + err.message, 'error');
     }
+  },
 
-    this.categories = this.categories.filter(c => String(c.id) !== String(catId));
-    this.showToast('Category deleted', 'info');
-    this.renderCategoriesTab();
-    this.populateCategorySelects();
+  async resetCategoriesDefaults() {
+    if (!confirm('Reset product categories to system defaults?')) return;
+    try {
+      if (window.FirebaseApp && typeof window.FirebaseApp.resetCategoriesToDefaults === 'function') {
+        await window.FirebaseApp.resetCategoriesToDefaults();
+      } else if (window.CategoryStorage) {
+        window.CategoryStorage.resetToDefaults();
+      }
+      await this.loadAllData();
+      this.renderCategoriesTab();
+      this.populateCategorySelects();
+      this.showToast('Categories reset to defaults ✓', 'success');
+    } catch (err) {
+      console.error('Error resetting categories:', err);
+      this.showToast('Failed to reset categories: ' + err.message, 'error');
+    }
   },
 
   // ─── TAB 4: CUSTOMER INQUIRIES & LEADS CMS ──────────────

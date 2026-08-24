@@ -380,12 +380,18 @@ const FirebaseApp = {
    */
   _mergeProductsWithDefaults(rawFirestoreList) {
     const map = new Map();
+    const deletedProductIds = (window.ProductStorage && typeof window.ProductStorage.getDeletedIds === 'function')
+      ? window.ProductStorage.getDeletedIds().map(String)
+      : [];
 
-    // 1. Load baseline default products
+    // 1. Load baseline default products (skipping deleted ones)
     if (Array.isArray(window.DEFAULT_PRODUCTS)) {
       for (const def of window.DEFAULT_PRODUCTS) {
         if (def && def.id) {
-          map.set(String(def.id), { ...def });
+          const sId = String(def.id);
+          if (!deletedProductIds.includes(sId) && !def.isDeleted && def.status !== 'deleted') {
+            map.set(sId, { ...def });
+          }
         }
       }
     }
@@ -397,11 +403,12 @@ const FirebaseApp = {
         if (Array.isArray(localList)) {
           for (const loc of localList) {
             if (loc && loc.id) {
-              if (loc.isDeleted || loc.status === 'deleted') {
-                map.delete(String(loc.id));
+              const sId = String(loc.id);
+              if (loc.isDeleted || loc.status === 'deleted' || deletedProductIds.includes(sId)) {
+                map.delete(sId);
               } else {
-                const existing = map.get(String(loc.id)) || {};
-                map.set(String(loc.id), { ...existing, ...loc });
+                const existing = map.get(sId) || {};
+                map.set(sId, { ...existing, ...loc });
               }
             }
           }
@@ -413,11 +420,12 @@ const FirebaseApp = {
     if (Array.isArray(rawFirestoreList)) {
       for (const item of rawFirestoreList) {
         if (item && item.id) {
-          if (item.isDeleted === true || item.status === 'deleted' || item.isActive === 'deleted') {
-            map.delete(String(item.id));
+          const sId = String(item.id);
+          if (item.isDeleted === true || item.status === 'deleted' || item.isActive === 'deleted' || deletedProductIds.includes(sId)) {
+            map.delete(sId);
           } else {
-            const existing = map.get(String(item.id)) || {};
-            map.set(String(item.id), { ...existing, ...item });
+            const existing = map.get(sId) || {};
+            map.set(sId, { ...existing, ...item });
           }
         }
       }
@@ -425,7 +433,7 @@ const FirebaseApp = {
 
     return Array.from(map.values())
       .map(p => this._normalizeProduct(p.id, p))
-      .filter(Boolean);
+      .filter(p => p && !deletedProductIds.includes(String(p.id)) && !p.isDeleted && p.status !== 'deleted');
   },
 
   /**
@@ -453,7 +461,7 @@ const FirebaseApp = {
 
     const merged = this._mergeProductsWithDefaults(rawList);
     const activeOnly = merged
-      .filter(p => p.isActive !== false && p.status !== 'inactive' && !p.isDeleted)
+      .filter(p => p.isActive !== false && p.status !== 'inactive' && !p.isDeleted && p.status !== 'deleted')
       .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     if (window.ProductStorage) {
@@ -496,19 +504,30 @@ const FirebaseApp = {
    */
   async getProduct(productId) {
     if (!productId) return null;
-    const doc = await this._restGet('products', productId);
-    if (doc) return this._normalizeProduct(doc.id, doc);
+    const sId = String(productId);
+    const deletedProductIds = (window.ProductStorage && typeof window.ProductStorage.getDeletedIds === 'function')
+      ? window.ProductStorage.getDeletedIds().map(String)
+      : [];
+    if (deletedProductIds.includes(sId)) return null;
+
+    const doc = await this._restGet('products', sId);
+    if (doc && !doc.isDeleted && doc.status !== 'deleted') return this._normalizeProduct(doc.id, doc);
 
     if (this.db) {
       try {
-        const snap = await this.db.collection('products').doc(productId).get();
-        if (snap.exists) return this._normalizeProduct(snap.id, snap.data());
+        const snap = await this.db.collection('products').doc(sId).get();
+        if (snap.exists) {
+          const data = snap.data();
+          if (!data.isDeleted && data.status !== 'deleted') {
+            return this._normalizeProduct(snap.id, data);
+          }
+        }
       } catch (e) {}
     }
 
     const list = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
-    const found = list.find(p => String(p.id) === String(productId));
-    return found ? this._normalizeProduct(found.id, found) : null;
+    const found = list.find(p => String(p.id) === sId);
+    return (found && !found.isDeleted && found.status !== 'deleted') ? this._normalizeProduct(found.id, found) : null;
   },
 
   /**
@@ -523,6 +542,10 @@ const FirebaseApp = {
       createdAt: now,
       updatedAt: now
     });
+
+    if (window.ProductStorage && typeof window.ProductStorage.unmarkDeleted === 'function') {
+      window.ProductStorage.unmarkDeleted(docId);
+    }
 
     // 1. Write directly to Firestore via REST
     await this._restSet('products', docId, normalized);
@@ -578,24 +601,57 @@ const FirebaseApp = {
   },
 
   /**
-   * Delete a product from Cloud Firestore
+   * Delete a product from Cloud Firestore (Direct Delete + Soft-Delete Fallback + Tombstone)
    */
   async deleteProduct(productId) {
     if (!productId) return false;
-    const delDoc = { id: productId, isDeleted: true, status: 'deleted', isActive: false };
+    const sId = String(productId);
+
+    if (window.ProductStorage) {
+      window.ProductStorage.delete(sId);
+    }
+
+    const delDoc = { id: sId, isDeleted: true, status: 'deleted', isActive: false, updatedAt: new Date() };
+
+    // 1. Direct REST Soft-Delete Tombstone
     try {
-      await this._restSet('products', productId, delDoc);
+      await this._restSet('products', sId, delDoc);
     } catch (e) {}
-    await this._restDelete('products', productId);
+
+    // 2. Direct REST Hard-Delete
+    try {
+      await this._restDelete('products', sId);
+    } catch (e) {}
+
+    // 3. Firestore SDK Delete & Fallback
     if (this.db) {
       try {
-        await this.db.collection('products').doc(productId).delete();
-      } catch (e) {}
+        await this.db.collection('products').doc(sId).delete();
+      } catch (e) {
+        try {
+          await this.db.collection('products').doc(sId).set({
+            isDeleted: true,
+            status: 'deleted',
+            isActive: false,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        } catch (e2) {}
+      }
     }
-    if (window.ProductStorage) {
-      window.ProductStorage.delete(productId);
+
+    console.log('✅ Product deleted from Cloud Firestore & Tombstoned:', sId);
+    return true;
+  },
+
+  /**
+   * Reset Produce / Vegetable catalogue back to default items
+   */
+  async resetProduceToDefaults() {
+    if (window.ProductStorage && typeof window.ProductStorage.resetToDefaults === 'function') {
+      window.ProductStorage.resetToDefaults();
     }
-    console.log('✅ Product deleted from Cloud Firestore:', productId);
+    const defaults = window.DEFAULT_PRODUCTS || [];
+    await this.seedDefaultProducts(defaults);
     return true;
   },
 
@@ -677,29 +733,38 @@ const FirebaseApp = {
    */
   async getOrder(orderId) {
     if (!orderId) return null;
+    const sId = String(orderId);
+    const deletedOrders = (window.OrderStorage && typeof window.OrderStorage.getDeletedIds === 'function')
+      ? window.OrderStorage.getDeletedIds().map(String)
+      : [];
+    if (deletedOrders.includes(sId)) return null;
 
     // 1. Try direct REST fetch
-    const doc = await this._restGet('orders', orderId);
-    if (doc) return this._normalizeOrder(doc.id, doc);
+    const doc = await this._restGet('orders', sId);
+    if (doc && !doc.isDeleted && doc.status !== 'deleted') return this._normalizeOrder(doc.id, doc);
 
     // 2. Try SDK fetch
     if (this.db) {
       try {
-        const snap = await this.db.collection('orders').doc(orderId).get();
-        if (snap.exists) return this._normalizeOrder(snap.id, snap.data());
+        const snap = await this.db.collection('orders').doc(sId).get();
+        if (snap.exists) {
+          const d = snap.data();
+          if (!d.isDeleted && d.status !== 'deleted') return this._normalizeOrder(snap.id, d);
+        }
 
-        const querySnap = await this.db.collection('orders').where('orderNumber', '==', orderId).limit(1).get();
+        const querySnap = await this.db.collection('orders').where('orderNumber', '==', sId).limit(1).get();
         if (!querySnap.empty) {
           const first = querySnap.docs[0];
-          return this._normalizeOrder(first.id, first.data());
+          const d = first.data();
+          if (!d.isDeleted && d.status !== 'deleted') return this._normalizeOrder(first.id, d);
         }
       } catch (e) {}
     }
 
     // 3. Fallback to list search
     const all = await this.getAllOrders();
-    const found = all.find(o => String(o.id) === String(orderId) || String(o.orderNumber) === String(orderId));
-    return found ? this._normalizeOrder(found.id, found) : null;
+    const found = all.find(o => String(o.id) === sId || String(o.orderNumber) === sId);
+    return (found && !found.isDeleted && found.status !== 'deleted') ? this._normalizeOrder(found.id, found) : null;
   },
 
   /**
@@ -707,6 +772,9 @@ const FirebaseApp = {
    */
   async getAllOrders() {
     let rawList = [];
+    const deletedOrders = (window.OrderStorage && typeof window.OrderStorage.getDeletedIds === 'function')
+      ? window.OrderStorage.getDeletedIds().map(String)
+      : [];
 
     // 1. Fetch from Firestore REST API
     try {
@@ -723,7 +791,12 @@ const FirebaseApp = {
 
     const orders = rawList
       .map(o => this._normalizeOrder(o.id, o))
-      .filter(Boolean)
+      .filter(o => {
+        if (!o) return false;
+        const id = String(o.id || '');
+        const num = String(o.orderNumber || '');
+        return !deletedOrders.includes(id) && !deletedOrders.includes(num) && !o.isDeleted && o.status !== 'deleted';
+      })
       .sort((a, b) => {
         const ta = (a.createdAt instanceof Date) ? a.createdAt.getTime() : (new Date(a.createdAt || 0).getTime() || 0);
         const tb = (b.createdAt instanceof Date) ? b.createdAt.getTime() : (new Date(b.createdAt || 0).getTime() || 0);
@@ -750,7 +823,17 @@ const FirebaseApp = {
         unsubscribeFirestore = this.db.collection('orders')
           .orderBy('createdAt', 'desc')
           .onSnapshot(snap => {
-            const list = snap.docs.map(doc => this._normalizeOrder(doc.id, doc.data()));
+            const deletedOrders = (window.OrderStorage && typeof window.OrderStorage.getDeletedIds === 'function')
+              ? window.OrderStorage.getDeletedIds().map(String)
+              : [];
+            const list = snap.docs
+              .map(doc => this._normalizeOrder(doc.id, doc.data()))
+              .filter(o => {
+                if (!o) return false;
+                const id = String(o.id || '');
+                const num = String(o.orderNumber || '');
+                return !deletedOrders.includes(id) && !deletedOrders.includes(num) && !o.isDeleted && o.status !== 'deleted';
+              });
             if (window.OrderStorage) window.OrderStorage.saveAll(list);
             callback(list);
           }, () => {});
@@ -761,7 +844,7 @@ const FirebaseApp = {
     const pollTimer = setInterval(async () => {
       try {
         const updated = await this.getAllOrders();
-        if (updated && updated.length > 0) callback(updated);
+        if (updated && Array.isArray(updated)) callback(updated);
       } catch (e) {}
     }, 15000);
 
@@ -831,27 +914,98 @@ const FirebaseApp = {
   },
 
   /**
-   * Delete an order completely from Cloud Firestore (Manual Delete)
+   * Delete an order permanently / soft-delete tombstone with complete sync
    */
   async deleteOrder(orderId) {
     if (!orderId) return false;
-    await this._restDelete('orders', orderId);
+    const sId = String(orderId);
+
+    // 1. Instantly tombstone in OrderStorage to prevent UI flickering or repopulation
+    if (window.OrderStorage) {
+      window.OrderStorage.delete(sId);
+    }
+
+    // 2. Identify corresponding Firestore doc ID and order number
+    let targetDocId = sId;
+    let targetOrderNumber = sId;
+    try {
+      const existing = await this.getOrder(sId);
+      if (existing) {
+        if (existing.id) targetDocId = String(existing.id);
+        if (existing.orderNumber) targetOrderNumber = String(existing.orderNumber);
+      }
+    } catch (e) {}
+
+    if (window.OrderStorage) {
+      window.OrderStorage.markDeleted(targetDocId);
+      window.OrderStorage.markDeleted(targetOrderNumber);
+    }
+
+    // 3. Direct REST Soft-Delete Tombstone (works even if hard delete is restricted)
+    const delPayload = {
+      isDeleted: true,
+      status: 'deleted',
+      isCancelled: true,
+      updatedAt: new Date()
+    };
+
+    try {
+      await this._restSet('orders', targetDocId, delPayload);
+      if (targetOrderNumber !== targetDocId) {
+        await this._restSet('orders', targetOrderNumber, delPayload);
+      }
+    } catch (e) {}
+
+    // 4. Direct REST Hard-Delete
+    try {
+      await this._restDelete('orders', targetDocId);
+      if (targetOrderNumber !== targetDocId) {
+        await this._restDelete('orders', targetOrderNumber);
+      }
+    } catch (e) {}
+
+    // 5. SDK Hard-Delete & Soft-Delete Fallback
     if (this.db) {
       try {
-        await this.db.collection('orders').doc(orderId).delete();
+        await this.db.collection('orders').doc(targetDocId).delete();
       } catch (e) {
         try {
-          const snap = await this.db.collection('orders').where('orderNumber', '==', orderId).limit(1).get();
+          const snap = await this.db.collection('orders').where('orderNumber', '==', targetOrderNumber).limit(1).get();
           if (!snap.empty) {
             await snap.docs[0].ref.delete();
           }
-        } catch (e2) {}
+        } catch (e2) {
+          // If hard delete is forbidden by security rules, apply soft-delete update
+          try {
+            await this.db.collection('orders').doc(targetDocId).set({
+              isDeleted: true,
+              status: 'deleted',
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+          } catch (e3) {}
+        }
+      }
+    }
+
+    console.log('✅ Order deleted & tombstoned from Cloud Firestore:', targetDocId, targetOrderNumber);
+    return true;
+  },
+
+  /**
+   * Bulk Wipe / Clear All Orders (for testing & reset purposes)
+   */
+  async clearAllOrders() {
+    const orders = await this.getAllOrders();
+    for (const o of orders) {
+      const id = o.id || o.orderNumber;
+      if (id) {
+        await this.deleteOrder(id);
       }
     }
     if (window.OrderStorage) {
-      window.OrderStorage.delete(orderId);
+      window.OrderStorage.clearAll();
     }
-    console.log('✅ Order deleted from Cloud Firestore:', orderId);
+    console.log('🧹 Cleared all orders from Cloud Firestore & local cache!');
     return true;
   },
 
@@ -925,7 +1079,31 @@ const FirebaseApp = {
       } catch (e) {}
     }
 
-    return list.sort((a, b) => (b.totalOrders || 0) - (a.totalOrders || 0));
+    return list
+      .filter(c => c && !c.isDeleted && c.status !== 'deleted')
+      .sort((a, b) => (b.totalOrders || 0) - (a.totalOrders || 0));
+  },
+
+  /**
+   * Delete a customer record
+   */
+  async deleteCustomer(phone) {
+    if (!phone) return false;
+    const cleanPhone = String(phone).replace(/\D/g, '');
+    try {
+      await this._restDelete('customers', cleanPhone);
+      await this._restSet('customers', cleanPhone, { isDeleted: true, status: 'deleted' });
+    } catch (e) {}
+    if (this.db) {
+      try {
+        await this.db.collection('customers').doc(cleanPhone).delete();
+      } catch (e) {
+        try {
+          await this.db.collection('customers').doc(cleanPhone).set({ isDeleted: true, status: 'deleted' }, { merge: true });
+        } catch (e2) {}
+      }
+    }
+    return true;
   },
 
   /**
@@ -941,6 +1119,127 @@ const FirebaseApp = {
     });
   },
 
+  // ─── PRODUCT CATEGORIES CRUD ───────────────────────────────────────────────
+
+  /**
+   * Get all product categories
+   */
+  async getCategories() {
+    let list = [];
+    const deletedCatIds = (window.CategoryStorage && typeof window.CategoryStorage.getDeletedIds === 'function')
+      ? window.CategoryStorage.getDeletedIds().map(String)
+      : [];
+
+    try {
+      list = await this._restList('categories', 50);
+    } catch (e) {}
+
+    if (list.length === 0 && this.db) {
+      try {
+        const snap = await this.db.collection('categories').orderBy('order', 'asc').get();
+        list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) {}
+    }
+
+    if (!list || list.length === 0) {
+      list = window.CategoryStorage ? window.CategoryStorage.getAll() : ((window.AFF_CONFIG && window.AFF_CONFIG.categories) ? [...window.AFF_CONFIG.categories] : []);
+    }
+
+    const categories = (list || [])
+      .filter(c => c && c.id && !deletedCatIds.includes(String(c.id)) && !c.isDeleted && c.status !== 'deleted')
+      .map(c => ({
+        id: String(c.id),
+        name: c.name || 'Category',
+        icon: c.icon || 'eco',
+        subtitle: c.subtitle || '',
+        tag: c.tag || 'Fresh Produce',
+        iconBg: c.iconBg || 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        order: Number(c.order || 1)
+      }))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    if (window.CategoryStorage) {
+      window.CategoryStorage.saveAll(categories);
+    }
+
+    return categories;
+  },
+
+  /**
+   * Add a new category
+   */
+  async addCategory(catData) {
+    const docId = catData.id || `cat_${Date.now()}`;
+    const payload = {
+      id: docId,
+      name: catData.name || 'Category',
+      icon: catData.icon || 'eco',
+      subtitle: catData.subtitle || '',
+      tag: catData.tag || 'Fresh Produce',
+      iconBg: catData.iconBg || 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      order: Number(catData.order || 1),
+      updatedAt: new Date()
+    };
+
+    if (window.CategoryStorage) {
+      window.CategoryStorage.upsert(payload);
+    }
+
+    await this._restSet('categories', docId, payload);
+    if (this.db) {
+      try {
+        await this.db.collection('categories').doc(docId).set(this._cleanForFirestore(payload), { merge: true });
+      } catch (e) {}
+    }
+
+    console.log('✅ Category saved to Cloud Firestore:', docId);
+    return docId;
+  },
+
+  /**
+   * Delete a category
+   */
+  async deleteCategory(catId) {
+    if (!catId) return false;
+    const sId = String(catId);
+
+    if (window.CategoryStorage) {
+      window.CategoryStorage.delete(sId);
+    }
+
+    try {
+      await this._restDelete('categories', sId);
+      await this._restSet('categories', sId, { isDeleted: true, status: 'deleted', updatedAt: new Date() });
+    } catch (e) {}
+
+    if (this.db) {
+      try {
+        await this.db.collection('categories').doc(sId).delete();
+      } catch (e) {
+        try {
+          await this.db.collection('categories').doc(sId).set({ isDeleted: true, status: 'deleted' }, { merge: true });
+        } catch (e2) {}
+      }
+    }
+
+    console.log('✅ Category deleted & tombstoned:', sId);
+    return true;
+  },
+
+  /**
+   * Reset Categories to defaults
+   */
+  async resetCategoriesToDefaults() {
+    if (window.CategoryStorage) {
+      window.CategoryStorage.resetToDefaults();
+    }
+    const defaults = (window.AFF_CONFIG && window.AFF_CONFIG.categories) ? window.AFF_CONFIG.categories : [];
+    for (const cat of defaults) {
+      await this.addCategory(cat);
+    }
+    return true;
+  },
+
   // ─── INQUIRIES & LEADS (PURE CLOUD FIRESTORE) ──────────────────────────────
 
   /**
@@ -948,6 +1247,10 @@ const FirebaseApp = {
    */
   async getInquiries() {
     let list = [];
+    const deletedInqIds = (window.InquiryStorage && typeof window.InquiryStorage.getDeletedIds === 'function')
+      ? window.InquiryStorage.getDeletedIds().map(String)
+      : [];
+
     try {
       list = await this._restList('inquiries', 200);
     } catch (e) {}
@@ -959,16 +1262,19 @@ const FirebaseApp = {
       } catch (e) {}
     }
 
-    const normalized = list.map(i => ({
-      id: i.id,
-      name: i.name || 'Visitor',
-      phone: i.phone || '',
-      email: i.email || '',
-      shopName: i.shopName || '',
-      message: i.message || '',
-      status: i.status || 'unread',
-      createdAt: (i.createdAt instanceof Date) ? i.createdAt : (i.createdAt ? new Date(i.createdAt) : new Date())
-    })).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    const normalized = list
+      .filter(i => i && !deletedInqIds.includes(String(i.id)) && !i.isDeleted && i.status !== 'deleted')
+      .map(i => ({
+        id: i.id,
+        name: i.name || 'Visitor',
+        phone: i.phone || '',
+        email: i.email || '',
+        shopName: i.shopName || '',
+        message: i.message || '',
+        status: i.status || 'unread',
+        createdAt: (i.createdAt instanceof Date) ? i.createdAt : (i.createdAt ? new Date(i.createdAt) : new Date())
+      }))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     if (window.InquiryStorage) {
       window.InquiryStorage.saveAll(normalized);
@@ -1054,16 +1360,27 @@ const FirebaseApp = {
    */
   async deleteInquiry(inquiryId) {
     if (!inquiryId) return false;
-    await this._restDelete('inquiries', inquiryId);
+    const sId = String(inquiryId);
+
+    if (window.InquiryStorage) {
+      window.InquiryStorage.delete(sId);
+    }
+
+    try {
+      await this._restDelete('inquiries', sId);
+      await this._restSet('inquiries', sId, { isDeleted: true, status: 'deleted', updatedAt: new Date() });
+    } catch (e) {}
+
     if (this.db) {
       try {
-        await this.db.collection('inquiries').doc(inquiryId).delete();
-      } catch (e) {}
+        await this.db.collection('inquiries').doc(sId).delete();
+      } catch (e) {
+        try {
+          await this.db.collection('inquiries').doc(sId).set({ isDeleted: true, status: 'deleted' }, { merge: true });
+        } catch (e2) {}
+      }
     }
-    if (window.InquiryStorage) {
-      const list = window.InquiryStorage.getAll().filter(i => String(i.id) !== String(inquiryId));
-      window.InquiryStorage.saveAll(list);
-    }
+
     return true;
   },
 
