@@ -12,7 +12,7 @@ const FirebaseApp = {
   _initialized: false,
 
   /**
-   * Initialize Firebase services (Default Auto-Connect to abhisfarmfresh-3e7d3)
+   * Initialize Firebase services
    */
   init() {
     if (this._initialized && this.db) return;
@@ -22,21 +22,23 @@ const FirebaseApp = {
       return;
     }
 
-    try {
-      const savedApiKey = (typeof localStorage !== 'undefined') ? localStorage.getItem('aff_firebase_api_key') : null;
-      const baseConfig = (typeof firebaseConfig !== 'undefined') ? firebaseConfig : {
-        apiKey: "AIzaSyD-AbhisFarmFreshWebProd3e7d3-Live",
-        authDomain: "abhisfarmfresh-3e7d3.firebaseapp.com",
-        projectId: "abhisfarmfresh-3e7d3",
-        storageBucket: "abhisfarmfresh-3e7d3.firebasestorage.app",
-        messagingSenderId: "763350925496",
-        appId: "1:763350925496:web:3750a3eee35a3d8085b44d",
-        measurementId: "G-XEXNM98B50"
-      };
+    const savedApiKey = (typeof localStorage !== 'undefined') ? localStorage.getItem('aff_firebase_api_key') : null;
+    const baseConfig = (typeof firebaseConfig !== 'undefined') ? firebaseConfig : {
+      apiKey: "",
+      authDomain: "abhisfarmfresh-3e7d3.firebaseapp.com",
+      projectId: "abhisfarmfresh-3e7d3",
+      storageBucket: "abhisfarmfresh-3e7d3.firebasestorage.app",
+      messagingSenderId: "763350925496",
+      appId: "1:763350925496:web:3750a3eee35a3d8085b44d",
+      measurementId: "G-XEXNM98B50"
+    };
 
+    const effectiveApiKey = (savedApiKey || baseConfig.apiKey || '').trim();
+
+    try {
       const config = {
         ...baseConfig,
-        apiKey: savedApiKey || baseConfig.apiKey
+        apiKey: effectiveApiKey
       };
 
       if (!firebase.apps.length) {
@@ -44,6 +46,12 @@ const FirebaseApp = {
       }
 
       this.db = firebase.firestore();
+
+      // Enable Firestore settings for robustness against undefined fields
+      try {
+        this.db.settings({ ignoreUndefinedProperties: true });
+      } catch (sErr) {}
+
       try {
         this.auth = firebase.auth();
       } catch (authErr) {
@@ -58,11 +66,48 @@ const FirebaseApp = {
       this._initialized = true;
       console.log('🔥 Live Firebase initialized for project:', config.projectId);
     } catch (err) {
-      console.warn('Firebase Init Note:', err.message);
-      this._initialized = true;
+      console.error('Firebase Initialization Error:', err.message);
+      this._initialized = false;
+      this.db = null;
     }
 
     this.updateConnectionBadge();
+  },
+
+  /**
+   * Sanitize an object to ensure it contains no `undefined` properties before sending to Firestore
+   */
+  _cleanForFirestore(obj) {
+    if (obj === null || obj === undefined) return null;
+    if (typeof obj !== 'object') return obj;
+    // Keep Date instances intact
+    if (obj instanceof Date) return obj;
+    // Keep Firestore FieldValue and Timestamp objects intact
+    if (typeof firebase !== 'undefined' && firebase.firestore) {
+      if (typeof firebase.firestore.Timestamp === 'function' && obj instanceof firebase.firestore.Timestamp) {
+        return obj;
+      }
+      if (typeof firebase.firestore.FieldValue === 'function') {
+        try {
+          if (obj instanceof firebase.firestore.FieldValue) return obj;
+        } catch (e) {}
+      }
+      if (obj && (obj.constructor?.name === 'FieldValue' || obj._methodName || (typeof obj.toDate === 'function' && typeof obj.isEqual === 'function'))) {
+        return obj;
+      }
+    }
+    if (Array.isArray(obj)) {
+      return obj
+        .map(item => this._cleanForFirestore(item))
+        .filter(item => item !== undefined);
+    }
+    const clean = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        clean[key] = this._cleanForFirestore(value);
+      }
+    }
+    return clean;
   },
 
   /**
@@ -120,58 +165,79 @@ const FirebaseApp = {
     const subtotal = Number(data.subtotal ?? data.grandTotal ?? data.total ?? 0);
     const total = grandTotal || subtotal;
     const totalQuantity = Number(data.totalQuantity ?? (data.items || []).reduce((sum, it) => sum + Number(it.quantity || it.qty || 1), 0));
-    const customerName = data.customerName || data.name || 'Customer';
-    const deliveryAddress = data.deliveryAddress || data.businessAddress || data.address || '';
+    const customerName = (data.customerName || data.name || 'Customer').toString().trim();
+    const phone = (data.phone || '').toString().trim();
+    const email = (data.email || '').toString().trim();
+    const shopName = (data.shopName || '').toString().trim();
+    const deliveryAddress = (data.deliveryAddress || data.businessAddress || data.address || '').toString().trim();
+    const businessAddress = (data.businessAddress || deliveryAddress).toString().trim();
     
     // Normalize items
     const items = (data.items || []).map(it => {
       const unitPrice = Number(it.unitPrice ?? it.price ?? 0);
       const quantity = Number(it.quantity ?? it.qty ?? 1);
       const totalPrice = Number(it.totalPrice ?? it.total ?? (unitPrice * quantity));
-      const productName = it.productName || it.name || 'Produce Item';
+      const productName = (it.productName || it.name || 'Produce Item').toString().trim();
       return {
-        productId: it.productId || it.id || '',
-        id: it.productId || it.id || '',
+        productId: (it.productId || it.id || '').toString(),
+        id: (it.productId || it.id || '').toString(),
         productName,
         name: productName,
-        unit: it.unit || 'KG',
+        unit: (it.unit || 'KG').toString(),
         quantity,
         qty: quantity,
         unitPrice,
         price: unitPrice,
         totalPrice,
         total: totalPrice,
-        imageUrl: it.imageUrl || 'images/farm_fresh_media_01.jpeg'
+        imageUrl: (it.imageUrl || 'images/farm_fresh_media_01.jpeg').toString()
       };
     });
 
-    return {
-      ...data,
-      id: id || data.id,
-      orderNumber: data.orderNumber || id || `AFF-${Date.now()}`,
+    // Parse created date robustly
+    let createdAt = data.createdAt;
+    if (createdAt && typeof createdAt.toDate === 'function') {
+      createdAt = createdAt.toDate();
+    } else if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+      createdAt = new Date(createdAt);
+    } else if (!(createdAt instanceof Date)) {
+      createdAt = new Date();
+    }
+
+    const docId = id || data.id || null;
+    const orderNumber = (data.orderNumber || docId || (window.AFF_CONFIG ? window.AFF_CONFIG.generateOrderNumber() : `AFF-${Date.now()}`)).toString();
+
+    const normalized = {
+      orderNumber,
       customerName,
       name: customerName,
-      shopName: data.shopName || '',
-      phone: data.phone || '',
-      email: data.email || '',
-      businessAddress: data.businessAddress || deliveryAddress,
+      shopName,
+      phone,
+      email,
+      businessAddress,
       deliveryAddress,
       address: deliveryAddress,
-      paymentMethod: data.paymentMethod || 'UPI / Online',
+      paymentMethod: (data.paymentMethod || 'UPI / Online').toString(),
       items,
       totalQuantity,
       subtotal,
       grandTotal: total,
       total,
       totalAmount: total,
-      status: (data.status || 'pending').toLowerCase(),
-      adminNotes: data.adminNotes || '',
-      rejectionReason: data.rejectionReason || '',
+      status: (data.status || 'pending').toString().toLowerCase(),
+      adminNotes: (data.adminNotes || '').toString(),
+      rejectionReason: (data.rejectionReason || '').toString(),
       confirmedAt: data.confirmedAt || null,
       rejectedAt: data.rejectedAt || null,
-      createdAt: data.createdAt || new Date(),
+      createdAt,
       updatedAt: data.updatedAt || null
     };
+
+    if (docId) {
+      normalized.id = docId.toString();
+    }
+
+    return normalized;
   },
 
   /**
@@ -381,41 +447,76 @@ const FirebaseApp = {
    * Create a new order — customer facing
    */
   async createOrder(orderData) {
-    const normalized = this._normalizeOrder(null, orderData);
-    
-    // 1. Immediately persist to OrderStorage
+    if (!this.isReady()) {
+      this.init();
+    }
+
+    const docRef = (this.isReady() && this.db) ? this.db.collection('orders').doc() : null;
+    const docId = docRef ? docRef.id : (`order_${Date.now()}_${Math.floor(Math.random() * 1000)}`);
+    const orderNumber = (orderData && orderData.orderNumber) ? orderData.orderNumber : (window.AFF_CONFIG ? window.AFF_CONFIG.generateOrderNumber() : `AFF-${Date.now()}`);
+
+    const normalized = this._normalizeOrder(docId, {
+      ...orderData,
+      id: docId,
+      orderNumber
+    });
+
+    // 1. Immediately persist to OrderStorage with ISO date string
     if (window.OrderStorage) {
-      window.OrderStorage.upsert(normalized);
+      window.OrderStorage.upsert({
+        ...normalized,
+        createdAt: (normalized.createdAt instanceof Date) ? normalized.createdAt.toISOString() : new Date().toISOString()
+      });
     }
 
     // 2. Push to Firestore if live
-    if (this.isReady()) {
+    if (this.isReady() && docRef) {
       try {
-        normalized.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        const docRef = await this.db.collection('orders').add(normalized);
-        console.log('✅ Order created in Firestore:', docRef.id);
-        if (window.OrderStorage) {
-          window.OrderStorage.upsert({ ...normalized, id: docRef.id });
-        }
-        return docRef.id;
+        const firestorePayload = this._cleanForFirestore({
+          ...normalized,
+          id: docId,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await docRef.set(firestorePayload);
+        console.log('✅ Order successfully stored in Cloud Firestore:', docId, orderNumber);
+        return docId;
       } catch (err) {
-        console.warn('Firestore order sync error (saved to local persistence):', err.message);
+        console.error('❌ Firestore order write error:', err);
       }
+    } else {
+      console.warn('⚠️ Firestore is offline. Order saved to local persistence.');
     }
 
-    return normalized.id || normalized.orderNumber;
+    return docId;
   },
 
   /**
    * Get a single order by Firestore doc ID or Order Number
    */
   async getOrder(orderId) {
-    if (this.isReady()) {
+    if (!this.isReady()) {
+      this.init();
+    }
+
+    if (this.isReady() && orderId) {
       try {
+        // 1. Try by direct Document ID
         const doc = await this.db.collection('orders').doc(orderId).get();
         if (doc.exists) return this._normalizeOrder(doc.id, doc.data());
+
+        // 2. Try querying by orderNumber
+        const snap = await this.db.collection('orders')
+          .where('orderNumber', '==', orderId)
+          .limit(1)
+          .get();
+        if (!snap.empty) {
+          const firstDoc = snap.docs[0];
+          return this._normalizeOrder(firstDoc.id, firstDoc.data());
+        }
       } catch (err) {
-        console.warn('Firestore getOrder error:', err.message);
+        console.warn('Firestore getOrder note:', err.message);
       }
     }
 
@@ -428,7 +529,11 @@ const FirebaseApp = {
    * Get all orders — pure real data (Firestore + local OrderStorage)
    */
   async getAllOrders() {
-    let cloudOrders = [];
+    if (!this.isReady()) {
+      this.init();
+    }
+
+    let cloudOrders = null;
     if (this.isReady()) {
       try {
         const snap = await this.db.collection('orders')
@@ -440,31 +545,24 @@ const FirebaseApp = {
       }
     }
 
-    const localOrders = (window.OrderStorage ? window.OrderStorage.getAll() : [])
-      .map(o => this._normalizeOrder(o.id, o));
-
-    // Merge cloud and local orders by orderNumber or id (cloud takes precedence)
-    const map = new Map();
-    localOrders.forEach(o => {
-      const k = o.orderNumber || o.id;
-      if (k) map.set(k, o);
-    });
-    cloudOrders.forEach(o => {
-      const k = o.orderNumber || o.id;
-      if (k) map.set(k, o);
-    });
-
-    const merged = Array.from(map.values()).sort((a, b) => {
-      const ta = (a.createdAt && typeof a.createdAt.toDate === 'function') ? a.createdAt.toDate().getTime() : (new Date(a.createdAt || 0).getTime() || 0);
-      const tb = (b.createdAt && typeof b.createdAt.toDate === 'function') ? b.createdAt.toDate().getTime() : (new Date(b.createdAt || 0).getTime() || 0);
-      return tb - ta;
-    });
-
-    if (window.OrderStorage) {
-      window.OrderStorage.saveAll(merged);
+    // If Firestore was queried successfully, treat cloud as authoritative single source of truth
+    if (cloudOrders !== null) {
+      if (window.OrderStorage) {
+        window.OrderStorage.saveAll(cloudOrders);
+      }
+      return cloudOrders;
     }
 
-    return merged;
+    // Offline fallback to local storage
+    const localOrders = (window.OrderStorage ? window.OrderStorage.getAll() : [])
+      .map(o => this._normalizeOrder(o.id, o))
+      .sort((a, b) => {
+        const ta = (a.createdAt instanceof Date) ? a.createdAt.getTime() : (new Date(a.createdAt || 0).getTime() || 0);
+        const tb = (b.createdAt instanceof Date) ? b.createdAt.getTime() : (new Date(b.createdAt || 0).getTime() || 0);
+        return tb - ta;
+      });
+
+    return localOrders;
   },
 
   /**
@@ -474,6 +572,10 @@ const FirebaseApp = {
     if (typeof callback !== 'function') return () => {};
 
     let unsubscribeFirestore = () => {};
+
+    if (!this.isReady()) {
+      this.init();
+    }
 
     if (this.isReady()) {
       try {
@@ -517,29 +619,57 @@ const FirebaseApp = {
    * Update order status — admin only
    */
   async updateOrderStatus(orderId, status, extras = {}) {
+    if (!this.isReady()) {
+      this.init();
+    }
+
     // 1. Update in local storage
     if (window.OrderStorage) {
       const list = window.OrderStorage.getAll();
       const idx = list.findIndex(o => String(o.id) === String(orderId) || String(o.orderNumber) === String(orderId));
       if (idx > -1) {
-        list[idx] = { ...list[idx], status, ...extras };
+        list[idx] = { 
+          ...list[idx], 
+          status, 
+          ...extras, 
+          updatedAt: new Date().toISOString() 
+        };
         window.OrderStorage.saveAll(list);
       }
     }
 
     // 2. Update in Firestore if live
-    if (this.isReady()) {
+    if (this.isReady() && orderId) {
       try {
-        const updates = { status, ...extras };
+        const updates = { 
+          status, 
+          ...extras,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
         if (status === 'confirmed') {
           updates.confirmedAt = firebase.firestore.FieldValue.serverTimestamp();
         } else if (status === 'rejected') {
           updates.rejectedAt = firebase.firestore.FieldValue.serverTimestamp();
         }
-        await this.db.collection('orders').doc(orderId).update(updates);
-        console.log('✅ Order status updated in Firestore:', orderId, '→', status);
+
+        const cleanUpdates = this._cleanForFirestore(updates);
+        
+        // Try direct doc update first
+        try {
+          await this.db.collection('orders').doc(orderId).update(cleanUpdates);
+          console.log('✅ Order status updated in Firestore:', orderId, '→', status);
+        } catch (directErr) {
+          // If not found by doc ID, search by orderNumber
+          const snap = await this.db.collection('orders').where('orderNumber', '==', orderId).limit(1).get();
+          if (!snap.empty) {
+            await snap.docs[0].ref.update(cleanUpdates);
+            console.log('✅ Order status updated by orderNumber in Firestore:', orderId, '→', status);
+          } else {
+            throw directErr;
+          }
+        }
       } catch (err) {
-        console.warn('Firestore updateOrderStatus error (saved locally):', err.message);
+        console.warn('Firestore updateOrderStatus note (saved locally):', err.message);
       }
     }
 
@@ -549,46 +679,38 @@ const FirebaseApp = {
   // ─── CUSTOMERS ──────────────────────────────────────────
 
   /**
-   * Upsert customer record (create or update on order placement)
+   * Upsert customer record (atomic set with merge)
    */
   async upsertCustomer(customerData) {
-    if (!this.isReady()) return null;
+    if (!this.isReady()) {
+      this.init();
+    }
+    if (!customerData || !customerData.phone) return null;
+
     try {
-      // Use phone number as the unique key
-      const phone = customerData.phone.replace(/\D/g, '');
-      const customerRef = this.db.collection('customers').doc(phone);
-      const existing = await customerRef.get();
+      const phone = (customerData.phone.replace(/\D/g, '') || customerData.phone.trim()).toString();
+      if (!phone) return null;
 
-      if (existing.exists) {
-        // Update existing customer
-        await customerRef.update({
-          name: customerData.name,
-          shopName: customerData.shopName,
-          email: customerData.email,
-          address: customerData.address,
+      if (this.isReady() && this.db) {
+        const customerRef = this.db.collection('customers').doc(phone);
+        const payload = this._cleanForFirestore({
+          name: (customerData.name || 'Customer').toString().trim(),
+          shopName: (customerData.shopName || '').toString().trim(),
+          phone: customerData.phone.toString().trim(),
+          email: (customerData.email || '').toString().trim(),
+          address: (customerData.address || '').toString().trim(),
           totalOrders: firebase.firestore.FieldValue.increment(1),
-          totalAmount: firebase.firestore.FieldValue.increment(customerData.orderTotal || 0),
-          lastOrderDate: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      } else {
-        // Create new customer
-        await customerRef.set({
-          name: customerData.name,
-          shopName: customerData.shopName,
-          phone: customerData.phone,
-          email: customerData.email,
-          address: customerData.address,
-          totalOrders: 1,
-          totalAmount: customerData.orderTotal || 0,
+          totalAmount: firebase.firestore.FieldValue.increment(Number(customerData.orderTotal) || 0),
           lastOrderDate: firebase.firestore.FieldValue.serverTimestamp(),
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-      }
 
-      console.log('✅ Customer upserted:', phone);
+        await customerRef.set(payload, { merge: true });
+        console.log('✅ Customer upserted in Firestore:', phone);
+      }
       return phone;
     } catch (err) {
-      console.error('Error upserting customer:', err);
+      console.warn('Customer upsert note (non-blocking):', err.message);
       return null;
     }
   },

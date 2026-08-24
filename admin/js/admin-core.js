@@ -131,48 +131,43 @@ const AdminCore = {
     }
   },
 
-  // ─── DATA LOADING ───────────────────────────────────────
+  // ─── DATA LOADING (Parallelized via Promise.allSettled) ──
   async loadAllData() {
     try {
-      // 1. Products (Guaranteed dual-layer persistence)
-      if (window.FirebaseApp) {
-        this.products = await window.FirebaseApp.getAllProducts();
-      }
-      if (!this.products || this.products.length === 0) {
-        this.products = window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []);
-      }
+      const fb = window.FirebaseApp;
+      const [prodRes, catRes, ordRes, inqRes, banRes, setRes] = await Promise.allSettled([
+        fb ? fb.getAllProducts() : Promise.resolve([]),
+        fb ? fb.getCategories() : Promise.resolve([]),
+        fb ? fb.getAllOrders() : Promise.resolve([]),
+        fb ? fb.getInquiries() : Promise.resolve([]),
+        fb ? fb.getBannerSettings() : Promise.resolve(null),
+        fb ? fb.getAppSettings() : Promise.resolve(null)
+      ]);
+
+      // 1. Products
+      this.products = (prodRes.status === 'fulfilled' && prodRes.value && prodRes.value.length > 0)
+        ? prodRes.value
+        : (window.ProductStorage ? window.ProductStorage.getAll() : (window.DEFAULT_PRODUCTS || []));
 
       // 2. Categories
-      if (window.FirebaseApp) {
-        this.categories = await window.FirebaseApp.getCategories();
-      }
-      if (!this.categories || this.categories.length === 0) {
-        this.categories = (window.AFF_CONFIG && window.AFF_CONFIG.categories) ? [...window.AFF_CONFIG.categories] : [];
-      }
+      this.categories = (catRes.status === 'fulfilled' && catRes.value && catRes.value.length > 0)
+        ? catRes.value
+        : ((window.AFF_CONFIG && window.AFF_CONFIG.categories) ? [...window.AFF_CONFIG.categories] : []);
 
       // 3. Orders (Pure real Firestore + OrderStorage, NO dummy mock data)
-      if (window.FirebaseApp) {
-        this.orders = await window.FirebaseApp.getAllOrders();
-      } else if (window.OrderStorage) {
-        this.orders = window.OrderStorage.getAll();
-      } else {
-        this.orders = [];
-      }
+      this.orders = (ordRes.status === 'fulfilled' && Array.isArray(ordRes.value))
+        ? ordRes.value
+        : (window.OrderStorage ? window.OrderStorage.getAll() : []);
 
       // 4. Inquiries (Pure real Firestore + InquiryStorage, NO dummy mock data)
-      if (window.FirebaseApp) {
-        this.inquiries = await window.FirebaseApp.getInquiries();
-      } else if (window.InquiryStorage) {
-        this.inquiries = window.InquiryStorage.getAll();
-      } else {
-        this.inquiries = [];
-      }
+      this.inquiries = (inqRes.status === 'fulfilled' && Array.isArray(inqRes.value))
+        ? inqRes.value
+        : (window.InquiryStorage ? window.InquiryStorage.getAll() : []);
 
       // 5. Banner Settings
-      if (window.FirebaseApp) {
-        this.bannerSettings = await window.FirebaseApp.getBannerSettings();
-      }
-      if (!this.bannerSettings) {
+      if (banRes.status === 'fulfilled' && banRes.value) {
+        this.bannerSettings = banRes.value;
+      } else {
         const stored = localStorage.getItem('aff_promo_banner');
         this.bannerSettings = stored ? JSON.parse(stored) : {
           enabled: true,
@@ -185,10 +180,9 @@ const AdminCore = {
       }
 
       // 6. Cloudinary Settings
-      if (window.FirebaseApp) {
-        this.cloudinarySettings = await window.FirebaseApp.getAppSettings();
-      }
-      if (!this.cloudinarySettings) {
+      if (setRes.status === 'fulfilled' && setRes.value) {
+        this.cloudinarySettings = setRes.value;
+      } else {
         const stored = localStorage.getItem('aff_cloudinary_settings');
         this.cloudinarySettings = stored ? JSON.parse(stored) : {
           cloudName: 'abhisfarmfresh',
@@ -196,7 +190,6 @@ const AdminCore = {
           folder: 'abhis/farmfresh'
         };
       }
-
     } catch (err) {
       console.warn('Data load warning:', err);
     }
@@ -301,13 +294,15 @@ const AdminCore = {
           </td>
           <td class="text-slate-500 text-[11px]">${dateStr}</td>
           <td class="text-right space-x-1.5 whitespace-nowrap">
-            <button onclick="AdminCore.viewOrderDetails('${order.id}')" 
-                    class="p-1.5 text-slate-600 hover:text-emerald-700 rounded-lg hover:bg-slate-100 transition-colors"
+            <button type="button"
+                    data-order-id="${this.escapeHtml(order.id)}" 
+                    class="btn-view-order p-1.5 text-slate-600 hover:text-emerald-700 rounded-lg hover:bg-slate-100 transition-colors"
                     title="View Order Details">
               <span class="material-symbols-outlined text-lg">visibility</span>
             </button>
-            <button onclick="AdminCore.printInvoice('${order.id}')" 
-                    class="p-1.5 text-slate-600 hover:text-blue-700 rounded-lg hover:bg-slate-100 transition-colors"
+            <button type="button"
+                    data-order-id="${this.escapeHtml(order.id)}" 
+                    class="btn-print-invoice p-1.5 text-slate-600 hover:text-blue-700 rounded-lg hover:bg-slate-100 transition-colors"
                     title="Print Tax Invoice">
               <span class="material-symbols-outlined text-lg">print</span>
             </button>
@@ -315,6 +310,28 @@ const AdminCore = {
         </tr>
       `;
     }).join('');
+
+    if (!tbody._hasEventDelegation) {
+      tbody._hasEventDelegation = true;
+      tbody.addEventListener('click', (e) => {
+        const viewBtn = e.target.closest('.btn-view-order');
+        if (viewBtn && viewBtn.dataset.orderId) {
+          AdminCore.viewOrderDetails(viewBtn.dataset.orderId);
+          return;
+        }
+        const printBtn = e.target.closest('.btn-print-invoice');
+        if (printBtn && printBtn.dataset.orderId) {
+          AdminCore.printInvoice(printBtn.dataset.orderId);
+          return;
+        }
+      });
+      tbody.addEventListener('change', (e) => {
+        const select = e.target.closest('select[data-order-id]');
+        if (select && select.dataset.orderId) {
+          AdminCore.updateOrderStatus(select.dataset.orderId, select.value);
+        }
+      });
+    }
   },
 
   async updateOrderStatus(orderId, newStatus) {
@@ -408,13 +425,18 @@ const AdminCore = {
             <span class="material-symbols-outlined text-base">chat</span>
             <span>WhatsApp Customer</span>
           </a>
-          <button onclick="AdminCore.printInvoice('${order.id}')" class="admin-btn admin-btn-primary text-xs font-bold">
+          <button type="button" id="btn-modal-print-invoice" class="admin-btn admin-btn-primary text-xs font-bold">
             <span class="material-symbols-outlined text-base">print</span>
             <span>Print Tax Invoice</span>
           </button>
         </div>
       </div>
     `;
+
+    const printModalBtn = document.getElementById('btn-modal-print-invoice');
+    if (printModalBtn) {
+      printModalBtn.addEventListener('click', () => this.printInvoice(order.id));
+    }
 
     this.openModal('order-details-modal');
   },
@@ -628,22 +650,43 @@ const AdminCore = {
 
           <!-- Actions -->
           <div class="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100">
-            <button type="button" onclick="AdminCore.editProduct('${safeId}')" class="admin-btn admin-btn-secondary flex-1 text-xs py-2">
+            <button type="button" data-product-id="${this.escapeHtml(product.id)}" class="btn-admin-edit-product admin-btn admin-btn-secondary flex-1 text-xs py-2">
               <span class="material-symbols-outlined text-sm">edit</span>
               <span>Edit</span>
             </button>
-            <button type="button" onclick="AdminCore.toggleProductStock('${safeId}')" 
-                    class="admin-btn ${isOutOfStock ? 'admin-btn-primary' : 'admin-btn-secondary'} text-xs p-2"
+            <button type="button" data-product-id="${this.escapeHtml(product.id)}" 
+                    class="btn-admin-toggle-stock admin-btn ${isOutOfStock ? 'admin-btn-primary' : 'admin-btn-secondary'} text-xs p-2"
                     title="${isOutOfStock ? 'Mark In Stock' : 'Mark Out of Stock'}">
               <span class="material-symbols-outlined text-sm">${isOutOfStock ? 'check_circle' : 'block'}</span>
             </button>
-            <button type="button" onclick="AdminCore.deleteProduct('${safeId}')" class="admin-btn admin-btn-danger text-xs p-2" title="Delete Product">
+            <button type="button" data-product-id="${this.escapeHtml(product.id)}" class="btn-admin-delete-product admin-btn admin-btn-danger text-xs p-2" title="Delete Product">
               <span class="material-symbols-outlined text-sm">delete</span>
             </button>
           </div>
         </div>
       `;
     }).join('');
+
+    if (!grid._hasProductEventDelegation) {
+      grid._hasProductEventDelegation = true;
+      grid.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.btn-admin-edit-product');
+        if (editBtn && editBtn.dataset.productId) {
+          AdminCore.editProduct(editBtn.dataset.productId);
+          return;
+        }
+        const toggleBtn = e.target.closest('.btn-admin-toggle-stock');
+        if (toggleBtn && toggleBtn.dataset.productId) {
+          AdminCore.toggleProductStock(toggleBtn.dataset.productId);
+          return;
+        }
+        const delBtn = e.target.closest('.btn-admin-delete-product');
+        if (delBtn && delBtn.dataset.productId) {
+          AdminCore.deleteProduct(delBtn.dataset.productId);
+          return;
+        }
+      });
+    }
   },
 
   openAddProductModal() {
@@ -841,16 +884,32 @@ const AdminCore = {
             </div>
           </div>
           <div class="flex items-center gap-1.5">
-            <button onclick="AdminCore.editCategory('${cat.id}')" class="p-2 text-slate-600 hover:text-emerald-700 rounded-lg hover:bg-slate-100" title="Edit Category">
+            <button type="button" data-category-id="${this.escapeHtml(cat.id)}" class="btn-admin-edit-category p-2 text-slate-600 hover:text-emerald-700 rounded-lg hover:bg-slate-100" title="Edit Category">
               <span class="material-symbols-outlined text-lg">edit</span>
             </button>
-            <button onclick="AdminCore.deleteCategory('${cat.id}')" class="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-100" title="Delete Category">
+            <button type="button" data-category-id="${this.escapeHtml(cat.id)}" class="btn-admin-delete-category p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-100" title="Delete Category">
               <span class="material-symbols-outlined text-lg">delete</span>
             </button>
           </div>
         </div>
       `;
     }).join('');
+
+    if (!container._hasCategoryEventDelegation) {
+      container._hasCategoryEventDelegation = true;
+      container.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.btn-admin-edit-category');
+        if (editBtn && editBtn.dataset.categoryId) {
+          AdminCore.editCategory(editBtn.dataset.categoryId);
+          return;
+        }
+        const delBtn = e.target.closest('.btn-admin-delete-category');
+        if (delBtn && delBtn.dataset.categoryId) {
+          AdminCore.deleteCategory(delBtn.dataset.categoryId);
+          return;
+        }
+      });
+    }
   },
 
   openAddCategoryModal() {
@@ -983,13 +1042,13 @@ const AdminCore = {
             </div>
 
             <div class="flex items-center gap-2">
-              <select onchange="AdminCore.updateInquiryStatus('${inq.id}', this.value)"
-                      class="admin-input text-xs py-1.5 px-2.5 rounded-lg font-bold bg-slate-50">
+              <select data-inquiry-id="${this.escapeHtml(inq.id)}"
+                      class="inquiry-status-select admin-input text-xs py-1.5 px-2.5 rounded-lg font-bold bg-slate-50">
                 <option value="unread" ${inq.status === 'unread' ? 'selected' : ''}>Unread</option>
                 <option value="contacted" ${inq.status === 'contacted' ? 'selected' : ''}>Contacted</option>
                 <option value="resolved" ${inq.status === 'resolved' ? 'selected' : ''}>Resolved</option>
               </select>
-              <button onclick="AdminCore.deleteInquiry('${inq.id}')" class="p-1.5 text-slate-400 hover:text-red-600 rounded-lg" title="Delete lead">
+              <button type="button" data-inquiry-id="${this.escapeHtml(inq.id)}" class="btn-admin-delete-inquiry p-1.5 text-slate-400 hover:text-red-600 rounded-lg" title="Delete lead">
                 <span class="material-symbols-outlined text-lg">delete</span>
               </button>
             </div>
@@ -1006,7 +1065,7 @@ const AdminCore = {
               <span>Reply on WhatsApp</span>
             </a>
             ${inq.email ? `
-              <a href="mailto:${inq.email}?subject=Abhis%20Farm%20Fresh%20Inquiry%20Response" 
+              <a href="mailto:${encodeURIComponent(inq.email)}?subject=Abhis%20Farm%20Fresh%20Inquiry%20Response" 
                  class="admin-btn admin-btn-secondary text-xs py-2 px-3">
                 <span class="material-symbols-outlined text-base">mail</span>
                 <span>Send Email</span>
@@ -1016,6 +1075,23 @@ const AdminCore = {
         </div>
       `;
     }).join('');
+
+    if (!container._hasInquiryEventDelegation) {
+      container._hasInquiryEventDelegation = true;
+      container.addEventListener('click', (e) => {
+        const delBtn = e.target.closest('.btn-admin-delete-inquiry');
+        if (delBtn && delBtn.dataset.inquiryId) {
+          AdminCore.deleteInquiry(delBtn.dataset.inquiryId);
+          return;
+        }
+      });
+      container.addEventListener('change', (e) => {
+        const select = e.target.closest('.inquiry-status-select');
+        if (select && select.dataset.inquiryId) {
+          AdminCore.updateInquiryStatus(select.dataset.inquiryId, select.value);
+        }
+      });
+    }
   },
 
   async updateInquiryStatus(inquiryId, status) {

@@ -261,9 +261,9 @@ function renderRecentOrders(orders) {
       <td class="py-3 px-4 text-right">
         <div class="flex items-center justify-end gap-1">
           <button type="button" 
-                  onclick="WhatsAppService.openCustomerWhatsApp(${JSON.stringify(o).replace(/"/g, '&quot;')})" 
-                  class="p-1.5 text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors" 
-                  title="WhatsApp Customer (${o.phone || 'N/A'})">
+                  data-order-id="${Utils.escapeHtml(o.id || o.orderNumber)}" 
+                  class="btn-dash-wa p-1.5 text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors" 
+                  title="WhatsApp Customer">
             <span class="material-symbols-outlined text-base">chat</span>
           </button>
           <a href="orders.html?orderId=${encodeURIComponent(o.id || o.orderNumber)}" 
@@ -274,6 +274,17 @@ function renderRecentOrders(orders) {
       </td>
     </tr>
   `).join('');
+
+  if (!tbody._hasDashOrdersDelegation) {
+    tbody._hasDashOrdersDelegation = true;
+    tbody.addEventListener('click', (e) => {
+      const waBtn = e.target.closest('.btn-dash-wa');
+      if (waBtn && waBtn.dataset.orderId) {
+        const order = allDashboardOrders.find(x => String(x.id) === waBtn.dataset.orderId || String(x.orderNumber) === waBtn.dataset.orderId);
+        if (order) WhatsAppService.openCustomerWhatsApp(order);
+      }
+    });
+  }
 }
 
 function renderProductOverview(products) {

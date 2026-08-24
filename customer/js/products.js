@@ -28,7 +28,7 @@ function initCategoryPills() {
 
   if (showcaseGrid && window.AFF_CONFIG) {
     showcaseGrid.innerHTML = window.AFF_CONFIG.categories.map(cat => `
-      <div onclick="setProductCategory('${cat.id}')"
+      <div data-category-id="${cat.id}"
            id="cat-card-${cat.id}"
            class="category-showcase-card cursor-pointer group p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-emerald-500/50 transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between ${cat.id === activeCategory ? 'active' : ''}">
         <div class="flex items-center justify-between mb-3">
@@ -45,18 +45,38 @@ function initCategoryPills() {
         </div>
       </div>
     `).join('');
+
+    if (!showcaseGrid._hasClickListener) {
+      showcaseGrid._hasClickListener = true;
+      showcaseGrid.addEventListener('click', (e) => {
+        const card = e.target.closest('.category-showcase-card');
+        if (card && card.dataset.categoryId) {
+          setProductCategory(card.dataset.categoryId);
+        }
+      });
+    }
   }
 
   if (container && window.AFF_CONFIG) {
     container.innerHTML = window.AFF_CONFIG.categories.map(cat => `
       <button type="button"
-              onclick="setProductCategory('${cat.id}')"
+              data-category-id="${cat.id}"
               id="cat-pill-${cat.id}"
               class="cat-pill ${cat.id === activeCategory ? 'active' : ''}">
         <span class="material-symbols-outlined text-base">${cat.icon}</span>
         <span>${cat.name}</span>
       </button>
     `).join('');
+
+    if (!container._hasClickListener) {
+      container._hasClickListener = true;
+      container.addEventListener('click', (e) => {
+        const pill = e.target.closest('.cat-pill');
+        if (pill && pill.dataset.categoryId) {
+          setProductCategory(pill.dataset.categoryId);
+        }
+      });
+    }
   }
 }
 
@@ -68,24 +88,17 @@ function setProductCategory(catId) {
 
   document.querySelectorAll('.cat-pill').forEach(btn => {
     btn.classList.remove('active');
+    if (btn.dataset.categoryId === catId) {
+      btn.classList.add('active');
+    }
   });
-
-  const selectedBtn = document.getElementById(`cat-pill-${catId}`);
-  if (selectedBtn) {
-    selectedBtn.classList.add('active');
-    try {
-      selectedBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    } catch (e) {}
-  }
 
   document.querySelectorAll('.category-showcase-card').forEach(card => {
     card.classList.remove('active');
+    if (card.dataset.categoryId === catId) {
+      card.classList.add('active');
+    }
   });
-
-  const selectedCard = document.getElementById(`cat-card-${catId}`);
-  if (selectedCard) {
-    selectedCard.classList.add('active');
-  }
 
   renderProductsGrid();
 }
@@ -144,7 +157,7 @@ async function loadProducts() {
 }
 
 /**
- * Filter and sort products, then render cards to DOM
+ * Render product cards in grid
  */
 function renderProductsGrid() {
   const grid = document.getElementById('products-grid') || document.getElementById('featured-products-grid');
@@ -182,11 +195,13 @@ function renderProductsGrid() {
         <span class="material-symbols-outlined text-5xl text-slate-300 mb-2">search_off</span>
         <h3 class="font-bold text-slate-900 text-lg">No vegetables found</h3>
         <p class="text-xs text-slate-500 mt-1 mb-5">We couldn't find any produce matching "${Utils.escapeHtml(currentSearch || activeCategory)}". Try searching for Tomato, Onion, or Spinach.</p>
-        <button onclick="resetCatalogueFilters()" class="btn btn-primary btn-sm">
+        <button id="btn-reset-catalogue" class="btn btn-primary btn-sm">
           Clear Filters & View All
         </button>
       </div>
     `;
+    const resetBtn = document.getElementById('btn-reset-catalogue');
+    if (resetBtn) resetBtn.addEventListener('click', resetCatalogueFilters);
     return;
   }
 
@@ -219,8 +234,8 @@ function renderProductsGrid() {
 
             <!-- WhatsApp Direct Inquiry -->
             <button type="button"
-                    onclick="WhatsAppService.openInquiryWhatsApp('${Utils.escapeHtml(product.name)}', ${product.price}, '${product.unit || 'KG'}')"
-                    class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-emerald-600 text-slate-700 hover:text-white backdrop-blur-md flex items-center justify-center shadow-md transition-all active:scale-90 z-10 group/btn"
+                    data-product-id="${product.id}"
+                    class="product-wa-inquiry-btn absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-emerald-600 text-slate-700 hover:text-white backdrop-blur-md flex items-center justify-center shadow-md transition-all active:scale-90 z-10 group/btn"
                     title="Inquire about ${Utils.escapeHtml(product.name)} on WhatsApp">
               <span class="material-symbols-outlined text-sm">chat</span>
             </button>
@@ -265,23 +280,23 @@ function renderProductsGrid() {
             ` : inCart ? `
               <div class="card-stepper">
                 <button type="button" 
-                        class="card-stepper-btn" 
-                        onclick="Cart.updateQuantity('${product.id}', -1)" 
-                        aria-label="Decrease quantity of ${Utils.escapeHtml(product.name)}">
+                        class="card-stepper-btn btn-qty-decrease" 
+                        data-product-id="${product.id}"
+                        aria-label="Decrease quantity">
                   <span class="material-symbols-outlined text-base">remove</span>
                 </button>
                 <span class="card-stepper-val">${currentQty} KG</span>
                 <button type="button" 
-                        class="card-stepper-btn" 
-                        onclick="Cart.updateQuantity('${product.id}', 1)" 
-                        aria-label="Increase quantity of ${Utils.escapeHtml(product.name)}">
+                        class="card-stepper-btn btn-qty-increase" 
+                        data-product-id="${product.id}"
+                        aria-label="Increase quantity">
                   <span class="material-symbols-outlined text-base">add</span>
                 </button>
               </div>
             ` : `
               <button type="button"
-                      onclick="handleDirectAdd('${product.id}')"
-                      class="btn btn-primary w-full py-2.5 px-4 text-xs font-extrabold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-emerald-900/10 hover:shadow-lg hover:shadow-emerald-900/20 active:scale-95 transition-all">
+                      data-product-id="${product.id}"
+                      class="btn btn-primary btn-add-product w-full py-2.5 px-4 text-xs font-extrabold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-emerald-900/10 hover:shadow-lg hover:shadow-emerald-900/20 active:scale-95 transition-all">
                 <span class="material-symbols-outlined text-base">add_shopping_cart</span>
                 <span>Add to Cart</span>
               </button>
@@ -291,6 +306,37 @@ function renderProductsGrid() {
       </div>
     `;
   }).join('');
+
+  if (!grid._hasClickListener) {
+    grid._hasClickListener = true;
+    grid.addEventListener('click', (e) => {
+      const waBtn = e.target.closest('.product-wa-inquiry-btn');
+      if (waBtn) {
+        const pid = waBtn.dataset.productId;
+        const p = allProducts.find(x => x.id === pid);
+        if (p) WhatsAppService.openInquiryWhatsApp(p.name, p.price, p.unit || 'KG');
+        return;
+      }
+      const decBtn = e.target.closest('.btn-qty-decrease');
+      if (decBtn) {
+        const pid = decBtn.dataset.productId;
+        Cart.updateQuantity(pid, -1);
+        return;
+      }
+      const incBtn = e.target.closest('.btn-qty-increase');
+      if (incBtn) {
+        const pid = incBtn.dataset.productId;
+        Cart.updateQuantity(pid, 1);
+        return;
+      }
+      const addBtn = e.target.closest('.btn-add-product');
+      if (addBtn) {
+        const pid = addBtn.dataset.productId;
+        handleDirectAdd(pid);
+        return;
+      }
+    });
+  }
 }
 
 /**

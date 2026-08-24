@@ -41,9 +41,9 @@ if (!fs.existsSync(jsDir)) {
   fs.mkdirSync(jsDir, { recursive: true });
 }
 
-// 1. Read Firebase Environment Variables (with fallback defaults)
+// 1. Read Firebase Environment Variables
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY || "AIzaSyD-AbhisFarmFreshWebProd3e7d3-Live",
+  apiKey: process.env.FIREBASE_API_KEY || "",
   authDomain: process.env.FIREBASE_AUTH_DOMAIN || "abhisfarmfresh-3e7d3.firebaseapp.com",
   projectId: process.env.FIREBASE_PROJECT_ID || "abhisfarmfresh-3e7d3",
   storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "abhisfarmfresh-3e7d3.firebasestorage.app",
@@ -63,25 +63,29 @@ const baseFirebaseConfig = ${JSON.stringify(firebaseConfig, null, 2)};
 const savedLocalApiKey = (typeof localStorage !== 'undefined') ? localStorage.getItem('aff_firebase_api_key') : null;
 const firebaseConfig = {
   ...baseFirebaseConfig,
-  apiKey: savedLocalApiKey || baseFirebaseConfig.apiKey
+  apiKey: (savedLocalApiKey || baseFirebaseConfig.apiKey || '').trim()
 };
 
 window.FirebaseService = {
   isConfigured() {
-    return true;
+    return Boolean(firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('AIzaSyD-AbhisFarmFreshWebProd'));
   },
   
   init() {
-    if (typeof firebase !== 'undefined' && this.isConfigured()) {
-      try {
-        if (!firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
+    if (typeof firebase !== 'undefined') {
+      if (this.isConfigured()) {
+        try {
+          if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+          }
+          window.firebaseAuth = firebase.auth();
+          window.firebaseDb = firebase.firestore();
+          console.log("🔥 Live Firebase initialized for project:", firebaseConfig.projectId);
+        } catch (err) {
+          console.error("Firebase Init Error:", err);
         }
-        window.firebaseAuth = firebase.auth();
-        window.firebaseDb = firebase.firestore();
-        console.log("🔥 Live Firebase initialized for project:", firebaseConfig.projectId);
-      } catch (err) {
-        console.warn("Firebase Init Warning:", err);
+      } else {
+        console.error("❌ Firebase Web API Key is missing. Configure FIREBASE_API_KEY in Cloudflare Pages environment variables or .env");
       }
     }
   }

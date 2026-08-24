@@ -14,7 +14,7 @@ async function renderOrderSuccessPage() {
 
   let order = null;
 
-  // 1. Try to load from sessionStorage (fastest & reliable for immediate redirect)
+  // 1. Load from sessionStorage (passed right after checkout, 0 Firestore read queries required)
   try {
     const cached = sessionStorage.getItem('aff_last_order');
     if (cached) {
@@ -24,32 +24,38 @@ async function renderOrderSuccessPage() {
     console.warn('Could not read cached order:', e);
   }
 
-  // 2. If not found in cache and we have orderId from Firestore, fetch from DB
-  if (!order && orderId && orderId !== 'success' && window.FirebaseApp && window.FirebaseApp.isReady()) {
-    try {
-      order = await window.FirebaseApp.getOrder(orderId);
-    } catch (e) {
-      console.warn('Could not fetch order from DB:', e);
+  // 2. If not in session, fetch from Firestore / OrderStorage using URL parameters
+  if (!order && (orderId || orderNumberParam)) {
+    if (window.FirebaseApp) {
+      try {
+        order = await window.FirebaseApp.getOrder(orderId || orderNumberParam);
+      } catch (err) {
+        console.warn('Could not fetch order from database:', err);
+      }
     }
   }
 
-  // 3. Fallback dummy if directly accessed
+  // 3. If still no order found, show empty/direct-access state without mock fallback
   if (!order) {
-    order = {
-      orderNumber: orderNumberParam || 'AFF-20260820-001',
-      customerName: 'Valued Customer',
-      shopName: 'B2B Client',
-      phone: '6380710362',
-      email: 'orders@abhisfarmfresh.com',
-      deliveryAddress: 'Doorstep Delivery Location',
-      items: [
-        { productName: 'Fresh Tomato', quantity: 2, unit: 'KG', unitPrice: 35, totalPrice: 70 },
-        { productName: 'Red Onion', quantity: 3, unit: 'KG', unitPrice: 32, totalPrice: 96 }
-      ],
-      subtotal: 166,
-      grandTotal: 166,
-      status: 'pending'
-    };
+    const container = document.querySelector('.max-w-2xl');
+    if (container) {
+      container.innerHTML = `
+        <div class="bg-white rounded-3xl p-8 sm:p-10 shadow-xl border border-slate-100 text-center">
+          <div class="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-5 text-3xl">
+            <span class="material-symbols-outlined">receipt_long</span>
+          </div>
+          <h1 class="text-2xl font-black text-slate-900 mb-2">Order Completed</h1>
+          <p class="text-sm text-slate-500 mb-6">
+            ${orderNumberParam ? `Your order <strong>${Utils.escapeHtml(orderNumberParam)}</strong> has been registered.` : 'Thank you for placing an order with Abhis Farm Fresh.'}
+            Our dispatch team will contact you directly via WhatsApp / Phone to confirm dispatch.
+          </p>
+          <a href="products.html" class="inline-flex items-center gap-2 bg-emerald-800 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-lg hover:bg-emerald-700 transition-colors">
+            <span class="material-symbols-outlined text-lg">storefront</span> Return to Catalog
+          </a>
+        </div>
+      `;
+    }
+    return;
   }
 
   // Render Order Number and Status

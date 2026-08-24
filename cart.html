@@ -305,9 +305,9 @@
                     </td>
                     <td class="py-4 px-4 text-center">
                         <div class="stepper inline-flex">
-                            <button type="button" class="stepper-btn" onclick="Cart.updateQuantity('${item.id}', -1)" title="Decrease">-</button>
+                            <button type="button" class="stepper-btn cart-qty-step" data-item-id="${Utils.escapeHtml(item.id)}" data-delta="-1" title="Decrease">-</button>
                             <span class="stepper-value">${item.quantity}</span>
-                            <button type="button" class="stepper-btn" onclick="Cart.updateQuantity('${item.id}', 1)" title="Increase">+</button>
+                            <button type="button" class="stepper-btn cart-qty-step" data-item-id="${Utils.escapeHtml(item.id)}" data-delta="1" title="Increase">+</button>
                         </div>
                     </td>
                     <td class="py-4 px-4 text-right font-extrabold text-slate-900">
@@ -315,8 +315,8 @@
                     </td>
                     <td class="py-4 px-4 text-center">
                         <button type="button" 
-                                onclick="Cart.removeItem('${item.id}')" 
-                                class="text-slate-400 hover:text-red-600 transition-colors p-1.5 rounded-lg hover:bg-red-50"
+                                data-item-id="${Utils.escapeHtml(item.id)}" 
+                                class="cart-remove-item text-slate-400 hover:text-red-600 transition-colors p-1.5 rounded-lg hover:bg-red-50"
                                 title="Remove ${Utils.escapeHtml(item.name)}">
                             <span class="material-symbols-outlined text-base">delete</span>
                         </button>
@@ -324,6 +324,22 @@
                 </tr>
             `;
         }).join('');
+
+        if (!tbody._hasCartDelegation) {
+            tbody._hasCartDelegation = true;
+            tbody.addEventListener('click', (e) => {
+                const stepBtn = e.target.closest('.cart-qty-step');
+                if (stepBtn && stepBtn.dataset.itemId) {
+                    Cart.updateQuantity(stepBtn.dataset.itemId, parseInt(stepBtn.dataset.delta, 10));
+                    return;
+                }
+                const remBtn = e.target.closest('.cart-remove-item');
+                if (remBtn && remBtn.dataset.itemId) {
+                    Cart.removeItem(remBtn.dataset.itemId);
+                    return;
+                }
+            });
+        }
 
         const subtotal = Cart.getSubtotal();
         const totalQty = Cart.getTotalQuantity();

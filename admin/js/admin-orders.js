@@ -181,16 +181,16 @@ function renderOrdersTable() {
             
             <!-- WhatsApp Action -->
             <button type="button" 
-                    onclick="handleOrderWhatsApp('${order.id}')" 
-                    class="p-1.5 text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors" 
-                    title="Send WhatsApp to ${order.customerName || 'Customer'} (${order.phone || 'N/A'})">
+                    data-order-id="${Utils.escapeHtml(order.id)}" 
+                    class="btn-table-wa p-1.5 text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors" 
+                    title="Send WhatsApp to customer">
               <span class="material-symbols-outlined text-lg">chat</span>
             </button>
 
             <!-- View / Inspect Button -->
             <button type="button" 
-                    onclick="openOrderModal('${order.id}')" 
-                    class="admin-btn admin-btn-secondary text-xs py-1 px-2.5 rounded-lg flex items-center gap-1">
+                    data-order-id="${Utils.escapeHtml(order.id)}" 
+                    class="btn-table-view admin-btn admin-btn-secondary text-xs py-1 px-2.5 rounded-lg flex items-center gap-1">
               <span class="material-symbols-outlined text-sm">visibility</span>
               <span>View</span>
             </button>
@@ -198,8 +198,8 @@ function renderOrdersTable() {
             <!-- Quick Confirm if pending -->
             ${isPending ? `
               <button type="button" 
-                      onclick="showConfirmDialog('${order.id}')" 
-                      class="admin-btn admin-btn-primary text-xs py-1 px-2.5 rounded-lg shadow-sm"
+                      data-order-id="${Utils.escapeHtml(order.id)}" 
+                      class="btn-table-confirm admin-btn admin-btn-primary text-xs py-1 px-2.5 rounded-lg shadow-sm"
                       title="Confirm Order">
                 <span>Confirm</span>
               </button>
@@ -209,6 +209,27 @@ function renderOrdersTable() {
       </tr>
     `;
   }).join('');
+
+  if (!tbody._hasOrdersDelegation) {
+    tbody._hasOrdersDelegation = true;
+    tbody.addEventListener('click', (e) => {
+      const waBtn = e.target.closest('.btn-table-wa');
+      if (waBtn && waBtn.dataset.orderId) {
+        handleOrderWhatsApp(waBtn.dataset.orderId);
+        return;
+      }
+      const viewBtn = e.target.closest('.btn-table-view');
+      if (viewBtn && viewBtn.dataset.orderId) {
+        openOrderModal(viewBtn.dataset.orderId);
+        return;
+      }
+      const confBtn = e.target.closest('.btn-table-confirm');
+      if (confBtn && confBtn.dataset.orderId) {
+        showConfirmDialog(confBtn.dataset.orderId);
+        return;
+      }
+    });
+  }
 }
 
 /**
@@ -295,23 +316,23 @@ async function openOrderModal(orderId) {
       actionContainer.innerHTML = `
         <div class="flex flex-col sm:flex-row justify-between items-center gap-3 w-full">
           <button type="button" 
-                  onclick="showRejectDialog('${order.id}')" 
-                  class="admin-btn admin-btn-danger w-full sm:w-auto text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5">
+                  data-order-id="${Utils.escapeHtml(order.id)}" 
+                  class="btn-modal-reject admin-btn admin-btn-danger w-full sm:w-auto text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5">
             <span class="material-symbols-outlined text-base">cancel</span>
             <span>Reject Order</span>
           </button>
 
           <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button type="button" 
-                    onclick="handleOrderWhatsApp('${order.id}')" 
-                    class="btn-whatsapp text-xs py-2.5 px-4 rounded-xl flex items-center gap-1.5 shadow-sm">
+                    data-order-id="${Utils.escapeHtml(order.id)}" 
+                    class="btn-modal-wa btn-whatsapp text-xs py-2.5 px-4 rounded-xl flex items-center gap-1.5 shadow-sm">
               <span class="material-symbols-outlined text-base">chat</span>
               <span>WhatsApp Customer</span>
             </button>
 
             <button type="button" 
-                    onclick="showConfirmDialog('${order.id}')" 
-                    class="admin-btn admin-btn-primary text-xs py-2.5 px-5 rounded-xl shadow-md flex items-center gap-1.5">
+                    data-order-id="${Utils.escapeHtml(order.id)}" 
+                    class="btn-modal-confirm admin-btn admin-btn-primary text-xs py-2.5 px-5 rounded-xl shadow-md flex items-center gap-1.5">
               <span class="material-symbols-outlined text-base">check_circle</span>
               <span>Confirm Order</span>
             </button>
@@ -327,8 +348,8 @@ async function openOrderModal(orderId) {
             ${order.confirmedAt ? `<span class="text-[10px] text-emerald-700 font-normal">(${Utils.formatDateTime(order.confirmedAt)})</span>` : ''}
           </div>
           <button type="button" 
-                  onclick="handleOrderWhatsApp('${order.id}')" 
-                  class="btn-whatsapp text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 shadow-sm">
+                  data-order-id="${Utils.escapeHtml(order.id)}" 
+                  class="btn-modal-wa btn-whatsapp text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 shadow-sm">
             <span class="material-symbols-outlined text-base">chat</span>
             <span>Message Customer</span>
           </button>
@@ -345,13 +366,34 @@ async function openOrderModal(orderId) {
             ${order.rejectionReason ? `<div class="text-[11px] text-red-700">Reason: ${Utils.escapeHtml(order.rejectionReason)}</div>` : ''}
           </div>
           <button type="button" 
-                  onclick="handleOrderWhatsApp('${order.id}')" 
-                  class="btn-whatsapp text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 shadow-sm">
+                  data-order-id="${Utils.escapeHtml(order.id)}" 
+                  class="btn-modal-wa btn-whatsapp text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 shadow-sm">
             <span class="material-symbols-outlined text-base">chat</span>
             <span>Notify Customer</span>
           </button>
         </div>
       `;
+    }
+
+    if (!actionContainer._hasModalDelegation) {
+      actionContainer._hasModalDelegation = true;
+      actionContainer.addEventListener('click', (e) => {
+        const rejBtn = e.target.closest('.btn-modal-reject');
+        if (rejBtn && rejBtn.dataset.orderId) {
+          showRejectDialog(rejBtn.dataset.orderId);
+          return;
+        }
+        const waBtn = e.target.closest('.btn-modal-wa');
+        if (waBtn && waBtn.dataset.orderId) {
+          handleOrderWhatsApp(waBtn.dataset.orderId);
+          return;
+        }
+        const confBtn = e.target.closest('.btn-modal-confirm');
+        if (confBtn && confBtn.dataset.orderId) {
+          showConfirmDialog(confBtn.dataset.orderId);
+          return;
+        }
+      });
     }
   }
 

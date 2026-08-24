@@ -11,7 +11,7 @@ const AdminAuth = {
    * Check if admin is currently authenticated
    */
   isAuthenticated() {
-    if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
       return true;
     }
     return sessionStorage.getItem(this.SESSION_KEY) === 'true';
@@ -21,10 +21,10 @@ const AdminAuth = {
    * Get current admin profile
    */
   getAdminUser() {
-    if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
       return {
-        email: window.firebaseAuth.currentUser.email,
-        name: window.firebaseAuth.currentUser.displayName || 'Admin Officer'
+        email: firebase.auth().currentUser.email,
+        name: firebase.auth().currentUser.displayName || 'Admin Officer'
       };
     }
     const stored = sessionStorage.getItem(this.USER_KEY);
@@ -32,34 +32,35 @@ const AdminAuth = {
   },
 
   /**
-   * Sign in admin using Firebase Auth (with mock credential fallback)
+   * Sign in admin using Firebase Auth strictly (No hardcoded credentials)
    */
   async login(email, password) {
     const cleanEmail = (email || '').trim();
     const cleanPass = (password || '').trim();
 
-    // 1. Try Firebase Auth
+    if (!cleanEmail || !cleanPass) {
+      return { success: false, error: 'Please enter both email and password.' };
+    }
+
     if (window.FirebaseApp && window.FirebaseApp.isReady() && window.FirebaseApp.auth) {
       try {
         const res = await window.FirebaseApp.signIn(cleanEmail, cleanPass);
         if (res.success) {
           sessionStorage.setItem(this.SESSION_KEY, 'true');
-          sessionStorage.setItem(this.USER_KEY, JSON.stringify({ email: cleanEmail, name: 'Admin Officer' }));
+          sessionStorage.setItem(this.USER_KEY, JSON.stringify({
+            email: cleanEmail,
+            name: res.user?.displayName || 'Admin Officer'
+          }));
           return { success: true };
         }
+        return { success: false, error: res.error || 'Invalid credentials. Please verify your Firebase Auth credentials.' };
       } catch (err) {
-        console.warn('Firebase Auth attempt failed:', err);
+        console.error('Firebase Auth error:', err);
+        return { success: false, error: err.message || 'Firebase Authentication failed.' };
       }
     }
 
-    // 2. Fallback check for initial offline / dev setup
-    if ((cleanEmail === 'admin@abhisfarmfresh.com' || cleanEmail === 'admin') && cleanPass === 'admin123') {
-      sessionStorage.setItem(this.SESSION_KEY, 'true');
-      sessionStorage.setItem(this.USER_KEY, JSON.stringify({ email: 'admin@abhisfarmfresh.com', name: 'Admin Officer' }));
-      return { success: true };
-    }
-
-    return { success: false, error: 'Invalid email or password.' };
+    return { success: false, error: 'Firebase Auth service is unavailable or unconfigured.' };
   },
 
   /**
@@ -77,12 +78,15 @@ const AdminAuth = {
   },
 
   /**
-   * Route protection: ensures session is initialized without blocking direct access
+   * Route protection: redirect unauthenticated users to login.html
    */
   protect() {
+    const path = window.location.pathname;
+    if (path.endsWith('login.html') || path.endsWith('/login')) {
+      return;
+    }
     if (!this.isAuthenticated()) {
-      sessionStorage.setItem(this.SESSION_KEY, 'true');
-      sessionStorage.setItem(this.USER_KEY, JSON.stringify({ email: 'admin@abhisfarmfresh.in', name: 'Admin Officer' }));
+      window.location.href = 'login.html';
     }
   },
 

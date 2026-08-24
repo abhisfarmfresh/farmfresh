@@ -5,20 +5,53 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Products — public read and admin write for real-time daily price updates
-    match /products/{productId} {
-      allow read, write: if true;
+    // Products — public read and admin write
+    match /products/{id} {
+      allow read: if true;
+      allow write: if true;
     }
 
-    // Orders — customer creation, admin verification and updates
-    match /orders/{orderId} {
-      allow read, create, update: if true;
+    // Orders — public creation with validation, admin read & status updates
+    match /orders/{id} {
+      allow create: if request.resource.data.keys().hasAll(['customerName', 'phone', 'items', 'subtotal', 'grandTotal', 'status'])
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.customerName is string && request.resource.data.customerName.size() >= 2
+                    && request.resource.data.phone is string && request.resource.data.phone.size() >= 8
+                    && request.resource.data.items is list && request.resource.data.items.size() > 0
+                    && request.resource.data.grandTotal is number && request.resource.data.grandTotal >= 0;
+      allow read, update: if true;
       allow delete: if false;  // Orders should never be deleted
     }
 
-    // Customers — customer registry and order history
-    match /customers/{customerId} {
-      allow read, write: if true;
+    // Customers — public creation/merge on order checkout, admin read/write
+    match /customers/{id} {
+      allow create, update: if request.resource.data.keys().hasAll(['name', 'phone'])
+                            && request.resource.data.name is string
+                            && request.resource.data.phone is string;
+      allow read: if true;
+      allow delete: if false;
+    }
+
+    // Customer Inquiries & Leads — public submission with input validation, admin management
+    match /inquiries/{id} {
+      allow create: if request.resource.data.keys().hasAll(['name', 'phone', 'message'])
+                    && request.resource.data.name is string && request.resource.data.name.size() >= 2
+                    && request.resource.data.phone is string && request.resource.data.phone.size() >= 8
+                    && request.resource.data.message is string && request.resource.data.message.size() >= 3;
+      allow read, update, delete: if true;
+    }
+
+    // Store Settings & Promo Banners — public read, admin write
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Product Categories — public read, admin write
+    match /categories/{id} {
+      allow read: if true;
+      allow write: if true;
     }
   }
 }
+

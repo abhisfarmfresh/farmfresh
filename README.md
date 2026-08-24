@@ -86,8 +86,8 @@ http://localhost:8543/admin/login.html
 
 ---
 
-## 🔐 Credentials & Access
+## 🔐 Access & Support
 
-- **Admin Login**: `admin@abhisfarmfresh.com` / `admin123` (or any Firebase Auth registered user)
+- **Admin Login**: Requires registered administrator account via Firebase Authentication
 - **WhatsApp Support**: `+91 6380710362`
 - **Instagram**: `@abhisfarmfresh`

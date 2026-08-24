@@ -280,13 +280,14 @@ function renderAdminProductsTable() {
           <div class="flex items-center gap-1.5">
             <span class="text-xs font-bold text-slate-500">₹</span>
             <input type="number" 
-                   id="price-input-${p.id}" 
+                   id="price-input-${Utils.escapeHtml(p.id)}" 
                    value="${p.price}" 
                    min="1" 
                    step="0.5" 
                    class="w-20 px-2 py-1 text-xs font-extrabold text-slate-900 border border-slate-200 rounded-lg bg-white focus:border-emerald-700 outline-none">
-            <button onclick="saveDailyPrice('${p.id}')" 
-                    class="p-1 text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+            <button type="button"
+                    data-product-id="${Utils.escapeHtml(p.id)}" 
+                    class="btn-table-save-price p-1 text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
                     title="Save New Daily Price">
               <span class="material-symbols-outlined text-base">save</span>
             </button>
@@ -305,8 +306,9 @@ function renderAdminProductsTable() {
 
         <!-- Stock Availability Toggle -->
         <td class="py-3 px-4">
-          <button onclick="toggleProductStock('${p.id}')" 
-                  class="cursor-pointer transition-transform active:scale-95" 
+          <button type="button"
+                  data-product-id="${Utils.escapeHtml(p.id)}" 
+                  class="btn-table-toggle-stock cursor-pointer transition-transform active:scale-95" 
                   title="Click to toggle status">
             ${Utils.getStatusBadge(p.status || 'available')}
           </button>
@@ -315,13 +317,15 @@ function renderAdminProductsTable() {
         <!-- Actions -->
         <td class="py-3 px-4 text-right">
           <div class="flex items-center justify-end gap-1">
-            <button onclick="openEditProductModal('${p.id}')" 
-                    class="p-1.5 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100" 
+            <button type="button"
+                    data-product-id="${Utils.escapeHtml(p.id)}" 
+                    class="btn-table-edit-product p-1.5 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100" 
                     title="Edit Product Details">
               <span class="material-symbols-outlined text-base">edit</span>
             </button>
-            <button onclick="deleteProductPrompt('${p.id}')" 
-                    class="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50" 
+            <button type="button"
+                    data-product-id="${Utils.escapeHtml(p.id)}" 
+                    class="btn-table-delete-product p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50" 
                     title="Delete Product">
               <span class="material-symbols-outlined text-base">delete</span>
             </button>
@@ -330,6 +334,32 @@ function renderAdminProductsTable() {
       </tr>
     `;
   }).join('');
+
+  if (!tbody._hasProductDelegation) {
+    tbody._hasProductDelegation = true;
+    tbody.addEventListener('click', (e) => {
+      const saveBtn = e.target.closest('.btn-table-save-price');
+      if (saveBtn && saveBtn.dataset.productId) {
+        saveDailyPrice(saveBtn.dataset.productId);
+        return;
+      }
+      const toggleBtn = e.target.closest('.btn-table-toggle-stock');
+      if (toggleBtn && toggleBtn.dataset.productId) {
+        toggleProductStock(toggleBtn.dataset.productId);
+        return;
+      }
+      const editBtn = e.target.closest('.btn-table-edit-product');
+      if (editBtn && editBtn.dataset.productId) {
+        openEditProductModal(editBtn.dataset.productId);
+        return;
+      }
+      const delBtn = e.target.closest('.btn-table-delete-product');
+      if (delBtn && delBtn.dataset.productId) {
+        deleteProductPrompt(delBtn.dataset.productId);
+        return;
+      }
+    });
+  }
 }
 
 /**

@@ -196,32 +196,35 @@ async function handleOrderSubmit(e) {
       rejectedAt: null
     };
 
-    // 3. Save to Dual-Layer Persistence (OrderStorage + Cloud Firestore)
+    // 3. Save to Dual-Layer Persistence (Cloud Firestore + OrderStorage)
     let orderDocId = null;
-    if (window.OrderStorage) {
-      window.OrderStorage.upsert({
-        id: `local_${Date.now()}`,
-        ...orderData
-      });
-    }
-
     if (window.FirebaseApp) {
       orderDocId = await window.FirebaseApp.createOrder(orderData);
       
-      // 4. Upsert Customer Record
-      await window.FirebaseApp.upsertCustomer({
-        name: fields.customerName.trim(),
-        shopName: fields.shopName.trim(),
-        phone: fields.phone.trim(),
-        email: fields.email.trim(),
-        address: fields.deliveryAddress.trim(),
-        orderTotal: subtotal
+      // 4. Upsert Customer Record (Non-blocking)
+      try {
+        await window.FirebaseApp.upsertCustomer({
+          name: fields.customerName.trim(),
+          shopName: fields.shopName.trim(),
+          phone: fields.phone.trim(),
+          email: fields.email.trim(),
+          address: fields.deliveryAddress.trim(),
+          orderTotal: subtotal
+        });
+      } catch (custErr) {
+        console.warn('Customer upsert note:', custErr);
+      }
+    } else if (window.OrderStorage) {
+      orderDocId = `local_${Date.now()}`;
+      window.OrderStorage.upsert({
+        id: orderDocId,
+        ...orderData
       });
     }
 
     // Cache order in sessionStorage for immediate instant rendering on order-success page
     sessionStorage.setItem('aff_last_order', JSON.stringify({
-      id: orderDocId || `local_${Date.now()}`,
+      id: orderDocId || `order_${Date.now()}`,
       ...orderData
     }));
 
@@ -229,7 +232,7 @@ async function handleOrderSubmit(e) {
     Cart.clear();
 
     // 6. Redirect to Success Page
-    const redirectUrl = `order-success.html?orderId=${orderDocId || 'success'}&orderNumber=${encodeURIComponent(orderNumber)}`;
+    const redirectUrl = `order-success.html?orderId=${encodeURIComponent(orderDocId || 'success')}&orderNumber=${encodeURIComponent(orderNumber)}`;
     window.location.href = redirectUrl;
 
   } catch (err) {
