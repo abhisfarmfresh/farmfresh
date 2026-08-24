@@ -12,6 +12,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
     
+    <!-- Immediate Session Protection Guard (Synchronous to prevent unauthorized UI exposure) -->
+    <script>
+        (function() {
+            try {
+                var isAuth = sessionStorage.getItem('aff_admin_authenticated') === 'true';
+                var expiresAt = Number(sessionStorage.getItem('aff_admin_auth_expires') || 0);
+                var now = Date.now();
+                if (!isAuth || !expiresAt || now > expiresAt) {
+                    sessionStorage.removeItem('aff_admin_authenticated');
+                    sessionStorage.removeItem('aff_admin_auth_expires');
+                    sessionStorage.removeItem('aff_admin_user');
+                    var hash = window.location.hash || '';
+                    var target = 'login.html' + (hash ? '?redirect=' + encodeURIComponent(hash) : '');
+                    window.location.replace(target);
+                }
+            } catch (e) {
+                window.location.replace('login.html');
+            }
+        })();
+    </script>
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/admin.css">
@@ -113,13 +134,14 @@
         </nav>
 
         <!-- Admin Profile Footer -->
-        <div class="p-4 border-t border-slate-800/80 bg-slate-950/70 flex justify-between items-center text-xs">
-            <div class="space-y-0.5">
-                <div id="admin-profile-name" class="font-bold text-white">Admin Officer</div>
-                <div id="admin-profile-email" class="text-[10px] text-slate-400">admin@abhisfarmfresh.com</div>
+        <div class="p-4 border-t border-slate-800/80 bg-slate-950/70 flex justify-between items-center text-xs gap-2">
+            <div class="space-y-0.5 min-w-0">
+                <div id="admin-profile-name" class="font-bold text-white truncate">Admin Officer</div>
+                <div id="admin-profile-email" class="text-[10px] text-slate-400 truncate">admin@abhisfarmfresh.com</div>
             </div>
-            <button onclick="AdminAuth.logout()" class="text-xs text-red-400 hover:text-red-300 font-semibold hover:underline" title="Sign Out">
-                <span class="material-symbols-outlined text-base">logout</span>
+            <button onclick="AdminAuth.logout()" class="flex-shrink-0 flex items-center gap-1 py-1.5 px-2.5 rounded-xl bg-red-950/50 text-red-300 hover:bg-red-900/80 hover:text-white border border-red-800/50 transition-all font-bold text-[11px]" title="End Admin Session">
+                <span class="material-symbols-outlined text-sm">logout</span>
+                <span>Logout</span>
             </button>
         </div>
     </aside>
@@ -134,7 +156,7 @@
                 <p class="text-xs text-slate-500 mt-0.5">Live store management, customer orders, produce inventory, and promo engine.</p>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2.5 flex-wrap">
                 <div id="firebase-connection-badge">
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm">
                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -145,6 +167,11 @@
                         class="admin-btn admin-btn-secondary text-xs py-1.5 px-3" title="Sync live Firestore data">
                     <span class="material-symbols-outlined text-sm">sync</span>
                     <span>Sync</span>
+                </button>
+                <button onclick="AdminAuth.logout()" 
+                        class="admin-btn admin-btn-danger text-xs py-1.5 px-3 flex items-center gap-1.5 shadow-sm" title="End Admin Session">
+                    <span class="material-symbols-outlined text-sm">logout</span>
+                    <span class="font-bold">Session Logout</span>
                 </button>
             </div>
         </div>
