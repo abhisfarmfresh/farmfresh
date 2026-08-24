@@ -306,6 +306,12 @@ const AdminCore = {
                     title="Print Tax Invoice">
               <span class="material-symbols-outlined text-lg">print</span>
             </button>
+            <button type="button"
+                    data-order-id="${this.escapeHtml(order.id)}" 
+                    class="btn-delete-order p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                    title="Delete Order Permanently">
+              <span class="material-symbols-outlined text-lg">delete</span>
+            </button>
           </td>
         </tr>
       `;
@@ -324,6 +330,11 @@ const AdminCore = {
           AdminCore.printInvoice(printBtn.dataset.orderId);
           return;
         }
+        const delBtn = e.target.closest('.btn-delete-order');
+        if (delBtn && delBtn.dataset.orderId) {
+          AdminCore.deleteOrder(delBtn.dataset.orderId);
+          return;
+        }
       });
       tbody.addEventListener('change', (e) => {
         const select = e.target.closest('select[data-order-id]');
@@ -331,6 +342,36 @@ const AdminCore = {
           AdminCore.updateOrderStatus(select.dataset.orderId, select.value);
         }
       });
+    }
+  },
+
+  async deleteOrder(orderId) {
+    const order = this.orders.find(o => String(o.id) === String(orderId) || String(o.orderNumber) === String(orderId));
+    const orderNum = order ? (order.orderNumber || order.id) : orderId;
+
+    if (!confirm(`Are you sure you want to permanently delete order "${orderNum}"?\n\nThis will remove the order completely from Cloud Firestore database and cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      if (window.FirebaseApp) {
+        await window.FirebaseApp.deleteOrder(orderId);
+      }
+      if (window.OrderStorage) {
+        window.OrderStorage.delete(orderId);
+        if (order && order.orderNumber) {
+          window.OrderStorage.delete(order.orderNumber);
+        }
+      }
+
+      this.orders = this.orders.filter(o => String(o.id) !== String(orderId) && String(o.orderNumber) !== String(orderId));
+      this.closeModal('order-details-modal');
+      this.showToast(`Order "${orderNum}" deleted successfully`, 'info');
+      this.renderOrdersKPIs();
+      this.filterAndRenderOrders();
+    } catch (err) {
+      console.error('Failed to delete order:', err);
+      this.showToast('Failed to delete order: ' + err.message, 'error');
     }
   },
 
@@ -419,12 +460,18 @@ const AdminCore = {
           </div>
         </div>
 
-        <div class="flex items-center justify-between pt-4 border-t border-slate-100">
-          <a href="https://wa.me/${cleanPhone}?text=Hi%20${encodeURIComponent(customerName)}!%20Regarding%20your%20Abhis%20Farm%20Fresh%20Order%20${encodeURIComponent(order.orderNumber || order.id)}" 
-             target="_blank" class="admin-btn admin-btn-whatsapp text-xs font-bold">
-            <span class="material-symbols-outlined text-base">chat</span>
-            <span>WhatsApp Customer</span>
-          </a>
+        <div class="flex items-center justify-between pt-4 border-t border-slate-100 flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <a href="https://wa.me/${cleanPhone}?text=Hi%20${encodeURIComponent(customerName)}!%20Regarding%20your%20Abhis%20Farm%20Fresh%20Order%20${encodeURIComponent(order.orderNumber || order.id)}" 
+               target="_blank" class="admin-btn admin-btn-whatsapp text-xs font-bold">
+              <span class="material-symbols-outlined text-base">chat</span>
+              <span>WhatsApp Customer</span>
+            </a>
+            <button type="button" id="btn-modal-delete-order" class="admin-btn admin-btn-danger text-xs font-bold" title="Delete Order Permanently">
+              <span class="material-symbols-outlined text-base">delete</span>
+              <span>Delete Order</span>
+            </button>
+          </div>
           <button type="button" id="btn-modal-print-invoice" class="admin-btn admin-btn-primary text-xs font-bold">
             <span class="material-symbols-outlined text-base">print</span>
             <span>Print Tax Invoice</span>
@@ -436,6 +483,11 @@ const AdminCore = {
     const printModalBtn = document.getElementById('btn-modal-print-invoice');
     if (printModalBtn) {
       printModalBtn.addEventListener('click', () => this.printInvoice(order.id));
+    }
+
+    const deleteModalBtn = document.getElementById('btn-modal-delete-order');
+    if (deleteModalBtn) {
+      deleteModalBtn.addEventListener('click', () => this.deleteOrder(order.id));
     }
 
     this.openModal('order-details-modal');

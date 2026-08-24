@@ -195,6 +195,14 @@ function renderOrdersTable() {
               <span>View</span>
             </button>
 
+            <!-- Delete Order Button -->
+            <button type="button" 
+                    data-order-id="${Utils.escapeHtml(order.id)}" 
+                    class="btn-table-delete p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors" 
+                    title="Delete Order Permanently">
+              <span class="material-symbols-outlined text-base">delete</span>
+            </button>
+
             <!-- Quick Confirm if pending -->
             ${isPending ? `
               <button type="button" 
@@ -223,12 +231,46 @@ function renderOrdersTable() {
         openOrderModal(viewBtn.dataset.orderId);
         return;
       }
+      const delBtn = e.target.closest('.btn-table-delete');
+      if (delBtn && delBtn.dataset.orderId) {
+        deleteAdminOrder(delBtn.dataset.orderId);
+        return;
+      }
       const confBtn = e.target.closest('.btn-table-confirm');
       if (confBtn && confBtn.dataset.orderId) {
         showConfirmDialog(confBtn.dataset.orderId);
         return;
       }
     });
+  }
+}
+
+async function deleteAdminOrder(orderId) {
+  const order = allAdminOrders.find(o => o.id === orderId || o.orderNumber === orderId);
+  const orderNum = order ? (order.orderNumber || order.id) : orderId;
+
+  if (!confirm(`Are you sure you want to permanently delete order "${orderNum}"?\n\nThis will remove the order completely from Cloud Firestore database and cannot be undone.`)) {
+    return;
+  }
+
+  try {
+    if (window.FirebaseApp) {
+      await window.FirebaseApp.deleteOrder(orderId);
+    }
+    if (window.OrderStorage) {
+      window.OrderStorage.delete(orderId);
+      if (order && order.orderNumber) {
+        window.OrderStorage.delete(order.orderNumber);
+      }
+    }
+
+    allAdminOrders = allAdminOrders.filter(o => o.id !== orderId && o.orderNumber !== orderId);
+    closeOrderModal();
+    Utils.showToast(`Order ${orderNum} permanently deleted.`, 'info');
+    renderOrdersTable();
+  } catch (err) {
+    console.error('Error deleting order:', err);
+    Utils.showToast('Failed to delete order: ' + err.message, 'error');
   }
 }
 
