@@ -1505,23 +1505,58 @@ const AdminCore = {
       document.getElementById(id)?.addEventListener('change', () => this.updateBannerPreview());
     });
 
-    // Cloudinary Dropzone for Product Modal
+    // Cloudinary Dropzone for Product Modal (Fast Pre-Compressed Upload)
     this.setupDropzone('product-image-dropzone', 'product-file-input', async (file) => {
       const previewImg = document.getElementById('product-image-preview');
       const urlInput = document.getElementById('product-form-image-url');
+      const dropzone = document.getElementById('product-image-dropzone');
+      const originalDropzoneHtml = dropzone ? dropzone.innerHTML : '';
 
-      if (previewImg) previewImg.src = URL.createObjectURL(file);
+      // Instant local preview — 0ms perceived delay
+      if (previewImg) {
+        try {
+          previewImg.src = URL.createObjectURL(file);
+        } catch (e) {}
+      }
 
-      // Upload via Cloudinary / Local Fast Compression Fallback
+      if (dropzone) {
+        dropzone.classList.add('pointer-events-none', 'opacity-80');
+        dropzone.innerHTML = `
+          <span class="material-symbols-outlined text-3xl text-emerald-600 animate-spin">progress_activity</span>
+          <div class="text-xs font-bold text-emerald-700 mt-1" id="dropzone-status">Optimizing & Uploading...</div>
+          <div class="text-[10px] text-slate-400">High-speed compression active</div>
+        `;
+      }
+
+      // Upload via Cloudinary with client pre-compression
       if (window.CloudinaryService) {
-        this.showToast('Uploading produce image...', 'info');
-        const url = await window.CloudinaryService.uploadImage(file);
-        if (url) {
-          if (urlInput) urlInput.value = url;
-          if (previewImg) previewImg.src = url;
-          this.showToast('Produce image uploaded & ready!', 'success');
-        } else {
-          this.showToast('Image processing failed. Please select another image.', 'error');
+        try {
+          const url = await window.CloudinaryService.uploadImage(file, (statusText) => {
+            const statusEl = document.getElementById('dropzone-status');
+            if (statusEl) statusEl.textContent = statusText;
+          });
+
+          if (url) {
+            if (urlInput) urlInput.value = url;
+            if (previewImg) previewImg.src = url;
+            if (dropzone) {
+              dropzone.innerHTML = `
+                <span class="material-symbols-outlined text-3xl text-emerald-600">check_circle</span>
+                <div class="text-xs font-bold text-emerald-700 mt-1">Photo Uploaded!</div>
+                <div class="text-[10px] text-slate-400">Click to change photo</div>
+              `;
+            }
+            this.showToast('✅ Produce photo ready in <1s!', 'success');
+          } else {
+            if (dropzone) dropzone.innerHTML = originalDropzoneHtml;
+            this.showToast('Image processing failed. Please select another image.', 'error');
+          }
+        } catch (err) {
+          console.error('Upload error:', err);
+          if (dropzone) dropzone.innerHTML = originalDropzoneHtml;
+          this.showToast('Upload error: ' + err.message, 'error');
+        } finally {
+          if (dropzone) dropzone.classList.remove('pointer-events-none', 'opacity-80');
         }
       }
     });
