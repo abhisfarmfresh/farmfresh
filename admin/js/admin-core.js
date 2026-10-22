@@ -60,17 +60,34 @@ const AdminCore = {
 
   // ─── TAB ROUTING ────────────────────────────────────────
   setupTabRouting() {
-    const hash = window.location.hash.replace('#', '') || 'orders';
+    let hash = window.location.hash.replace('#', '') || 'orders';
+    if (hash === 'settings') {
+      hash = 'products';
+      window.location.hash = '#products';
+    }
     this.switchTab(hash);
 
     window.addEventListener('hashchange', () => {
-      const newHash = window.location.hash.replace('#', '') || 'orders';
+      let newHash = window.location.hash.replace('#', '') || 'orders';
+      if (newHash === 'settings') {
+        this.showToast('🔒 Cloud & Settings Hub is locked by Administrator.', 'warning');
+        newHash = this.activeTab && this.activeTab !== 'settings' ? this.activeTab : 'products';
+        window.location.hash = '#' + newHash;
+        return;
+      }
       this.switchTab(newHash);
     });
   },
 
   switchTab(tabId) {
-    const validTabs = ['orders', 'products', 'categories', 'inquiries', 'banner', 'settings'];
+    if (tabId === 'settings') {
+      this.showToast('🔒 Cloud & Settings Hub is locked by Administrator.', 'warning');
+      tabId = this.activeTab && this.activeTab !== 'settings' ? this.activeTab : 'products';
+      window.location.hash = '#' + tabId;
+      return;
+    }
+
+    const validTabs = ['orders', 'products', 'categories', 'inquiries', 'banner'];
     if (!validTabs.includes(tabId)) tabId = 'orders';
 
     this.activeTab = tabId;
@@ -1392,34 +1409,13 @@ const AdminCore = {
   },
 
   async syncCloudData() {
-    this.showToast('Syncing latest data from Cloud Firestore...', 'info');
-    try {
-      await this.loadAllData();
-      await this.renderSettingsTab();
-      this.renderCurrentTab();
-      this.showToast('✅ Cloud Firestore synced successfully! (abhisfarmfresh-3e7d3)', 'success');
-    } catch (err) {
-      console.warn('Sync error:', err);
-      this.showToast('Sync completed with local cache fallback.', 'info');
-    }
+    this.showToast('🔒 Cloud Sync is locked by Administrator.', 'warning');
+    return;
   },
 
   async syncLocalToCloud() {
-    if (!window.FirebaseApp || !window.FirebaseApp.isReady()) {
-      this.showToast('Firebase connecting... please try again in a moment.', 'info');
-      if (window.FirebaseApp) window.FirebaseApp.init();
-    }
-
-    const localProducts = window.ProductStorage ? window.ProductStorage.getAll() : this.products;
-    if (!localProducts || localProducts.length === 0) {
-      this.showToast('No products available to sync.', 'info');
-      return;
-    }
-
-    this.showToast(`Pushing ${localProducts.length} produce items to Cloud Firestore...`, 'info');
-    const seeded = await window.FirebaseApp.seedDefaultProducts(localProducts);
-    this.showToast(`✅ Successfully pushed ${seeded || localProducts.length} products to Cloud Firestore!`, 'success');
-    await this.renderSettingsTab();
+    this.showToast('🔒 Push to Cloud is locked by Administrator.', 'warning');
+    return;
   },
 
   async handleSettingsFormSubmit(e) {

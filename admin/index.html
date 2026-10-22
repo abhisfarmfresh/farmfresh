@@ -81,9 +81,9 @@
             <span class="material-symbols-outlined text-xl">campaign</span>
             <span>Banner</span>
         </a>
-        <a href="#settings" onclick="AdminCore.switchTab('settings')" class="flex flex-col items-center gap-1 p-1 hover:text-white">
-            <span class="material-symbols-outlined text-xl">settings</span>
-            <span>Hub</span>
+        <a href="#settings" onclick="event.preventDefault(); AdminCore.showToast('🔒 Cloud & Settings Hub is locked by Administrator.', 'warning'); return false;" class="flex flex-col items-center gap-1 p-1 text-slate-500 opacity-50 cursor-not-allowed" title="Cloud & Settings Hub is Locked">
+            <span class="material-symbols-outlined text-xl text-amber-400">lock</span>
+            <span>Locked</span>
         </a>
     </nav>
 
@@ -120,9 +120,10 @@
                 <span class="material-symbols-outlined text-lg">campaign</span>
                 <span>Promo Banner</span>
             </a>
-            <a href="#settings" onclick="AdminCore.switchTab('settings')" class="admin-sidebar-link" data-tab="settings">
-                <span class="material-symbols-outlined text-lg">settings</span>
-                <span>Cloud & Settings Hub</span>
+            <a href="#settings" onclick="event.preventDefault(); AdminCore.showToast('🔒 Cloud & Settings Hub is locked by Administrator.', 'warning'); return false;" class="admin-sidebar-link opacity-60 cursor-not-allowed group relative" data-tab="settings" title="Cloud & Settings Hub is Locked by Administrator">
+                <span class="material-symbols-outlined text-lg text-amber-400">lock</span>
+                <span class="flex-1">Cloud & Settings Hub</span>
+                <span class="text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded">Locked</span>
             </a>
 
             <div class="pt-6 border-t border-slate-800/80 mt-6">
@@ -163,10 +164,11 @@
                         <span>Firestore Live</span>
                     </span>
                 </div>
-                <button onclick="AdminCore.loadAllData().then(() => AdminCore.renderCurrentTab()); AdminCore.showToast('Data refreshed!', 'info');" 
-                        class="admin-btn admin-btn-secondary text-xs py-1.5 px-3" title="Sync live Firestore data">
-                    <span class="material-symbols-outlined text-sm">sync</span>
-                    <span>Sync</span>
+                <button type="button" disabled 
+                        class="admin-btn admin-btn-secondary text-xs py-1.5 px-3 opacity-40 cursor-not-allowed pointer-events-none select-none" 
+                        title="Sync disabled by Administrator">
+                    <span class="material-symbols-outlined text-sm text-slate-400">sync_disabled</span>
+                    <span class="text-slate-400 font-medium">Sync (Disabled)</span>
                 </button>
                 <button onclick="AdminAuth.logout()" 
                         class="admin-btn admin-btn-danger text-xs py-1.5 px-3 flex items-center gap-1.5 shadow-sm" title="End Admin Session">
@@ -451,51 +453,62 @@
         </div>
 
         <!-- ══════════════════════════════════════════════════════ -->
-        <!-- TAB 6: ⚙️ SETTINGS HUB                                -->
+        <!-- TAB 6: ⚙️ SETTINGS HUB (LOCKED BY ADMINISTRATOR)      -->
         <!-- ══════════════════════════════════════════════════════ -->
         <div id="tab-settings" class="admin-tab-pane space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Cloudinary Configuration -->
+            <!-- Locked Security Notice Banner -->
+            <div class="rounded-2xl bg-amber-50 border-2 border-amber-300 p-5 flex items-start gap-4 shadow-sm">
+                <div class="w-12 h-12 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-2xl font-bold">lock</span>
+                </div>
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-sm font-extrabold text-amber-950">Cloud & Settings Hub is Locked</h3>
+                        <span class="text-[10px] font-bold uppercase tracking-wider bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full border border-amber-300">Protected Mode</span>
+                    </div>
+                    <p class="text-xs text-amber-800 leading-relaxed">
+                        To prevent accidental changes to live store configurations, database resets, or Cloudinary credentials, this hub has been locked by the Administrator. All cloud resets and testing tools are disabled.
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pointer-events-none opacity-50 select-none">
+                <!-- Cloudinary Configuration (Locked) -->
                 <form id="settings-form" class="admin-card p-6 space-y-4">
                     <div class="flex items-center gap-3 border-b pb-3 border-slate-100">
-                        <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center">
-                            <span class="material-symbols-outlined text-xl">cloud_upload</span>
+                        <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-xl">lock</span>
                         </div>
                         <div>
-                            <h3 class="font-extrabold text-slate-900 text-sm">Cloudinary Image Hosting</h3>
+                            <h3 class="font-extrabold text-slate-900 text-sm">Cloudinary Image Hosting (Locked)</h3>
                             <p class="text-xs text-slate-500">Unsigned upload preset for direct produce photos.</p>
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">Cloud Name</label>
-                        <input type="text" id="settings-cloudinary-name" class="admin-input font-mono" value="abhisfarmfresh">
+                        <input type="text" id="settings-cloudinary-name" disabled class="admin-input font-mono bg-slate-100 cursor-not-allowed" value="abhisfarmfresh">
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">Upload Preset (Unsigned)</label>
-                        <input type="text" id="settings-cloudinary-preset" class="admin-input font-mono" value="jpnbyoak">
+                        <input type="text" id="settings-cloudinary-preset" disabled class="admin-input font-mono bg-slate-100 cursor-not-allowed" value="jpnbyoak">
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">Target Folder</label>
-                        <input type="text" id="settings-cloudinary-folder" class="admin-input font-mono" value="abhis/farmfresh">
+                        <input type="text" id="settings-cloudinary-folder" disabled class="admin-input font-mono bg-slate-100 cursor-not-allowed" value="abhis/farmfresh">
                     </div>
 
                     <div class="pt-2 flex items-center gap-3">
-                        <button type="submit" class="admin-btn admin-btn-primary flex-1 text-xs py-2">
-                            <span class="material-symbols-outlined text-sm">save</span>
-                            <span>Save Cloudinary Settings</span>
+                        <button type="button" disabled class="admin-btn admin-btn-secondary flex-1 text-xs py-2 opacity-60 cursor-not-allowed">
+                            <span class="material-symbols-outlined text-sm">lock</span>
+                            <span>Settings Locked</span>
                         </button>
-                    </div>
-
-                    <div class="pt-3 border-t border-slate-100">
-                        <label class="block text-xs font-bold text-slate-700 mb-2">Test Image Upload</label>
-                        <input type="file" id="cloudinary-test-file" accept="image/*" class="text-xs text-slate-500">
                     </div>
                 </form>
 
-                <!-- Firebase Live Cloud Connection & Diagnostics -->
+                <!-- Firebase Live Cloud Connection & Diagnostics (Locked) -->
                 <div class="admin-card p-6 space-y-4 flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between border-b pb-3 border-slate-100 mb-4">
@@ -508,9 +521,9 @@
                                     <p class="text-xs text-slate-500">Live project <code>abhisfarmfresh-3e7d3</code></p>
                                 </div>
                             </div>
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                <span>Live Cloud Active</span>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                <span class="material-symbols-outlined text-xs">lock</span>
+                                <span>Locked</span>
                             </span>
                         </div>
 
@@ -519,38 +532,33 @@
                             <!-- Populated dynamically -->
                         </div>
 
-                        <!-- Cloud Sync Actions -->
+                        <!-- Cloud Sync Actions (Disabled) -->
                         <div class="pt-3 grid grid-cols-2 gap-2">
-                            <button type="button" onclick="AdminCore.syncCloudData()" class="admin-btn admin-btn-primary text-xs py-2 justify-center" title="Fetch latest data from Cloud Firestore">
-                                <span class="material-symbols-outlined text-sm">sync</span>
-                                <span>Sync Cloud Data</span>
+                            <button type="button" disabled class="admin-btn admin-btn-secondary text-xs py-2 justify-center opacity-60 cursor-not-allowed">
+                                <span class="material-symbols-outlined text-sm">lock</span>
+                                <span>Sync Locked</span>
                             </button>
-                            <button type="button" onclick="AdminCore.syncLocalToCloud()" class="admin-btn admin-btn-secondary text-xs py-2 justify-center" title="Upload local catalog to Cloud Firestore">
-                                <span class="material-symbols-outlined text-sm">cloud_upload</span>
-                                <span>Push to Cloud</span>
+                            <button type="button" disabled class="admin-btn admin-btn-secondary text-xs py-2 justify-center opacity-60 cursor-not-allowed">
+                                <span class="material-symbols-outlined text-sm">lock</span>
+                                <span>Push Locked</span>
                             </button>
                         </div>
                     </div>
 
                     <div class="pt-4 border-t border-slate-100 space-y-2">
-                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Database & Testing Tools</h4>
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Database & Testing Tools (Locked)</h4>
                         <div class="flex flex-wrap gap-2">
-                            <button type="button" onclick="AdminCore.clearAllTestOrders()" class="admin-btn text-xs py-2 px-3 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200" title="Delete all test orders from Cloud Firestore & local storage">
-                                <span class="material-symbols-outlined text-sm">delete_sweep</span>
-                                <span>Clear Test Orders</span>
+                            <button type="button" disabled class="admin-btn text-xs py-2 px-3 bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed">
+                                <span class="material-symbols-outlined text-sm">lock</span>
+                                <span>Clear Orders (Locked)</span>
                             </button>
-                            <button type="button" onclick="AdminCore.resetProduceDefaults()" class="admin-btn admin-btn-secondary text-xs py-2" title="Restore default vegetable catalogue">
-                                <span class="material-symbols-outlined text-sm">spa</span>
-                                <span>Reset Produce Defaults</span>
+                            <button type="button" disabled class="admin-btn text-xs py-2 px-3 bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed">
+                                <span class="material-symbols-outlined text-sm">lock</span>
+                                <span>Reset Defaults (Locked)</span>
                             </button>
-                            <button type="button" onclick="AdminCore.resetCategoriesDefaults()" class="admin-btn admin-btn-secondary text-xs py-2" title="Restore default produce categories">
-                                <span class="material-symbols-outlined text-sm">category</span>
-                                <span>Reset Categories</span>
-                            </button>
-                            <button type="button" onclick="localStorage.removeItem('aff_products_store'); localStorage.removeItem('aff_deleted_product_ids'); localStorage.removeItem('aff_deleted_orders'); AdminCore.showToast('Product & order cache cleared.', 'info'); AdminCore.loadAllData().then(() => AdminCore.renderCurrentTab());" 
-                                    class="admin-btn admin-btn-secondary text-xs py-2">
-                                <span class="material-symbols-outlined text-sm">cleaning_services</span>
-                                <span>Clear Local Cache</span>
+                            <button type="button" disabled class="admin-btn text-xs py-2 px-3 bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed">
+                                <span class="material-symbols-outlined text-sm">lock</span>
+                                <span>Reset Categories (Locked)</span>
                             </button>
                         </div>
                     </div>
