@@ -202,10 +202,13 @@ const AdminCore = {
       } else {
         const stored = localStorage.getItem('aff_cloudinary_settings');
         this.cloudinarySettings = stored ? JSON.parse(stored) : {
-          cloudName: 'abhisfarmfresh',
+          cloudName: 'jpnbyoak',
           uploadPreset: 'jpnbyoak',
           folder: 'abhis/farmfresh'
         };
+        if (this.cloudinarySettings && this.cloudinarySettings.cloudName === 'abhisfarmfresh') {
+          this.cloudinarySettings.cloudName = 'jpnbyoak';
+        }
       }
     } catch (err) {
       console.warn('Data load warning:', err);
@@ -1355,7 +1358,7 @@ const AdminCore = {
       const cPreset = document.getElementById('settings-cloudinary-preset');
       const cFolder = document.getElementById('settings-cloudinary-folder');
 
-      if (cName) cName.value = this.cloudinarySettings.cloudName || 'abhisfarmfresh';
+      if (cName) cName.value = (this.cloudinarySettings.cloudName === 'abhisfarmfresh' ? 'jpnbyoak' : (this.cloudinarySettings.cloudName || 'jpnbyoak'));
       if (cPreset) cPreset.value = this.cloudinarySettings.uploadPreset || 'jpnbyoak';
       if (cFolder) cFolder.value = this.cloudinarySettings.folder || 'abhis/farmfresh';
     }
@@ -1420,7 +1423,7 @@ const AdminCore = {
 
   async handleSettingsFormSubmit(e) {
     e.preventDefault();
-    const cloudName = document.getElementById('settings-cloudinary-name')?.value?.trim() || 'abhisfarmfresh';
+    const cloudName = document.getElementById('settings-cloudinary-name')?.value?.trim() || 'jpnbyoak';
     const uploadPreset = document.getElementById('settings-cloudinary-preset')?.value?.trim() || 'jpnbyoak';
     const folder = document.getElementById('settings-cloudinary-folder')?.value?.trim() || 'abhis/farmfresh';
 

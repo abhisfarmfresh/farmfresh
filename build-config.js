@@ -101,7 +101,7 @@ console.log('✅ Successfully generated js/firebase-config.js from environment v
 
 // 2. Read Cloudinary Environment Variables
 const cloudinaryConfig = {
-  cloudName: process.env.CLOUDINARY_CLOUD_NAME || "abhisfarmfresh",
+  cloudName: process.env.CLOUDINARY_CLOUD_NAME || "jpnbyoak",
   uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET || "jpnbyoak",
   folder: process.env.CLOUDINARY_FOLDER || "abhis/farmfresh"
 };

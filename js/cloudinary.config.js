@@ -3,7 +3,7 @@
  */
 
 const CLOUDINARY_CONFIG = {
-  "cloudName": "abhisfarmfresh",
+  "cloudName": "jpnbyoak",
   "uploadPreset": "jpnbyoak",
   "folder": "abhis/farmfresh"
 };

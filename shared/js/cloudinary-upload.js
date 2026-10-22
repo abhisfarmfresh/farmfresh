@@ -8,7 +8,7 @@
   'use strict';
 
   const DEFAULT_CONFIG = {
-    cloudName: 'abhisfarmfresh',
+    cloudName: 'jpnbyoak',
     uploadPreset: 'jpnbyoak',
     folder: 'abhis/farmfresh'
   };
@@ -22,12 +22,21 @@
         const stored = localStorage.getItem('aff_cloudinary_settings');
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (parsed && parsed.cloudName) return { ...DEFAULT_CONFIG, ...parsed };
+          if (parsed) {
+            // Self-healing migration for previously misconfigured cloud name
+            if (parsed.cloudName === 'abhisfarmfresh' || !parsed.cloudName) {
+              parsed.cloudName = 'jpnbyoak';
+              try { localStorage.setItem('aff_cloudinary_settings', JSON.stringify(parsed)); } catch (e) {}
+            }
+            return { ...DEFAULT_CONFIG, ...parsed };
+          }
         }
       } catch (e) {}
 
       if (window.CLOUDINARY_CONFIG && window.CLOUDINARY_CONFIG.cloudName) {
-        return { ...DEFAULT_CONFIG, ...window.CLOUDINARY_CONFIG };
+        const winConfig = { ...window.CLOUDINARY_CONFIG };
+        if (winConfig.cloudName === 'abhisfarmfresh') winConfig.cloudName = 'jpnbyoak';
+        return { ...DEFAULT_CONFIG, ...winConfig };
       }
 
       return DEFAULT_CONFIG;

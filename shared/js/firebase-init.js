@@ -1443,11 +1443,14 @@ const FirebaseApp = {
 
   async getAppSettings() {
     const defaultSettings = {
-      cloudName: 'abhisfarmfresh',
+      cloudName: 'jpnbyoak',
       uploadPreset: 'jpnbyoak',
       folder: 'abhis/farmfresh'
     };
     const doc = await this._restGet('settings', 'cloudinary');
+    if (doc && doc.cloudName === 'abhisfarmfresh') {
+      doc.cloudName = 'jpnbyoak';
+    }
     return doc ? { ...defaultSettings, ...doc } : defaultSettings;
   },
 

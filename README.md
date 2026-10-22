@@ -8,7 +8,7 @@ Premium fresh vegetables delivered to restaurants, hotels, catering businesses, 
 - **Admin CRM**: Desktop-first responsive dashboard with Firebase Auth, Order Verification & Product/Price CRUD
 - **Database**: Google Firebase Firestore (`abhisfarmfresh-3e7d3`)
 - **Authentication**: Firebase Authentication
-- **Media CDN**: Cloudinary Unsigned Upload (Preset: `jpnbyoak`, Folder: `abhis/farmfresh`)
+- **Media CDN**: Cloudinary Unsigned Upload (Cloud Name: `jpnbyoak`, Preset: `jpnbyoak`, Folder: `abhis/farmfresh`)
 - **Messaging**: Pre-filled WhatsApp direct ordering (`6380710362`)
 - **Transactional Emails**: EmailJS SDK integration for Order Confirmation & Rejection notifications
 - **Deployment**: Cloudflare Pages / Static Hosting
