@@ -1031,20 +1031,8 @@ const AdminCore = {
   },
 
   async resetProduceDefaults() {
-    if (!confirm('🌱 Reset vegetable produce catalogue to factory defaults? This will restore all default vegetables.')) return;
-    try {
-      if (window.FirebaseApp && typeof window.FirebaseApp.resetProduceToDefaults === 'function') {
-        await window.FirebaseApp.resetProduceToDefaults();
-      } else if (window.ProductStorage) {
-        window.ProductStorage.resetToDefaults();
-      }
-      await this.loadAllData();
-      this.renderProductsTab();
-      this.showToast('Vegetable catalogue reset to factory defaults ✓', 'success');
-    } catch (err) {
-      console.error('Error resetting produce:', err);
-      this.showToast('Failed to reset produce: ' + err.message, 'error');
-    }
+    this.showToast('🔒 Reset to Defaults is disabled by Administrator to protect live products.', 'warning');
+    return;
   },
 
   // ─── TAB 3: CATEGORY CMS ────────────────────────────────
@@ -1179,21 +1167,8 @@ const AdminCore = {
   },
 
   async resetCategoriesDefaults() {
-    if (!confirm('Reset product categories to system defaults?')) return;
-    try {
-      if (window.FirebaseApp && typeof window.FirebaseApp.resetCategoriesToDefaults === 'function') {
-        await window.FirebaseApp.resetCategoriesToDefaults();
-      } else if (window.CategoryStorage) {
-        window.CategoryStorage.resetToDefaults();
-      }
-      await this.loadAllData();
-      this.renderCategoriesTab();
-      this.populateCategorySelects();
-      this.showToast('Categories reset to defaults ✓', 'success');
-    } catch (err) {
-      console.error('Error resetting categories:', err);
-      this.showToast('Failed to reset categories: ' + err.message, 'error');
-    }
+    this.showToast('🔒 Reset to Defaults is disabled by Administrator to protect live categories.', 'warning');
+    return;
   },
 
   // ─── TAB 4: CUSTOMER INQUIRIES & LEADS CMS ──────────────

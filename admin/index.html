@@ -289,9 +289,9 @@
                         <select id="products-category-filter" class="admin-input text-xs py-1.5 px-3 w-40 font-semibold">
                             <option value="all">All Categories</option>
                         </select>
-                        <button onclick="AdminCore.resetProduceDefaults()" class="admin-btn admin-btn-secondary text-xs py-2 px-3" title="Restore factory vegetable defaults">
-                            <span class="material-symbols-outlined text-sm">restart_alt</span>
-                            <span>Reset Defaults</span>
+                        <button disabled class="admin-btn admin-btn-secondary text-xs py-2 px-3 opacity-40 cursor-not-allowed pointer-events-none" title="Reset Defaults is locked by Administrator to protect live store products">
+                            <span class="material-symbols-outlined text-sm">lock</span>
+                            <span>Reset (Disabled)</span>
                         </button>
                         <button onclick="AdminCore.openAddProductModal()" class="admin-btn admin-btn-primary text-xs py-2 px-4 shadow-sm">
                             <span class="material-symbols-outlined text-sm">add_circle</span>
@@ -317,9 +317,9 @@
                         <p class="text-xs text-slate-500">Configure storefront categories, icons, and display ordering.</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="AdminCore.resetCategoriesDefaults()" class="admin-btn admin-btn-secondary text-xs py-2 px-3" title="Restore default categories">
-                            <span class="material-symbols-outlined text-sm">restart_alt</span>
-                            <span>Reset Defaults</span>
+                        <button disabled class="admin-btn admin-btn-secondary text-xs py-2 px-3 opacity-40 cursor-not-allowed pointer-events-none" title="Reset Defaults is locked by Administrator to protect live categories">
+                            <span class="material-symbols-outlined text-sm">lock</span>
+                            <span>Reset (Disabled)</span>
                         </button>
                         <button onclick="AdminCore.openAddCategoryModal()" class="admin-btn admin-btn-primary text-xs py-2 px-4">
                             <span class="material-symbols-outlined text-sm">add</span>
@@ -752,11 +752,11 @@
     <div id="admin-toast-container"></div>
 
     <!-- Scripts (Versioned for Instant Mobile Live Updates) -->
-    <script src="../shared/js/config.js?v=2.4.0"></script>
-    <script src="../shared/js/firebase-init.js?v=2.4.0"></script>
-    <script src="../shared/js/cloudinary-upload.js?v=2.4.0"></script>
-    <script src="../shared/js/default-products.js?v=2.4.0"></script>
-    <script src="js/admin-auth.js?v=2.4.0"></script>
-    <script src="js/admin-core.js?v=2.4.0"></script>
+    <script src="../shared/js/config.js?v=2.6.0"></script>
+    <script src="../shared/js/firebase-init.js?v=2.6.0"></script>
+    <script src="../shared/js/cloudinary-upload.js?v=2.6.0"></script>
+    <script src="../shared/js/default-products.js?v=2.6.0"></script>
+    <script src="js/admin-auth.js?v=2.6.0"></script>
+    <script src="js/admin-core.js?v=2.6.0"></script>
 </body>
 </html>
