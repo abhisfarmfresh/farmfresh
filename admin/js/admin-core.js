@@ -29,6 +29,17 @@ const AdminCore = {
       });
     }
 
+    // Real-time Inquiries & Leads synchronization
+    if (window.FirebaseApp && typeof window.FirebaseApp.subscribeToInquiries === 'function') {
+      window.FirebaseApp.subscribeToInquiries((latestInquiries) => {
+        if (latestInquiries && Array.isArray(latestInquiries)) {
+          this.inquiries = latestInquiries;
+          this.renderInquiriesKPIs();
+          this.filterAndRenderInquiries();
+        }
+      });
+    }
+
     // Listen for customer inquiries/leads in real time across browser tabs
     window.addEventListener('storage', (e) => {
       if (e.key === 'aff_inquiries_store') {
@@ -172,12 +183,12 @@ const AdminCore = {
         : ((window.AFF_CONFIG && window.AFF_CONFIG.categories) ? [...window.AFF_CONFIG.categories] : []);
 
       // 3. Orders (Pure real Firestore + OrderStorage, NO dummy mock data)
-      this.orders = (ordRes.status === 'fulfilled' && Array.isArray(ordRes.value))
+      this.orders = (ordRes.status === 'fulfilled' && Array.isArray(ordRes.value) && ordRes.value.length > 0)
         ? ordRes.value
         : (window.OrderStorage ? window.OrderStorage.getAll() : []);
 
       // 4. Inquiries (Pure real Firestore + InquiryStorage, NO dummy mock data)
-      this.inquiries = (inqRes.status === 'fulfilled' && Array.isArray(inqRes.value))
+      this.inquiries = (inqRes.status === 'fulfilled' && Array.isArray(inqRes.value) && inqRes.value.length > 0)
         ? inqRes.value
         : (window.InquiryStorage ? window.InquiryStorage.getAll() : []);
 
@@ -1036,7 +1047,21 @@ const AdminCore = {
   },
 
   // ─── TAB 3: CATEGORY CMS ────────────────────────────────
-  renderCategoriesTab() {
+  async renderCategoriesTab() {
+    this._renderCategoriesGrid();
+    if (window.FirebaseApp) {
+      try {
+        const fresh = await window.FirebaseApp.getCategories();
+        if (fresh && Array.isArray(fresh) && fresh.length > 0) {
+          this.categories = fresh;
+          this._renderCategoriesGrid();
+          this.populateCategorySelects();
+        }
+      } catch (e) {}
+    }
+  },
+
+  _renderCategoriesGrid() {
     const list = document.getElementById('categories-grid');
     if (!list) return;
 
@@ -1172,9 +1197,19 @@ const AdminCore = {
   },
 
   // ─── TAB 4: CUSTOMER INQUIRIES & LEADS CMS ──────────────
-  renderInquiriesTab() {
+  async renderInquiriesTab() {
     this.renderInquiriesKPIs();
     this.filterAndRenderInquiries();
+    if (window.FirebaseApp) {
+      try {
+        const fresh = await window.FirebaseApp.getInquiries();
+        if (fresh && Array.isArray(fresh) && fresh.length > 0) {
+          this.inquiries = fresh;
+          this.renderInquiriesKPIs();
+          this.filterAndRenderInquiries();
+        }
+      } catch (e) {}
+    }
   },
 
   renderInquiriesKPIs() {
@@ -1372,9 +1407,8 @@ const AdminCore = {
 
     if (window.FirebaseApp && window.FirebaseApp.isReady()) {
       await window.FirebaseApp.saveBannerSettings(bannerData);
-    } else {
-      localStorage.setItem('aff_promo_banner', JSON.stringify(bannerData));
     }
+    localStorage.setItem('aff_promo_banner', JSON.stringify(bannerData));
 
     this.bannerSettings = bannerData;
     this.showToast('Announcement banner saved & updated across store!', 'success');

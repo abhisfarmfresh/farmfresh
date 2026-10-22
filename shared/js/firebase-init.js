@@ -167,9 +167,33 @@ const FirebaseApp = {
     return { fields };
   },
 
+  async _getAuthHeaders(customHeaders = {}) {
+    const headers = {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      ...customHeaders
+    };
+    try {
+      let user = null;
+      if (this.auth && this.auth.currentUser) {
+        user = this.auth.currentUser;
+      } else if (typeof firebase !== 'undefined' && firebase.apps?.length && firebase.auth) {
+        user = firebase.auth().currentUser;
+      }
+      if (user && typeof user.getIdToken === 'function') {
+        const token = await user.getIdToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+    } catch (e) {}
+    return headers;
+  },
+
   async _restGet(collection, docId) {
     try {
-      const res = await fetch(`${this._restBaseUrl}/${collection}/${encodeURIComponent(docId)}`);
+      const headers = await this._getAuthHeaders();
+      const res = await fetch(`${this._restBaseUrl}/${collection}/${encodeURIComponent(docId)}`, { headers });
       if (res.status === 404) return null;
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const doc = await res.json();
@@ -184,13 +208,11 @@ const FirebaseApp = {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 9000);
+      const headers = await this._getAuthHeaders();
       const url = `${this._restBaseUrl}/${collection}?pageSize=${pageSize}&_t=${Date.now()}`;
       const res = await fetch(url, {
         cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
+        headers,
         signal: controller.signal
       });
       clearTimeout(timeoutId);
@@ -205,7 +227,7 @@ const FirebaseApp = {
         pages++;
         try {
           const nextUrl = `${this._restBaseUrl}/${collection}?pageSize=${pageSize}&pageToken=${encodeURIComponent(nextPageToken)}&_t=${Date.now()}`;
-          const nextRes = await fetch(nextUrl, { cache: 'no-store' });
+          const nextRes = await fetch(nextUrl, { cache: 'no-store', headers });
           if (nextRes.ok) {
             const nextData = await nextRes.json();
             if (nextData.documents) {
@@ -230,9 +252,10 @@ const FirebaseApp = {
   async _restSet(collection, docId, data) {
     try {
       const payload = this._encodeRestDoc(data);
+      const headers = await this._getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`${this._restBaseUrl}/${collection}/${encodeURIComponent(docId)}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -246,8 +269,10 @@ const FirebaseApp = {
 
   async _restDelete(collection, docId) {
     try {
+      const headers = await this._getAuthHeaders();
       const res = await fetch(`${this._restBaseUrl}/${collection}/${encodeURIComponent(docId)}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       });
       return res.ok;
     } catch (err) {
@@ -820,7 +845,20 @@ const FirebaseApp = {
       try {
         const snap = await this.db.collection('orders').orderBy('createdAt', 'desc').get();
         rawList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      } catch (e) {}
+      } catch (e) {
+        try {
+          const snap = await this.db.collection('orders').get();
+          rawList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e2) {}
+      }
+    }
+
+    // 3. Fallback to cached local OrderStorage if remote returned empty
+    if (rawList.length === 0 && window.OrderStorage) {
+      const cached = window.OrderStorage.getAll();
+      if (cached && cached.length > 0) {
+        rawList = cached;
+      }
     }
 
     const orders = rawList
@@ -837,7 +875,7 @@ const FirebaseApp = {
         return tb - ta;
       });
 
-    if (window.OrderStorage) {
+    if (orders.length > 0 && window.OrderStorage) {
       window.OrderStorage.saveAll(orders);
     }
 
@@ -1172,7 +1210,12 @@ const FirebaseApp = {
       try {
         const snap = await this.db.collection('categories').orderBy('order', 'asc').get();
         list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      } catch (e) {}
+      } catch (e) {
+        try {
+          const snap = await this.db.collection('categories').get();
+          list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e2) {}
+      }
     }
 
     if (!list || list.length === 0) {
@@ -1293,28 +1336,103 @@ const FirebaseApp = {
       try {
         const snap = await this.db.collection('inquiries').orderBy('createdAt', 'desc').get();
         list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      } catch (e) {}
+      } catch (e) {
+        try {
+          const snap = await this.db.collection('inquiries').get();
+          list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e2) {}
+      }
+    }
+
+    if (list.length === 0 && window.InquiryStorage) {
+      const cached = window.InquiryStorage.getAll();
+      if (cached && cached.length > 0) {
+        list = cached;
+      }
     }
 
     const normalized = list
       .filter(i => i && !deletedInqIds.includes(String(i.id)) && !i.isDeleted && i.status !== 'deleted')
-      .map(i => ({
-        id: i.id,
-        name: i.name || 'Visitor',
-        phone: i.phone || '',
-        email: i.email || '',
-        shopName: i.shopName || '',
-        message: i.message || '',
-        status: i.status || 'unread',
-        createdAt: (i.createdAt instanceof Date) ? i.createdAt : (i.createdAt ? new Date(i.createdAt) : new Date())
-      }))
+      .map(i => {
+        let createdAt = i.createdAt;
+        if (createdAt && typeof createdAt.toDate === 'function') createdAt = createdAt.toDate();
+        else if (typeof createdAt === 'string' || typeof createdAt === 'number') createdAt = new Date(createdAt);
+        else if (!(createdAt instanceof Date)) createdAt = new Date();
+
+        return {
+          id: i.id,
+          name: i.name || 'Visitor',
+          phone: i.phone || '',
+          email: i.email || '',
+          shopName: i.shopName || '',
+          message: i.message || '',
+          status: i.status || 'unread',
+          createdAt
+        };
+      })
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-    if (window.InquiryStorage) {
+    if (normalized.length > 0 && window.InquiryStorage) {
       window.InquiryStorage.saveAll(normalized);
     }
 
     return normalized;
+  },
+
+  /**
+   * Subscribe to real-time customer inquiries / leads updates
+   */
+  subscribeToInquiries(callback) {
+    if (typeof callback !== 'function') return () => {};
+
+    let unsubscribeFirestore = () => {};
+
+    if (this.db) {
+      try {
+        unsubscribeFirestore = this.db.collection('inquiries')
+          .orderBy('createdAt', 'desc')
+          .onSnapshot(snap => {
+            const deletedInqIds = (window.InquiryStorage && typeof window.InquiryStorage.getDeletedIds === 'function')
+              ? window.InquiryStorage.getDeletedIds().map(String)
+              : [];
+            const list = snap.docs
+              .map(doc => ({ id: doc.id, ...doc.data() }))
+              .filter(i => i && !deletedInqIds.includes(String(i.id)) && !i.isDeleted && i.status !== 'deleted')
+              .map(i => {
+                let createdAt = i.createdAt;
+                if (createdAt && typeof createdAt.toDate === 'function') createdAt = createdAt.toDate();
+                else if (typeof createdAt === 'string' || typeof createdAt === 'number') createdAt = new Date(createdAt);
+                else if (!(createdAt instanceof Date)) createdAt = new Date();
+                return {
+                  id: i.id,
+                  name: i.name || 'Visitor',
+                  phone: i.phone || '',
+                  email: i.email || '',
+                  shopName: i.shopName || '',
+                  message: i.message || '',
+                  status: i.status || 'unread',
+                  createdAt
+                };
+              })
+              .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+            if (list.length > 0 && window.InquiryStorage) window.InquiryStorage.saveAll(list);
+            callback(list);
+          }, () => {});
+      } catch (e) {}
+    }
+
+    // Polling fallback every 15 seconds to ensure cross-device synchronization
+    const pollTimer = setInterval(async () => {
+      try {
+        const updated = await this.getInquiries();
+        if (updated && Array.isArray(updated)) callback(updated);
+      } catch (e) {}
+    }, 15000);
+
+    return () => {
+      try { unsubscribeFirestore(); } catch (e) {}
+      clearInterval(pollTimer);
+    };
   },
 
   /**
@@ -1438,6 +1556,14 @@ const FirebaseApp = {
     const now = new Date();
     const payload = { ...bannerData, updatedAt: now };
     await this._restSet('settings', 'banner', payload);
+    if (this.db) {
+      try {
+        await this.db.collection('settings').doc('banner').set(this._cleanForFirestore({
+          ...payload,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }), { merge: true });
+      } catch (e) {}
+    }
     return true;
   },
 

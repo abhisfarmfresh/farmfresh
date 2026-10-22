@@ -320,36 +320,66 @@
     </footer>
 
     <!-- Scripts -->
-    <script src="shared/js/config.js"></script>
-    <script src="shared/js/firebase-init.js"></script>
-    <script src="shared/js/utils.js"></script>
-    <script src="shared/js/whatsapp.js"></script>
-    <script src="js/cart.js"></script>
-    <script src="js/app.js"></script>
+    <script src="shared/js/config.js?v=2.4.0"></script>
+    <script src="shared/js/default-products.js?v=2.4.0"></script>
+    <script src="shared/js/firebase-init.js?v=2.4.0"></script>
+    <script src="shared/js/utils.js?v=2.4.0"></script>
+    <script src="shared/js/whatsapp.js?v=2.4.0"></script>
+    <script src="js/cart.js?v=2.4.0"></script>
+    <script src="js/app.js?v=2.4.0"></script>
 
     <script>
     document.getElementById('contact-inquiry-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type="submit"]');
-        const name = document.getElementById('inquiry-name').value.trim();
-        const phone = document.getElementById('inquiry-phone').value.trim();
-        const msg = document.getElementById('inquiry-msg').value.trim();
+        const name = (document.getElementById('inquiry-name')?.value || '').trim();
+        const phone = (document.getElementById('inquiry-phone')?.value || '').trim();
+        const msg = (document.getElementById('inquiry-msg')?.value || '').trim();
+
+        if (name.length < 2) {
+            if (window.Utils && window.Utils.showToast) window.Utils.showToast('Please enter your full name or business name', 'warning');
+            else alert('Please enter your name or business name (min 2 characters)');
+            document.getElementById('inquiry-name')?.focus();
+            return;
+        }
+
+        const cleanPhone = phone.replace(/\D/g, '');
+        if (cleanPhone.length < 8) {
+            if (window.Utils && window.Utils.showToast) window.Utils.showToast('Please enter a valid phone number (at least 8 digits)', 'warning');
+            else alert('Please enter a valid phone number');
+            document.getElementById('inquiry-phone')?.focus();
+            return;
+        }
+
+        if (msg.length < 3) {
+            if (window.Utils && window.Utils.showToast) window.Utils.showToast('Please enter your inquiry requirement', 'warning');
+            else alert('Please enter your requirement message (min 3 characters)');
+            document.getElementById('inquiry-msg')?.focus();
+            return;
+        }
 
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> Sending Inquiry...`;
         }
 
-        // Save lead to Firestore inquiries collection
+        const leadPayload = {
+            name,
+            phone,
+            message: msg,
+            source: 'contact_page_form',
+            status: 'unread'
+        };
+
+        // 1. Mirror into InquiryStorage for instant local Admin CRM availability
+        if (window.InquiryStorage) {
+            window.InquiryStorage.upsert(leadPayload);
+        }
+
+        // 2. Save lead to Firestore inquiries collection
         try {
             if (window.FirebaseApp) {
-                await window.FirebaseApp.addInquiry({
-                    name,
-                    phone,
-                    message: msg,
-                    source: 'contact_page_form',
-                    status: 'unread'
-                });
+                await window.FirebaseApp.addInquiry(leadPayload);
             }
         } catch (err) {
             console.warn('Inquiry Firestore log error:', err);
