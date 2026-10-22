@@ -800,7 +800,7 @@ const AdminCore = {
     setVal('product-form-id', '');
     setVal('product-form-image-url', '');
     const titleEl = document.getElementById('product-modal-title');
-    if (titleEl) titleEl.textContent = 'Add New Fresh Produce';
+    if (titleEl) titleEl.textContent = 'Add New Product';
     
     const previewEl = document.getElementById('product-image-preview');
     if (previewEl) previewEl.src = '../images/farm_fresh_media_01.jpeg';
@@ -825,7 +825,7 @@ const AdminCore = {
     };
 
     const titleEl = document.getElementById('product-modal-title');
-    if (titleEl) titleEl.textContent = 'Edit Produce Details';
+    if (titleEl) titleEl.textContent = 'Edit Product Details';
 
     setVal('product-form-id', p.id);
     setVal('product-form-name', p.name);
@@ -874,7 +874,7 @@ const AdminCore = {
   async handleProductFormSubmit(e) {
     e.preventDefault();
     const saveBtn = e.target.querySelector('button[type="submit"]');
-    const originalBtnText = saveBtn ? saveBtn.innerHTML : 'Save Produce';
+    const originalBtnText = saveBtn ? saveBtn.innerHTML : 'Save Product';
 
     const getVal = (id) => document.getElementById(id)?.value?.trim() || '';
 
