@@ -1539,20 +1539,20 @@ const AdminCore = {
             if (statusEl) statusEl.textContent = statusText;
           });
 
-          if (url) {
+          if (url && (url.startsWith('https://res.cloudinary.com') || url.startsWith('http'))) {
             if (urlInput) urlInput.value = url;
             if (previewImg) previewImg.src = url;
             if (dropzone) {
               dropzone.innerHTML = `
-                <span class="material-symbols-outlined text-3xl text-emerald-600">check_circle</span>
-                <div class="text-xs font-bold text-emerald-700 mt-1">Photo Uploaded!</div>
+                <span class="material-symbols-outlined text-3xl text-emerald-600">cloud_done</span>
+                <div class="text-xs font-bold text-emerald-700 mt-1">Uploaded to Cloudinary!</div>
                 <div class="text-[10px] text-slate-400">Click to change photo</div>
               `;
             }
-            this.showToast('✅ Produce photo ready in <1s!', 'success');
+            this.showToast('☁️ Uploaded to Cloudinary successfully!', 'success');
           } else {
             if (dropzone) dropzone.innerHTML = originalDropzoneHtml;
-            this.showToast('Image processing failed. Please select another image.', 'error');
+            this.showToast('❌ Cloudinary upload failed. Please try again.', 'error');
           }
         } catch (err) {
           console.error('Upload error:', err);

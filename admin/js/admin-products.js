@@ -476,31 +476,26 @@ async function handleProductFormSubmit(e) {
   let imageUrl = document.getElementById('prod-image-url').value.trim();
   const status = document.getElementById('prod-status').value;
 
-  // Handle Image File Upload or compression
+  // Handle Image File Upload (Strictly to Cloudinary CDN)
   const fileInput = document.getElementById('prod-image-file');
   if (fileInput && fileInput.files.length > 0) {
     const file = fileInput.files[0];
     let uploadedUrl = null;
 
-    // 1. Try Cloudinary if available
     if (window.CloudinaryService) {
       try {
-        Utils.showToast('Uploading image to Cloudinary...', 'info');
+        Utils.showToast('Uploading produce photo to Cloudinary...', 'info');
         uploadedUrl = await window.CloudinaryService.uploadImage(file);
       } catch (err) {
-        console.warn('Cloudinary upload warning:', err);
+        console.error('Cloudinary upload error:', err);
       }
     }
 
-    // 2. Fallback to client-side compressed Data URL
-    if (uploadedUrl) {
+    if (uploadedUrl && (uploadedUrl.startsWith('https://res.cloudinary.com') || uploadedUrl.startsWith('http'))) {
       imageUrl = uploadedUrl;
-    } else if (window.Utils && window.Utils.compressImageFile) {
-      Utils.showToast('Compressing and preparing photo...', 'info');
-      const compressed = await Utils.compressImageFile(file, 800, 0.85);
-      if (compressed) {
-        imageUrl = compressed;
-      }
+    } else {
+      Utils.showToast('❌ Image upload to Cloudinary failed. Please check internet and try again.', 'error');
+      return; // Strictly abort: never save un-uploaded or Base64 images to database
     }
   }
 

@@ -164,20 +164,15 @@
           if (typeof onProgress === 'function') onProgress('Upload complete!', 100);
           return optimizedUrl;
         } else {
-          console.warn('Cloudinary upload returned non-URL response:', data);
+          console.error('Cloudinary upload returned error:', data);
+          if (typeof onProgress === 'function') onProgress('Cloudinary upload failed', 0);
+          return null;
         }
       } catch (cloudErr) {
-        console.warn('Cloudinary network upload timed out or failed, using instant compressed image:', cloudErr.message);
+        console.error('Cloudinary network upload failed:', cloudErr.message);
+        if (typeof onProgress === 'function') onProgress('Cloudinary upload failed', 0);
+        return null;
       }
-
-      // 3. Fallback: Instant high-quality compressed Data URL
-      if (instantDataUrl) {
-        console.log('📸 Using instant high-performance compressed image fallback');
-        if (typeof onProgress === 'function') onProgress('Image ready!', 100);
-        return instantDataUrl;
-      }
-
-      return null;
     }
   };
 
