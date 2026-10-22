@@ -170,6 +170,8 @@
                     </div>
 
                     <form id="contact-inquiry-form" class="space-y-4">
+                        <!-- Anti-Bot Traffic Honeypot -->
+                        <input type="text" name="b_company_fax" id="b_company_fax" style="display:none !important; position:absolute; left:-9999px;" tabindex="-1" autocomplete="off" aria-hidden="true">
                         <div>
                             <label class="form-label" for="inquiry-name">Your Name / Business Name <span class="required">*</span></label>
                             <input type="text" id="inquiry-name" required placeholder="e.g. Anand (Madurai Kitchens)" class="form-input">
@@ -232,23 +234,46 @@
     </footer>
 
     <!-- Scripts -->
-    <script src="../shared/js/config.js?v=2.4.0"></script>
-    <script src="../shared/js/default-products.js?v=2.4.0"></script>
-    <script src="../shared/js/firebase-init.js?v=2.4.0"></script>
-    <script src="../shared/js/utils.js?v=2.4.0"></script>
-    <script src="../shared/js/whatsapp.js?v=2.4.0"></script>
-    <script src="js/cart.js?v=2.4.0"></script>
-    <script src="js/app.js?v=2.4.0"></script>
+    <script>window._contactFormLoadedTime = Date.now();</script>
+    <script src="../shared/js/config.js?v=2.7.0"></script>
+    <script src="../shared/js/default-products.js?v=2.7.0"></script>
+    <script src="../shared/js/traffic-control.js?v=2.7.0"></script>
+    <script src="../shared/js/firebase-init.js?v=2.7.0"></script>
+    <script src="../shared/js/utils.js?v=2.7.0"></script>
+    <script src="../shared/js/whatsapp.js?v=2.7.0"></script>
+    <script src="js/cart.js?v=2.7.0"></script>
+    <script src="js/app.js?v=2.7.0"></script>
 
     <script>
     document.getElementById('contact-inquiry-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type="submit"]');
+
+        // Bot Honeypot Check
+        const honeypotVal = document.getElementById('b_company_fax')?.value;
+        if (window.TrafficControl && window.TrafficControl.isBotDetected(honeypotVal, window._contactFormLoadedTime)) {
+            console.warn('Bot blocked by TrafficControl');
+            if (window.Utils && window.Utils.showToast) window.Utils.showToast('Inquiry recorded! Opening WhatsApp...', 'success');
+            return;
+        }
+
+        // Traffic Rate Limiting & Execution Lock
+        if (window.TrafficControl) {
+            const check = window.TrafficControl.canSubmitInquiry();
+            if (!check.allowed) {
+                if (window.Utils && window.Utils.showToast) window.Utils.showToast(check.message, 'warning');
+                else alert(check.message);
+                return;
+            }
+            if (!window.TrafficControl.acquireLock('inquiry_submit')) return;
+        }
+
         const name = (document.getElementById('inquiry-name')?.value || '').trim();
         const phone = (document.getElementById('inquiry-phone')?.value || '').trim();
         const msg = (document.getElementById('inquiry-msg')?.value || '').trim();
 
         if (name.length < 2) {
+            if (window.TrafficControl) window.TrafficControl.releaseLock('inquiry_submit');
             if (window.Utils && window.Utils.showToast) window.Utils.showToast('Please enter your full name or business name', 'warning');
             else alert('Please enter your name or business name (min 2 characters)');
             document.getElementById('inquiry-name')?.focus();
@@ -257,6 +282,7 @@
 
         const cleanPhone = phone.replace(/\D/g, '');
         if (cleanPhone.length < 8) {
+            if (window.TrafficControl) window.TrafficControl.releaseLock('inquiry_submit');
             if (window.Utils && window.Utils.showToast) window.Utils.showToast('Please enter a valid phone number (at least 8 digits)', 'warning');
             else alert('Please enter a valid phone number');
             document.getElementById('inquiry-phone')?.focus();
@@ -264,6 +290,7 @@
         }
 
         if (msg.length < 3) {
+            if (window.TrafficControl) window.TrafficControl.releaseLock('inquiry_submit');
             if (window.Utils && window.Utils.showToast) window.Utils.showToast('Please enter your inquiry requirement', 'warning');
             else alert('Please enter your requirement message (min 3 characters)');
             document.getElementById('inquiry-msg')?.focus();
@@ -295,6 +322,11 @@
             }
         } catch (err) {
             console.warn('Inquiry Firestore log error:', err);
+        }
+
+        if (window.TrafficControl) {
+            window.TrafficControl.recordInquirySubmission();
+            window.TrafficControl.releaseLock('inquiry_submit');
         }
 
         if (window.Utils && window.Utils.showToast) {

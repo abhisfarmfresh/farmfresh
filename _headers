@@ -1,0 +1,30 @@
+# Cloudflare Pages Edge Traffic & Security Rules
+# Optimizes CDN caching, eliminates server load spikes, and protects against bots/DDoS
+
+# Default headers for all routes
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  X-XSS-Protection: 1; mode=block
+
+# HTML Pages: Fresh content delivery with conditional validation
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Images & Visual Assets: Edge CDN caching for 7 days with stale-while-revalidate
+/images/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+# CSS Stylesheets: Edge cached for 24 hours with stale-while-revalidate
+/css/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=3600
+
+# JavaScript Modules: Edge cached for 24 hours with stale-while-revalidate
+/js/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=3600
+
+/shared/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=3600

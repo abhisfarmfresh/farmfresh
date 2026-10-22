@@ -137,6 +137,26 @@ async function handleOrderSubmit(e) {
     return;
   }
 
+  // Anti-Bot & Traffic Spurt Checks
+  const honeypotVal = document.getElementById('b_tax_id')?.value;
+  if (window.TrafficControl && window.TrafficControl.isBotDetected(honeypotVal, window._checkoutFormLoadedTime)) {
+    console.warn('Bot blocked by TrafficControl');
+    Cart.clear();
+    window.location.href = 'order-success.html?orderId=bot_verified&orderNumber=AFF-SECURE';
+    return;
+  }
+
+  if (window.TrafficControl) {
+    const rateCheck = window.TrafficControl.canSubmitOrder();
+    if (!rateCheck.allowed) {
+      Utils.showToast(rateCheck.message, 'warning');
+      return;
+    }
+    if (!window.TrafficControl.acquireLock('order_submission')) {
+      return;
+    }
+  }
+
   const submitBtn = document.getElementById('place-order-btn');
   if (submitBtn) {
     submitBtn.disabled = true;
@@ -231,11 +251,19 @@ async function handleOrderSubmit(e) {
     // 5. Clear Cart
     Cart.clear();
 
+    if (window.TrafficControl) {
+      window.TrafficControl.recordOrderSubmission();
+      window.TrafficControl.releaseLock('order_submission');
+    }
+
     // 6. Redirect to Success Page
     const redirectUrl = `order-success.html?orderId=${encodeURIComponent(orderDocId || 'success')}&orderNumber=${encodeURIComponent(orderNumber)}`;
     window.location.href = redirectUrl;
 
   } catch (err) {
+    if (window.TrafficControl) {
+      window.TrafficControl.releaseLock('order_submission');
+    }
     console.error('Error placing order:', err);
     Utils.showToast("We couldn't place your order right now. Please try again or contact us on WhatsApp.", 'error');
     if (submitBtn) {

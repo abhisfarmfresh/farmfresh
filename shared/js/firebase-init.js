@@ -11,6 +11,10 @@ const FirebaseApp = {
   _initialized: false,
   _projectId: 'abhisfarmfresh-3e7d3',
   _restBaseUrl: 'https://firestore.googleapis.com/v1/projects/abhisfarmfresh-3e7d3/databases/(default)/documents',
+  _productCacheData: null,
+  _productCacheTime: 0,
+  _PRODUCT_CACHE_TTL_MS: 30000,
+  _inFlightProductPromise: null,
 
   /**
    * Initialize Firebase SDK services with fallback support
@@ -496,31 +500,61 @@ const FirebaseApp = {
   },
 
   /**
-   * Fetch all active products directly from Cloud Firestore
+   * Internal loader for products with deduplication and high-traffic memory cache
+   */
+  async _fetchMergedProducts() {
+    const now = Date.now();
+    // 1. High-traffic memory cache check (30s TTL)
+    if (this._productCacheData && (now - this._productCacheTime < this._PRODUCT_CACHE_TTL_MS)) {
+      return this._productCacheData;
+    }
+
+    // 2. In-flight request deduplication: reuse active network fetch
+    if (this._inFlightProductPromise) {
+      return this._inFlightProductPromise;
+    }
+
+    this._inFlightProductPromise = (async () => {
+      let rawList = [];
+      try {
+        rawList = await this._restList('products', 100);
+      } catch (restErr) {
+        console.warn('REST product fetch warning:', restErr.message);
+      }
+
+      if (rawList.length === 0 && this.db) {
+        try {
+          const snap = await this.db.collection('products').get();
+          rawList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (sdkErr) {
+          console.warn('SDK product fetch warning:', sdkErr.message);
+        }
+      }
+
+      const merged = this._mergeProductsWithDefaults(rawList);
+      const valid = merged
+        .filter(p => !p.isDeleted && p.status !== 'deleted')
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+      this._productCacheData = valid;
+      this._productCacheTime = Date.now();
+      return valid;
+    })();
+
+    try {
+      return await this._inFlightProductPromise;
+    } finally {
+      this._inFlightProductPromise = null;
+    }
+  },
+
+  /**
+   * Fetch all active products directly from Cloud Firestore (High-Traffic Optimized)
    */
   async getProducts() {
-    let rawList = [];
-
-    // 1. Try Firestore REST API directly (fastest on mobile & desktop)
-    try {
-      rawList = await this._restList('products', 100);
-    } catch (restErr) {
-      console.warn('REST product fetch warning:', restErr.message);
-    }
-
-    // 2. Fallback to Firestore SDK
-    if (rawList.length === 0 && this.db) {
-      try {
-        const snap = await this.db.collection('products').get();
-        rawList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      } catch (sdkErr) {
-        console.warn('SDK product fetch warning:', sdkErr.message);
-      }
-    }
-
-    const merged = this._mergeProductsWithDefaults(rawList);
-    const activeOnly = merged
-      .filter(p => p.isActive !== false && p.status !== 'inactive' && !p.isDeleted && p.status !== 'deleted')
+    const all = await this._fetchMergedProducts();
+    const activeOnly = all
+      .filter(p => p.isActive !== false && p.status !== 'inactive')
       .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     if (window.ProductStorage) {
@@ -534,22 +568,7 @@ const FirebaseApp = {
    * Fetch all products including inactive (for Admin)
    */
   async getAllProducts() {
-    let rawList = [];
-    try {
-      rawList = await this._restList('products', 100);
-    } catch (e) {}
-
-    if (rawList.length === 0 && this.db) {
-      try {
-        const snap = await this.db.collection('products').get();
-        rawList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      } catch (e) {}
-    }
-
-    const merged = this._mergeProductsWithDefaults(rawList);
-    const valid = merged
-      .filter(p => !p.isDeleted && p.status !== 'deleted')
-      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    const valid = await this._fetchMergedProducts();
 
     if (window.ProductStorage) {
       window.ProductStorage.saveAll(valid);
@@ -624,6 +643,8 @@ const FirebaseApp = {
       window.ProductStorage.upsert(normalized);
     }
 
+    this._productCacheData = null;
+    this._productCacheTime = 0;
     console.log('✅ Product saved to Cloud Firestore:', docId);
     return docId;
   },
@@ -655,6 +676,8 @@ const FirebaseApp = {
       window.ProductStorage.upsert(normalized);
     }
 
+    this._productCacheData = null;
+    this._productCacheTime = 0;
     console.log('✅ Product updated in Cloud Firestore:', productId);
     return true;
   },
@@ -669,6 +692,9 @@ const FirebaseApp = {
     if (window.ProductStorage) {
       window.ProductStorage.delete(sId);
     }
+
+    this._productCacheData = null;
+    this._productCacheTime = 0;
 
     const delDoc = { id: sId, isDeleted: true, status: 'deleted', isActive: false, updatedAt: new Date() };
 
@@ -912,8 +938,9 @@ const FirebaseApp = {
       } catch (e) {}
     }
 
-    // Polling fallback every 15 seconds to ensure non-SDK devices stay synced
+    // Polling fallback every 15 seconds to ensure non-SDK devices stay synced (throttled when tab is inactive)
     const pollTimer = setInterval(async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
         const updated = await this.getAllOrders();
         if (updated && Array.isArray(updated)) callback(updated);
@@ -1421,8 +1448,9 @@ const FirebaseApp = {
       } catch (e) {}
     }
 
-    // Polling fallback every 15 seconds to ensure cross-device synchronization
+    // Polling fallback every 15 seconds to ensure cross-device synchronization (throttled when tab is inactive)
     const pollTimer = setInterval(async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
         const updated = await this.getInquiries();
         if (updated && Array.isArray(updated)) callback(updated);
