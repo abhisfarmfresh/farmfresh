@@ -19,11 +19,26 @@
   padding: 0 16px;
 }
 
-/* Product grid: 1 column on mobile */
+/* Product grid: Professional 2-column mobile layout */
 .product-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 340px) {
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 639px) {
+  .product-card .product-card-img-wrap {
+    height: 145px !important;
+  }
+  .product-card .p-5 {
+    padding: 12px !important;
+  }
 }
 
 /* Stats grid */

@@ -182,10 +182,44 @@ const FirebaseApp = {
 
   async _restList(collection, pageSize = 100) {
     try {
-      const res = await fetch(`${this._restBaseUrl}/${collection}?pageSize=${pageSize}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 9000);
+      const url = `${this._restBaseUrl}/${collection}?pageSize=${pageSize}&_t=${Date.now()}`;
+      const res = await fetch(url, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const docs = data.documents || [];
+      let docs = data.documents || [];
+
+      // Follow nextPageToken if more documents exist
+      let nextPageToken = data.nextPageToken;
+      let pages = 0;
+      while (nextPageToken && pages < 3) {
+        pages++;
+        try {
+          const nextUrl = `${this._restBaseUrl}/${collection}?pageSize=${pageSize}&pageToken=${encodeURIComponent(nextPageToken)}&_t=${Date.now()}`;
+          const nextRes = await fetch(nextUrl, { cache: 'no-store' });
+          if (nextRes.ok) {
+            const nextData = await nextRes.json();
+            if (nextData.documents) {
+              docs = docs.concat(nextData.documents);
+            }
+            nextPageToken = nextData.nextPageToken;
+          } else {
+            break;
+          }
+        } catch (e) {
+          break;
+        }
+      }
+
       return docs.map(d => this._parseRestDoc(d)).filter(Boolean);
     } catch (err) {
       console.warn(`Firestore REST list error (${collection}):`, err.message);

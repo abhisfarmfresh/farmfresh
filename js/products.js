@@ -17,7 +17,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderProductsGrid();
     }
   });
-  await loadProducts();
+
+  // Mobile real-time revalidation when user switches back to browser tab
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      loadProducts(false);
+    }
+  });
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      loadProducts(false);
+    }
+  });
+
+  await loadProducts(true);
 });
 
 /**
@@ -135,15 +148,20 @@ function setupSearchAndSort() {
 /**
  * Load products from Firestore (or local persistent storage fallback)
  */
-async function loadProducts() {
+async function loadProducts(showSkeleton = true) {
   const grid = document.getElementById('products-grid') || document.getElementById('featured-products-grid');
   if (!grid) return;
 
-  grid.innerHTML = Utils.createSkeleton(8);
+  if (showSkeleton && (!allProducts || allProducts.length === 0)) {
+    grid.innerHTML = Utils.createSkeleton(8);
+  }
 
   try {
     let fetched = [];
-    if (window.FirebaseApp && window.FirebaseApp.isReady()) {
+    if (window.FirebaseApp) {
+      if (typeof window.FirebaseApp.init === 'function') {
+        window.FirebaseApp.init();
+      }
       fetched = await window.FirebaseApp.getProducts();
     }
 
