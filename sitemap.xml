@@ -4,7 +4,7 @@
   <!-- Homepage -->
   <url>
     <loc>https://abhisfarmfresh.in/</loc>
-    <lastmod>2026-08-22</lastmod>
+    <lastmod>2026-10-22</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
@@ -21,7 +21,7 @@
   <!-- Vegetables Catalogue & Rates -->
   <url>
     <loc>https://abhisfarmfresh.in/products.html</loc>
-    <lastmod>2026-08-22</lastmod>
+    <lastmod>2026-10-22</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
     <image:image>
@@ -44,7 +44,7 @@
   <!-- About Us & Quality Standards -->
   <url>
     <loc>https://abhisfarmfresh.in/about.html</loc>
-    <lastmod>2026-08-22</lastmod>
+    <lastmod>2026-10-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
     <image:image>
@@ -56,7 +56,7 @@
   <!-- Contact & Bulk Wholesale Procurement -->
   <url>
     <loc>https://abhisfarmfresh.in/contact.html</loc>
-    <lastmod>2026-08-22</lastmod>
+    <lastmod>2026-10-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>

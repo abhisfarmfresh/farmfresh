@@ -7,12 +7,16 @@ Allow: /js/
 Allow: /shared/
 Allow: /customer/
 
-# Disallow Private & Admin Areas
+# Disallow Private & Cart/Checkout Areas
 Disallow: /admin/
 Disallow: /admin/*
 Disallow: /seed.html
+Disallow: /cart.html
 Disallow: /checkout.html
 Disallow: /order-success.html
+Disallow: /customer/cart.html
+Disallow: /customer/checkout.html
+Disallow: /customer/order-success.html
 
 # Sitemap Directive
 Sitemap: https://abhisfarmfresh.in/sitemap.xml
