@@ -806,6 +806,7 @@ const AdminCore = {
     if (previewEl) previewEl.src = '../images/farm_fresh_media_01.jpeg';
 
     document.querySelectorAll('.product-badge-checkbox').forEach(cb => cb.checked = false);
+    this.resetDropzoneUi();
 
     this.openModal('product-modal');
   },
@@ -849,12 +850,32 @@ const AdminCore = {
     if (previewEl) {
       previewEl.src = this.resolveImageUrl(p.imageUrl);
     }
+    this.resetDropzoneUi();
 
     this.openModal('product-modal');
   },
 
+  resetDropzoneUi() {
+    const fileInput = document.getElementById('product-file-input');
+    if (fileInput) fileInput.value = '';
+    const icon = document.getElementById('dropzone-icon');
+    const title = document.getElementById('dropzone-title');
+    const sub = document.getElementById('dropzone-sub');
+    const dropzone = document.getElementById('product-image-dropzone');
+    if (icon) {
+      icon.textContent = 'cloud_upload';
+      icon.className = 'material-symbols-outlined text-3xl text-slate-400';
+    }
+    if (title) title.textContent = 'Drag & Drop Image or Click to Browse';
+    if (sub) sub.textContent = 'Direct unsigned upload to Cloudinary (jpnbyoak)';
+    if (dropzone) dropzone.classList.remove('pointer-events-none', 'opacity-80');
+  },
+
   async handleProductFormSubmit(e) {
     e.preventDefault();
+    const saveBtn = e.target.querySelector('button[type="submit"]');
+    const originalBtnText = saveBtn ? saveBtn.innerHTML : 'Save Produce';
+
     const getVal = (id) => document.getElementById(id)?.value?.trim() || '';
 
     const id = getVal('product-form-id');
@@ -866,9 +887,44 @@ const AdminCore = {
     const stock = Number(document.getElementById('product-form-stock')?.value) || 0;
     const sku = getVal('product-form-sku') || `AFF-${Date.now().toString().slice(-4)}`;
     const description = getVal('product-form-desc');
-    const imageUrl = getVal('product-form-image-url') || 'images/farm_fresh_media_01.jpeg';
+    let imageUrl = getVal('product-form-image-url') || 'images/farm_fresh_media_01.jpeg';
     const origin = getVal('product-form-origin');
     const shelfLife = getVal('product-form-shelflife');
+
+    // STRICT: If user selected a new file, it MUST upload to Cloudinary before saving
+    const fileInput = document.getElementById('product-file-input');
+    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+      const file = fileInput.files[0];
+      if (!imageUrl || !imageUrl.startsWith('https://res.cloudinary.com')) {
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span> Uploading to Cloudinary...';
+        }
+        try {
+          this.showToast('Uploading photo to Cloudinary CDN...', 'info');
+          const uploadedUrl = await window.CloudinaryService.uploadImage(file);
+          if (uploadedUrl && (uploadedUrl.startsWith('https://res.cloudinary.com') || uploadedUrl.startsWith('http'))) {
+            imageUrl = uploadedUrl;
+            const urlInput = document.getElementById('product-form-image-url');
+            if (urlInput) urlInput.value = uploadedUrl;
+          } else {
+            this.showToast('❌ Image upload to Cloudinary failed. Product not saved.', 'error');
+            if (saveBtn) {
+              saveBtn.disabled = false;
+              saveBtn.innerHTML = originalBtnText;
+            }
+            return;
+          }
+        } catch (uErr) {
+          this.showToast('❌ Cloudinary upload error: ' + uErr.message, 'error');
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalBtnText;
+          }
+          return;
+        }
+      }
+    }
 
     const badges = [];
     document.querySelectorAll('.product-badge-checkbox:checked').forEach(cb => {
@@ -1513,50 +1569,49 @@ const AdminCore = {
       const previewImg = document.getElementById('product-image-preview');
       const urlInput = document.getElementById('product-form-image-url');
       const dropzone = document.getElementById('product-image-dropzone');
-      const originalDropzoneHtml = dropzone ? dropzone.innerHTML : '';
+      const icon = document.getElementById('dropzone-icon');
+      const title = document.getElementById('dropzone-title');
+      const sub = document.getElementById('dropzone-sub');
 
-      // Instant local preview — 0ms perceived delay
+      // Instant local preview
       if (previewImg) {
         try {
           previewImg.src = URL.createObjectURL(file);
         } catch (e) {}
       }
 
-      if (dropzone) {
-        dropzone.classList.add('pointer-events-none', 'opacity-80');
-        dropzone.innerHTML = `
-          <span class="material-symbols-outlined text-3xl text-emerald-600 animate-spin">progress_activity</span>
-          <div class="text-xs font-bold text-emerald-700 mt-1" id="dropzone-status">Optimizing & Uploading...</div>
-          <div class="text-[10px] text-slate-400">High-speed compression active</div>
-        `;
+      if (dropzone) dropzone.classList.add('pointer-events-none', 'opacity-80');
+      if (icon) {
+        icon.textContent = 'progress_activity';
+        icon.className = 'material-symbols-outlined text-3xl text-emerald-600 animate-spin';
       }
+      if (title) title.textContent = 'Optimizing & Uploading...';
+      if (sub) sub.textContent = 'Direct upload to Cloudinary (jpnbyoak)';
 
       // Upload via Cloudinary with client pre-compression
       if (window.CloudinaryService) {
         try {
           const url = await window.CloudinaryService.uploadImage(file, (statusText) => {
-            const statusEl = document.getElementById('dropzone-status');
-            if (statusEl) statusEl.textContent = statusText;
+            if (title) title.textContent = statusText;
           });
 
           if (url && (url.startsWith('https://res.cloudinary.com') || url.startsWith('http'))) {
             if (urlInput) urlInput.value = url;
             if (previewImg) previewImg.src = url;
-            if (dropzone) {
-              dropzone.innerHTML = `
-                <span class="material-symbols-outlined text-3xl text-emerald-600">cloud_done</span>
-                <div class="text-xs font-bold text-emerald-700 mt-1">Uploaded to Cloudinary!</div>
-                <div class="text-[10px] text-slate-400">Click to change photo</div>
-              `;
+            if (icon) {
+              icon.textContent = 'cloud_done';
+              icon.className = 'material-symbols-outlined text-3xl text-emerald-600';
             }
+            if (title) title.textContent = 'Uploaded to Cloudinary!';
+            if (sub) sub.textContent = 'Click to change photo';
             this.showToast('☁️ Uploaded to Cloudinary successfully!', 'success');
           } else {
-            if (dropzone) dropzone.innerHTML = originalDropzoneHtml;
+            this.resetDropzoneUi();
             this.showToast('❌ Cloudinary upload failed. Please try again.', 'error');
           }
         } catch (err) {
           console.error('Upload error:', err);
-          if (dropzone) dropzone.innerHTML = originalDropzoneHtml;
+          this.resetDropzoneUi();
           this.showToast('Upload error: ' + err.message, 'error');
         } finally {
           if (dropzone) dropzone.classList.remove('pointer-events-none', 'opacity-80');
